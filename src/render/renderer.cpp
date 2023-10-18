@@ -55,8 +55,10 @@ namespace render {
         if(SDL_GetWindowFlags(_p_window) & SDL_WINDOW_MINIMIZED){
             return;
         }
+        // wait until last frame is rendered, timeout 1s
         VK_CHECK(vkWaitForFences(_device, 1, &_render_fence, true, 1000000000));
         VK_CHECK(vkResetFences(_device, 1, &_render_fence));
+        // now can reset command buffer safely
         VK_CHECK(vkResetCommandBuffer(_main_command_buffer, 0));
         u32 image_index{};
         VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000, _present_semaphore, nullptr, &image_index));
@@ -65,6 +67,7 @@ namespace render {
         VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
         VkClearValue clear;
         static u64 frame_nr{};
+
         VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(_render_pass, _window_extent, _framebuffers[image_index]);
         float flash = abs(sin(frame_nr/120.f));
         clear.color = {{0.f, 0.f, flash, 1.f}};
@@ -72,9 +75,11 @@ namespace render {
         renderpass_info.pClearValues = &clear;
         vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
         // insert actual commands
-        //
+        // <-
         vkCmdEndRenderPass(buf);
         VK_CHECK(vkEndCommandBuffer(buf));
+        // waiting on _present_semaphore which is signaled when swapchain is ready.
+        // signal _render_semaphore when finished rendering.
         VkSubmitInfo submit = vkbuild::submit_info(&buf);
         VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         submit.pWaitDstStageMask=&wait_stage;
@@ -82,7 +87,10 @@ namespace render {
         submit.pWaitSemaphores = &_present_semaphore;
         submit.signalSemaphoreCount = 1;
         submit.pSignalSemaphores = &_render_semaphore;
+        // render fence blocks until commands finish executing
         VK_CHECK(vkQueueSubmit(_graphics_queue, 1, &submit, _render_fence));
+
+        // waiting on rendering to finish, then presenting
         VkPresentInfoKHR present_info = vkbuild::present_info();
         present_info.swapchainCount = 1;
         present_info.pSwapchains = &_swapchain;
