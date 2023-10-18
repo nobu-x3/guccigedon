@@ -1,11 +1,10 @@
+#pragma once
+
 #include <cstdio>
 namespace core {
 	class Logger {
-	public:
-		Logger() = default;
-		Logger(Logger &&) = default;
-		~Logger() = default;
 
+	public:
 		template <typename... Args>
 		static void Trace(const char *message, Args... args) {
 			printf("[TRACE]\t");
