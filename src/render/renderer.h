@@ -3,7 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "vulkan_types.h"
-#include "../core/core.h";
+#include "../core/core.h"
 
 struct SDL_Window;
 

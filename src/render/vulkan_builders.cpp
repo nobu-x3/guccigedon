@@ -105,4 +105,43 @@ namespace vkbuild {
 		info.framebuffer = framebuffer;
 		return info;
 	}
+
+	PipelineBuilder &
+	PipelineBuilder::add_shader_stage(VkPipelineShaderStageCreateInfo ci) {
+		_shader_stages.push_back(ci);
+		return *this;
+	}
+
+	PipelineBuilder &
+	PipelineBuilder::set_vertex_input(VkPipelineVertexInputStateCreateInfo ci) {
+		_vertex_input = ci;
+		return *this;
+	}
+
+	PipelineBuilder &PipelineBuilder::set_input_assembly(
+		VkPipelineInputAssemblyStateCreateInfo ci){
+			_input_assembly = ci;
+			return *this;
+		}
+
+	PipelineBuilder &PipelineBuilder::set_viewport(VkViewport viewport){
+		_viewport = viewport;
+		return *this;
+	}
+
+	PipelineBuilder &PipelineBuilder::set_scissor(VkRect2D scissor);
+
+	PipelineBuilder &
+	PipelineBuilder::set_rasterizer(VkPipelineRasterizationStateCreateInfo ci);
+
+	PipelineBuilder &
+	PipelineBuilder::set_color_blend(VkPipelineColorBlendAttachmentState state);
+
+	PipelineBuilder &
+	PipelineBuilder::set_multisampling(VkPipelineMultisampleStateCreateInfo ci);
+
+	VkPipelineLayout PipelineBuilder::build_layout();
+
+	VkPipeline PipelineBuilder::build_pipeline(VkDevice device,
+											   VkRenderPass pass);
 } // namespace vkbuild

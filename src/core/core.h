@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <cstdint>
+#include <vector>
+#include "logger.h"
 
 using u8 = std::uint8_t;
 
@@ -22,3 +24,5 @@ using s64 = std::int64_t;
 using f32 = std::float_t;
 
 using f64 = std::double_t;
+
+template<typename T> using array_list = std::vector<T>;
