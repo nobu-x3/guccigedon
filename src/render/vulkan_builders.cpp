@@ -1,4 +1,6 @@
 #include "vulkan_builders.h"
+#include <algorithm>
+#include <fstream>
 #include "vulkan/vulkan_core.h"
 #include "vulkan_types.h"
 
@@ -108,9 +110,65 @@ namespace vkbuild {
 		return info;
 	}
 
-	PipelineBuilder &
-	PipelineBuilder::add_shader_stage(VkPipelineShaderStageCreateInfo ci) {
-		_shader_stages.push_back(ci);
+	PipelineBuilder &PipelineBuilder::add_shader(VkDevice device,
+												 const char *path,
+												 ShaderType type) {
+		for (auto &shader : _shaders) {
+			if (shader.type == type) {
+#define PROCESS_VAL(p)                                                         \
+	case (p):                                                                  \
+		core::Logger::Error(                                                   \
+			"Attempting to add a second shader of the type %s", #p);           \
+		return *this;
+				switch (type) {
+					PROCESS_VAL(ShaderType::VERTEX)
+					PROCESS_VAL(ShaderType::FRAGMENT)
+				}
+#undef PROCESS_VAL
+			}
+		}
+		// open the file. With cursor at the end
+		std::ifstream file(path, std::ios::ate | std::ios::binary);
+		if (!file.is_open()) {
+			core::Logger::Error("Failed to open shader code at path %s", path);
+			return *this;
+		}
+		// find what the size of the file is by looking up the location of
+		// the cursor because the cursor is at the end, it gives the size
+		// directly in bytes
+		size_t file_size = (size_t)file.tellg();
+		// spirv expects the buffer to be on uint32, so make sure to reserve
+		// a int vector big enough for the entire file
+		ArrayList<u32> buffer(file_size / sizeof(u32));
+		// put file cursor at beggining
+		file.seekg(0);
+		// load the entire file into the buffer
+		file.read((char *)buffer.data(), file_size);
+		// now that the file is loaded into the buffer, we can close it
+		file.close();
+		// create a new shader module, using the buffer we loaded
+		// codeSize has to be in bytes, so multply the ints in the buffer by
+		// size of int to know the real size of the buffer
+		VkShaderModuleCreateInfo createInfo = {
+			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0,
+			buffer.size() * sizeof(u32), buffer.data()};
+		Shader shader{0, type};
+		// check that the creation goes well.
+		VkResult res =
+			vkCreateShaderModule(device, &createInfo, nullptr, &shader.module);
+		if (res != VK_SUCCESS) {
+			core::Logger::Trace("Failed to create shader module. %d", res);
+			return *this;
+		}
+		_shaders.push_back(shader);
+		VkPipelineShaderStageCreateInfo stage_ci{
+			VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<VkShaderStageFlagBits>(type),
+			shader.module,
+			"main"};
+		_shader_stages.push_back(stage_ci);
 		return *this;
 	}
 
@@ -133,12 +191,10 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::set_input_assembly(
-		VkPrimitiveTopology topology,
-		VkPipelineInputAssemblyStateCreateFlags create_flags,
-		bool primitive_restart_enable) {
+	PipelineBuilder &
+	PipelineBuilder::set_input_assembly(VkPrimitiveTopology topology,
+										bool primitive_restart_enable) {
 		_input_assembly.topology = topology;
-		_input_assembly.flags = create_flags;
 		_input_assembly.primitiveRestartEnable = primitive_restart_enable;
 		return *this;
 	}
@@ -176,6 +232,23 @@ namespace vkbuild {
 																 VkLogicOp op) {
 		_color_blend_state.logicOpEnable = enabled;
 		_color_blend_state.logicOp = op;
+		return *this;
+	}
+	PipelineBuilder &PipelineBuilder::add_default_color_blend_attachment() {
+		VkPipelineColorBlendAttachmentState color_blend_attachment{
+			false,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			VK_BLEND_OP_ADD,
+			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+				VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+		_color_blend_attachments.push_back(color_blend_attachment);
+		_color_blend_state.pAttachments = _color_blend_attachments.data();
+		_color_blend_state.attachmentCount =
+			static_cast<int>(_color_blend_attachments.size());
 		return *this;
 	}
 
@@ -252,6 +325,9 @@ namespace vkbuild {
 		VK_CHECK(vkCreateGraphicsPipelines(device, nullptr, 1, &pipeline_ci,
 										   nullptr, &pipeline));
 		core::Logger::Trace("Pipeline successfully created.");
+		for (auto &shader : _shaders) {
+			vkDestroyShaderModule(device, shader.module, nullptr);
+		}
 		return pipeline;
 	}
 } // namespace vkbuild

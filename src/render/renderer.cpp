@@ -11,13 +11,12 @@
 #include "vulkan_types.h"
 
 namespace render {
-
 	VulkanRenderer::VulkanRenderer() {
 		SDL_Init(SDL_INIT_VIDEO);
-		_p_window = SDL_CreateWindow("Guccigedon", SDL_WINDOWPOS_CENTERED,
-									SDL_WINDOWPOS_CENTERED,
-									_window_extent.width, _window_extent.height,
-									(SDL_WindowFlags)(SDL_WINDOW_VULKAN));
+		_p_window = SDL_CreateWindow(
+			"Guccigedon", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			_window_extent.width, _window_extent.height,
+			(SDL_WindowFlags)(SDL_WINDOW_VULKAN));
 		if (!_p_window) {
 			core::Logger::Fatal("Failed to create a window. %s",
 								SDL_GetError());
@@ -29,6 +28,7 @@ namespace render {
 		init_framebuffers();
 		init_commands();
 		init_sync_objects();
+		init_pipeline();
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -51,55 +51,61 @@ namespace render {
 	}
 
 	void VulkanRenderer::draw() {
-        // Not rendering when minimized
-        if(SDL_GetWindowFlags(_p_window) & SDL_WINDOW_MINIMIZED){
-            return;
-        }
-        // wait until last frame is rendered, timeout 1s
-        VK_CHECK(vkWaitForFences(_device, 1, &_render_fence, true, 1000000000));
-        VK_CHECK(vkResetFences(_device, 1, &_render_fence));
-        // now can reset command buffer safely
-        VK_CHECK(vkResetCommandBuffer(_main_command_buffer, 0));
-        u32 image_index{};
-        VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000, _present_semaphore, nullptr, &image_index));
-        VkCommandBuffer buf = _main_command_buffer;
-        VkCommandBufferBeginInfo buf_begin_info = vkbuild::command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
-        VkClearValue clear;
-        static u64 frame_nr{};
+		// Not rendering when minimized
+		if (SDL_GetWindowFlags(_p_window) & SDL_WINDOW_MINIMIZED) {
+			return;
+		}
+		// wait until last frame is rendered, timeout 1s
+		VK_CHECK(vkWaitForFences(_device, 1, &_render_fence, true, 1000000000));
+		VK_CHECK(vkResetFences(_device, 1, &_render_fence));
+		// now can reset command buffer safely
+		VK_CHECK(vkResetCommandBuffer(_main_command_buffer, 0));
+		u32 image_index{};
+		VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000,
+									   _present_semaphore, nullptr,
+									   &image_index));
+		VkCommandBuffer buf = _main_command_buffer;
+		VkCommandBufferBeginInfo buf_begin_info =
+			vkbuild::command_buffer_begin_info(
+				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
+		VkClearValue clear;
+		static u64 frame_nr{};
 
-        VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(_render_pass, _window_extent, _framebuffers[image_index]);
-        float flash = abs(sin(frame_nr/120.f));
-        clear.color = {{0.f, 0.f, flash, 1.f}};
-        renderpass_info.clearValueCount = 1;
-        renderpass_info.pClearValues = &clear;
-        vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-        // insert actual commands
-        // <-
-        vkCmdEndRenderPass(buf);
-        VK_CHECK(vkEndCommandBuffer(buf));
-        // waiting on _present_semaphore which is signaled when swapchain is ready.
-        // signal _render_semaphore when finished rendering.
-        VkSubmitInfo submit = vkbuild::submit_info(&buf);
-        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        submit.pWaitDstStageMask=&wait_stage;
-        submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = &_present_semaphore;
-        submit.signalSemaphoreCount = 1;
-        submit.pSignalSemaphores = &_render_semaphore;
-        // render fence blocks until commands finish executing
-        VK_CHECK(vkQueueSubmit(_graphics_queue, 1, &submit, _render_fence));
+		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
+			_render_pass, _window_extent, _framebuffers[image_index]);
+		float flash = abs(sin(frame_nr / 120.f));
+		clear.color = {{0.f, 0.f, flash, 1.f}};
+		renderpass_info.clearValueCount = 1;
+		renderpass_info.pClearValues = &clear;
+		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
+		// insert actual commands
+		// <-
+		vkCmdEndRenderPass(buf);
+		VK_CHECK(vkEndCommandBuffer(buf));
+		// waiting on _present_semaphore which is signaled when swapchain is
+		// ready. signal _render_semaphore when finished rendering.
+		VkSubmitInfo submit = vkbuild::submit_info(&buf);
+		VkPipelineStageFlags wait_stage =
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		submit.pWaitDstStageMask = &wait_stage;
+		submit.waitSemaphoreCount = 1;
+		submit.pWaitSemaphores = &_present_semaphore;
+		submit.signalSemaphoreCount = 1;
+		submit.pSignalSemaphores = &_render_semaphore;
+		// render fence blocks until commands finish executing
+		VK_CHECK(vkQueueSubmit(_graphics_queue, 1, &submit, _render_fence));
 
-        // waiting on rendering to finish, then presenting
-        VkPresentInfoKHR present_info = vkbuild::present_info();
-        present_info.swapchainCount = 1;
-        present_info.pSwapchains = &_swapchain;
-        present_info.waitSemaphoreCount = 1;
-        present_info.pWaitSemaphores = &_render_semaphore;
-        present_info.pImageIndices = &image_index;
-        VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
-        ++frame_nr;
-    }
+		// waiting on rendering to finish, then presenting
+		VkPresentInfoKHR present_info = vkbuild::present_info();
+		present_info.swapchainCount = 1;
+		present_info.pSwapchains = &_swapchain;
+		present_info.waitSemaphoreCount = 1;
+		present_info.pWaitSemaphores = &_render_semaphore;
+		present_info.pImageIndices = &image_index;
+		VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
+		++frame_nr;
+	}
 
 	void VulkanRenderer::run() {
 		SDL_Event e;
@@ -236,5 +242,28 @@ namespace render {
 								   &_present_semaphore));
 		VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr,
 								   &_render_semaphore));
+	}
+
+	void VulkanRenderer::init_pipeline() {
+		vkbuild::PipelineBuilder builder;
+		_graphics_pipeline_layout =
+			builder
+				.add_shader(_device, "assets/shaders/default_shader.vert.spv",
+							vkbuild::ShaderType::VERTEX)
+				.add_shader(_device, "assets/shaders/default_shader.frag.spv",
+							vkbuild::ShaderType::FRAGMENT)
+				// @TODO: vertex input
+				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
+				.set_polygon_mode(VK_POLYGON_MODE_FILL)
+				// @TODO: cull mode
+				.set_multisampling_enabled(false)
+				.add_default_color_blend_attachment()
+				.set_color_blending_enabled(false)
+				.add_viewport({0, 0, static_cast<float>(_window_extent.width),
+							   static_cast<float>(_window_extent.height), 0.f,
+							   1.f})
+				.add_scissor({{0, 0}, _window_extent})
+				.build_layout(_device);
+		_graphics_pipeline = builder.build_pipeline(_device, _render_pass);
 	}
 } // namespace render

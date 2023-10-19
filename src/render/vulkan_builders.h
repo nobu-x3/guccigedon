@@ -31,9 +31,17 @@ namespace vkbuild {
 												VkExtent2D extent,
 												VkFramebuffer framebuffer);
 
+	enum class ShaderType : u64 { VERTEX = 0x00000001, FRAGMENT = 0x00000010 };
+
+	struct Shader {
+		VkShaderModule module;
+		ShaderType type;
+	};
+
 	class PipelineBuilder {
 	private:
-		// @TODO: perhaps give them reasonable reserve
+		// @TODO: perhaps give them all reasonable reserve
+		ArrayList<Shader> _shaders{};
 		ArrayList<VkPipelineShaderStageCreateInfo> _shader_stages{};
 
 		ArrayList<VkVertexInputBindingDescription> _vertex_bindings{};
@@ -45,6 +53,8 @@ namespace vkbuild {
 		ArrayList<VkViewport> _viewports{};
 
 		ArrayList<VkRect2D> _scissors{};
+
+		ArrayList<VkPipelineColorBlendAttachmentState> _color_blend_attachments;
 
 		VkPipelineInputAssemblyStateCreateInfo _input_assembly{
 			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -64,15 +74,6 @@ namespace vkbuild {
 			0.f,
 			0.f,
 			0.f};
-
-		VkPipelineColorBlendAttachmentState _color_blend_attachment{
-			false,
-			VK_BLEND_FACTOR_SRC_ALPHA,
-			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			VK_BLEND_OP_ADD,
-			VK_BLEND_FACTOR_SRC_ALPHA,
-			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			VK_BLEND_OP_ADD};
 
 		VkPipelineMultisampleStateCreateInfo _multisampling{
 			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -106,8 +107,8 @@ namespace vkbuild {
 			0,
 			false,
 			VK_LOGIC_OP_COPY,
-			1,
-			&_color_blend_attachment,
+			0,
+			nullptr,
 			{0.f, 0.f, 0.f, 0.f}};
 
 		VkPipelineLayoutCreateInfo _layout_ci{
@@ -127,7 +128,8 @@ namespace vkbuild {
 		VkPipelineLayout _pipeline_layout{};
 
 	public:
-		PipelineBuilder &add_shader_stage(VkPipelineShaderStageCreateInfo ci);
+		PipelineBuilder &add_shader(VkDevice device, const char *path,
+									ShaderType type);
 
 		PipelineBuilder &add_vertex_binding(u32 stride,
 											VkVertexInputRate input_rate);
@@ -135,17 +137,15 @@ namespace vkbuild {
 		PipelineBuilder &add_vertex_attribute(u32 binding, u32 location,
 											  VkFormat format, u32 offset);
 
-		PipelineBuilder &
-		set_input_assembly(VkPrimitiveTopology topology,
-						   VkPipelineInputAssemblyStateCreateFlags create_flags,
-						   bool primitive_restart_enable);
+		PipelineBuilder &set_input_assembly(VkPrimitiveTopology topology,
+											bool primitive_restart_enable);
 
 		PipelineBuilder &set_cull_mode(VkCullModeFlags cull_mode,
 									   VkFrontFace front_face);
 
 		PipelineBuilder &set_polygon_mode(VkPolygonMode mode);
 
-		PipelineBuilder &set_default_color_blend_enabled(bool val);
+		PipelineBuilder &add_default_color_blend_attachment();
 
 		PipelineBuilder &set_multisampling_enabled(
 			bool val, VkSampleCountFlagBits count = VK_SAMPLE_COUNT_1_BIT);
