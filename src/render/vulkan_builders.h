@@ -73,7 +73,7 @@ namespace vkbuild {
 			0.f,
 			0.f,
 			0.f,
-			0.f};
+			1.f};
 
 		VkPipelineMultisampleStateCreateInfo _multisampling{
 			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
