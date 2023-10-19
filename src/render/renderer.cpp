@@ -39,8 +39,8 @@ namespace render {
 		vkDestroySemaphore(_device, _render_semaphore, nullptr);
 		vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 		vkDestroyRenderPass(_device, _render_pass, nullptr);
-        vkDestroyPipelineLayout(_device, _graphics_pipeline_layout, nullptr);
-        vkDestroyPipeline(_device, _graphics_pipeline, nullptr);
+		vkDestroyPipelineLayout(_device, _graphics_pipeline_layout, nullptr);
+		vkDestroyPipeline(_device, _graphics_pipeline, nullptr);
 		for (int i = 0; i < _framebuffers.size(); ++i) {
 			vkDestroyFramebuffer(_device, _framebuffers[i], nullptr);
 			vkDestroyImageView(_device, _swapchain_image_views[i], nullptr);
@@ -82,8 +82,9 @@ namespace render {
 		renderpass_info.pClearValues = &clear;
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 		// insert actual commands
-        vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphics_pipeline);
-        vkCmdDraw(buf, 3, 1, 0, 0);
+		vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+						  _graphics_pipeline);
+		vkCmdDraw(buf, 3, 1, 0, 0);
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
 		// waiting on _present_semaphore which is signaled when swapchain is
@@ -251,9 +252,11 @@ namespace render {
 		vkbuild::PipelineBuilder builder;
 		_graphics_pipeline_layout =
 			builder
-				.add_shader(_device, "assets/shaders/default_shader.vert.glsl.spv",
+				.add_shader(_device,
+							"assets/shaders/default_shader.vert.glsl.spv",
 							vkbuild::ShaderType::VERTEX)
-				.add_shader(_device, "assets/shaders/default_shader.frag.glsl.spv",
+				.add_shader(_device,
+							"assets/shaders/default_shader.frag.glsl.spv",
 							vkbuild::ShaderType::FRAGMENT)
 				// @TODO: vertex input
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
@@ -262,9 +265,9 @@ namespace render {
 				.set_multisampling_enabled(false)
 				.add_default_color_blend_attachment()
 				.set_color_blending_enabled(false)
-                /* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
-                /* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
-                /* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
+				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
+				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
+				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
 				.add_viewport({0, 0, static_cast<float>(_window_extent.width),
 							   static_cast<float>(_window_extent.height), 0.f,
 							   1.f})

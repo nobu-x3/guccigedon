@@ -25,4 +25,5 @@ using f32 = std::float_t;
 
 using f64 = std::double_t;
 
-template<typename T> using ArrayList = std::vector<T>;
+template <typename T>
+using ArrayList = std::vector<T>;

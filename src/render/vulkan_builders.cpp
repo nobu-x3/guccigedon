@@ -67,7 +67,7 @@ namespace vkbuild {
 		return info;
 	}
 
-	VkSubmitInfo submit_info(VkCommandBuffer *buf) {
+	VkSubmitInfo submit_info(VkCommandBuffer* buf) {
 		VkSubmitInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		info.pNext = nullptr;
@@ -110,10 +110,10 @@ namespace vkbuild {
 		return info;
 	}
 
-	PipelineBuilder &PipelineBuilder::add_shader(VkDevice device,
-												 const char *path,
+	PipelineBuilder& PipelineBuilder::add_shader(VkDevice device,
+												 const char* path,
 												 ShaderType type) {
-		for (auto &shader : _shaders) {
+		for (auto& shader : _shaders) {
 			if (shader.type == type) {
 #define PROCESS_VAL(p)                                                         \
 	case (p):                                                                  \
@@ -143,7 +143,7 @@ namespace vkbuild {
 		// put file cursor at beggining
 		file.seekg(0);
 		// load the entire file into the buffer
-		file.read((char *)buffer.data(), file_size);
+		file.read((char*)buffer.data(), file_size);
 		// now that the file is loaded into the buffer, we can close it
 		file.close();
 		// create a new shader module, using the buffer we loaded
@@ -172,7 +172,7 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &
+	PipelineBuilder&
 	PipelineBuilder::add_vertex_binding(u32 stride,
 										VkVertexInputRate input_rate) {
 		VkVertexInputBindingDescription desc{
@@ -181,7 +181,7 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::add_vertex_attribute(u32 binding,
+	PipelineBuilder& PipelineBuilder::add_vertex_attribute(u32 binding,
 														   u32 location,
 														   VkFormat format,
 														   u32 offset) {
@@ -191,7 +191,7 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &
+	PipelineBuilder&
 	PipelineBuilder::set_input_assembly(VkPrimitiveTopology topology,
 										bool primitive_restart_enable) {
 		_input_assembly.topology = topology;
@@ -199,19 +199,19 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::set_cull_mode(VkCullModeFlags cull_mode,
+	PipelineBuilder& PipelineBuilder::set_cull_mode(VkCullModeFlags cull_mode,
 													VkFrontFace front_face) {
 		_rasterizer.cullMode = cull_mode;
 		_rasterizer.frontFace = front_face;
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::set_polygon_mode(VkPolygonMode mode) {
+	PipelineBuilder& PipelineBuilder::set_polygon_mode(VkPolygonMode mode) {
 		_rasterizer.polygonMode = mode;
 		return *this;
 	}
 
-	PipelineBuilder &
+	PipelineBuilder&
 	PipelineBuilder::set_multisampling_enabled(bool val,
 											   VkSampleCountFlagBits count) {
 		_multisampling.sampleShadingEnable = val;
@@ -219,7 +219,7 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &
+	PipelineBuilder&
 	PipelineBuilder::set_depth_testing(bool testEnabled, bool depthWrite,
 									   VkCompareOp compare_op) {
 		_depth_stencil.depthTestEnable = testEnabled;
@@ -228,13 +228,13 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::set_color_blending_enabled(bool enabled,
+	PipelineBuilder& PipelineBuilder::set_color_blending_enabled(bool enabled,
 																 VkLogicOp op) {
 		_color_blend_state.logicOpEnable = enabled;
 		_color_blend_state.logicOp = op;
 		return *this;
 	}
-	PipelineBuilder &PipelineBuilder::add_default_color_blend_attachment() {
+	PipelineBuilder& PipelineBuilder::add_default_color_blend_attachment() {
 		VkPipelineColorBlendAttachmentState color_blend_attachment{
 			false,
 			VK_BLEND_FACTOR_SRC_ALPHA,
@@ -252,7 +252,7 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &
+	PipelineBuilder&
 	PipelineBuilder::add_dynamic_state(VkDynamicState dynamic_state) {
 		_dynamic_states.push_back(dynamic_state);
 		_dynamic_state_cis.pDynamicStates = _dynamic_states.data();
@@ -261,12 +261,12 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::add_viewport(VkViewport viewport) {
+	PipelineBuilder& PipelineBuilder::add_viewport(VkViewport viewport) {
 		_viewports.push_back(viewport);
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::add_scissor(VkRect2D scissor) {
+	PipelineBuilder& PipelineBuilder::add_scissor(VkRect2D scissor) {
 		_scissors.push_back(scissor);
 		return *this;
 	}
@@ -325,7 +325,7 @@ namespace vkbuild {
 		VK_CHECK(vkCreateGraphicsPipelines(device, nullptr, 1, &pipeline_ci,
 										   nullptr, &pipeline));
 		core::Logger::Trace("Pipeline successfully created.");
-		for (auto &shader : _shaders) {
+		for (auto& shader : _shaders) {
 			vkDestroyShaderModule(device, shader.module, nullptr);
 		}
 		return pipeline;
