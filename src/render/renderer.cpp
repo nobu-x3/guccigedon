@@ -248,9 +248,9 @@ namespace render {
 		vkbuild::PipelineBuilder builder;
 		_graphics_pipeline_layout =
 			builder
-				.add_shader(_device, "assets/shaders/default_shader.vert.spv",
+				.add_shader(_device, "assets/shaders/default_shader.vert.glsl.spv",
 							vkbuild::ShaderType::VERTEX)
-				.add_shader(_device, "assets/shaders/default_shader.frag.spv",
+				.add_shader(_device, "assets/shaders/default_shader.frag.glsl.spv",
 							vkbuild::ShaderType::FRAGMENT)
 				// @TODO: vertex input
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
