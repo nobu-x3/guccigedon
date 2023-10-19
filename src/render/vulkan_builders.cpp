@@ -1,5 +1,6 @@
 #include "vulkan_builders.h"
 #include "vulkan/vulkan_core.h"
+#include "vulkan_types.h"
 
 namespace vkbuild {
 
@@ -142,16 +143,6 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::set_viewport(VkViewport viewport) {
-		_viewport = viewport;
-		return *this;
-	}
-
-	PipelineBuilder &PipelineBuilder::set_scissor(VkRect2D scissor) {
-		_scissor = scissor;
-		return *this;
-	}
-
 	PipelineBuilder &PipelineBuilder::set_cull_mode(VkCullModeFlags cull_mode,
 													VkFrontFace front_face) {
 		_rasterizer.cullMode = cull_mode;
@@ -161,11 +152,6 @@ namespace vkbuild {
 
 	PipelineBuilder &PipelineBuilder::set_polygon_mode(VkPolygonMode mode) {
 		_rasterizer.polygonMode = mode;
-		return *this;
-	}
-
-	PipelineBuilder &PipelineBuilder::set_color_blend_enabled(bool val) {
-		_color_blend_attachment.blendEnable = val;
 		return *this;
 	}
 
@@ -193,17 +179,35 @@ namespace vkbuild {
 		return *this;
 	}
 
-	PipelineBuilder &PipelineBuilder::add_dynamic_state(VkDynamicState dynamic_state){
+	PipelineBuilder &
+	PipelineBuilder::add_dynamic_state(VkDynamicState dynamic_state) {
 		_dynamic_states.push_back(dynamic_state);
 		_dynamic_state_cis.pDynamicStates = _dynamic_states.data();
-		_dynamic_state_cis.dynamicStateCount = static_cast<u32>(_dynamic_states.size());
+		_dynamic_state_cis.dynamicStateCount =
+			static_cast<u32>(_dynamic_states.size());
 		return *this;
 	}
 
-	VkPipelineLayout PipelineBuilder::build_layout() {}
+	PipelineBuilder &PipelineBuilder::add_viewport(VkViewport viewport) {
+		_viewports.push_back(viewport);
+		return *this;
+	}
+
+	PipelineBuilder &PipelineBuilder::add_scissor(VkRect2D scissor) {
+		_scissors.push_back(scissor);
+		return *this;
+	}
+
+	VkPipelineLayout PipelineBuilder::build_layout(VkDevice device) {
+		VK_CHECK(vkCreatePipelineLayout(device, &_layout_ci, nullptr,
+										&_pipeline_layout));
+		core::Logger::Trace("Pipeline LAYOUT successfully created.");
+		return _pipeline_layout;
+	}
 
 	VkPipeline PipelineBuilder::build_pipeline(VkDevice device,
 											   VkRenderPass pass) {
+
 		VkPipelineVertexInputStateCreateInfo vertex_input = {
 			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 			nullptr,
@@ -212,5 +216,42 @@ namespace vkbuild {
 			_vertex_bindings.data(),
 			static_cast<u32>(_vertex_attributes.size()),
 			_vertex_attributes.data()};
+
+		VkPipelineViewportStateCreateInfo viewport_ci{
+			VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<u32>(_viewports.size()),
+			_viewports.data(),
+			static_cast<u32>(_scissors.size()),
+			_scissors.data()};
+
+		VkGraphicsPipelineCreateInfo pipeline_ci{
+			VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<u32>(_shader_stages.size()),
+			_shader_stages.data(),
+			&vertex_input,
+			&_input_assembly,
+			nullptr, // @TODO handle tesselation stage
+			&viewport_ci,
+			&_rasterizer,
+			&_multisampling,
+			&_depth_stencil,
+			&_color_blend_state,
+			&_dynamic_state_cis,
+			_pipeline_layout,
+			pass,
+			0,
+			nullptr,
+			-1,
+		};
+
+		VkPipeline pipeline;
+		VK_CHECK(vkCreateGraphicsPipelines(device, nullptr, 1, &pipeline_ci,
+										   nullptr, &pipeline));
+		core::Logger::Trace("Pipeline successfully created.");
+		return pipeline;
 	}
 } // namespace vkbuild

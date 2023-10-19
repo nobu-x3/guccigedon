@@ -33,16 +33,22 @@ namespace vkbuild {
 
 	class PipelineBuilder {
 	private:
-		std::vector<VkPipelineShaderStageCreateInfo> _shader_stages{};
-		array_list<VkVertexInputBindingDescription> _vertex_bindings{};
-		array_list<VkVertexInputAttributeDescription> _vertex_attributes{};
+		// @TODO: perhaps give them reasonable reserve
+		ArrayList<VkPipelineShaderStageCreateInfo> _shader_stages{};
+
+		ArrayList<VkVertexInputBindingDescription> _vertex_bindings{};
+
+		ArrayList<VkVertexInputAttributeDescription> _vertex_attributes{};
+
+		ArrayList<VkDynamicState> _dynamic_states{};
+
+		ArrayList<VkViewport> _viewports{};
+
+		ArrayList<VkRect2D> _scissors{};
 
 		VkPipelineInputAssemblyStateCreateInfo _input_assembly{
 			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 			nullptr, 0, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false};
-
-		VkViewport _viewport = {};
-		VkRect2D _scissor = {};
 
 		VkPipelineRasterizationStateCreateInfo _rasterizer{
 			VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -104,7 +110,15 @@ namespace vkbuild {
 			&_color_blend_attachment,
 			{0.f, 0.f, 0.f, 0.f}};
 
-		array_list<VkDynamicState> _dynamic_states{};
+		VkPipelineLayoutCreateInfo _layout_ci{
+			// @TODO: add methods to add more descriptor sets and push constants
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			0,
+			nullptr,
+			0,
+			nullptr};
 
 		VkPipelineDynamicStateCreateInfo _dynamic_state_cis{
 			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 0,
@@ -146,11 +160,11 @@ namespace vkbuild {
 
 		PipelineBuilder &add_dynamic_state(VkDynamicState dynamic_state);
 
-		PipelineBuilder &set_viewport(VkViewport viewport);
+		PipelineBuilder &add_viewport(VkViewport viewport);
 
-		PipelineBuilder &set_scissor(VkRect2D scissor);
+		PipelineBuilder &add_scissor(VkRect2D scissor);
 
-		VkPipelineLayout build_layout();
+		VkPipelineLayout build_layout(VkDevice device);
 
 		VkPipeline build_pipeline(VkDevice device, VkRenderPass pass);
 	};

@@ -31,6 +31,8 @@ namespace render {
         VkSemaphore _present_semaphore, _render_semaphore;
         VkFence _render_fence;
         VkRenderPass _render_pass;
+        VkPipelineLayout _graphics_pipeline_layout;
+        VkPipeline _graphics_pipeline;
 
 	private:
 		void init_instance();
@@ -39,6 +41,7 @@ namespace render {
         void init_framebuffers();
         void init_default_renderpass();
         void init_sync_objects();
+        void init_pipeline();
 
 	public:
 		VulkanRenderer();
