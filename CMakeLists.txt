@@ -21,10 +21,10 @@ if(NOT SDL2_FOUND)
 endif()
 
 if (NOT VulkanMemoryAllocator_DIR)
-  message("Cannot find VMA")
-  execute_process(COMMAND git submodule update --init -- vendor/VulkanMemoryAllocator
+    message("Cannot find VMA")
+    execute_process(COMMAND git submodule update --init -- vendor/VulkanMemoryAllocator
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-  add_subdirectory(vendor/VulkanMemoryAllocator)
+    add_subdirectory(vendor/VulkanMemoryAllocator SYSTEM)
 endif()
 
 if(NOT glm_FOUND)
