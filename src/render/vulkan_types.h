@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
+#include <vk_mem_alloc.h>
 #include "../core/logger.h"
 
 #define VK_CHECK(x)                                                            \

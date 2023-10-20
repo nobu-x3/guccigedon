@@ -9,6 +9,8 @@
 #include "../core/logger.h"
 #include "vulkan_builders.h"
 #include "vulkan_types.h"
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
 namespace render {
 	VulkanRenderer::VulkanRenderer() {
@@ -50,6 +52,7 @@ namespace render {
 		vkb::destroy_debug_utils_messenger(_instance, _debug_msger);
 		vkDestroyInstance(_instance, nullptr);
 		SDL_DestroyWindow(_p_window);
+		vmaDestroyAllocator(_allocator);
 	}
 
 	void VulkanRenderer::draw() {
@@ -148,6 +151,12 @@ namespace render {
 		_graphics_queue = vkb_dev.get_queue(vkb::QueueType::graphics).value();
 		_graphics_queue_family =
 			vkb_dev.get_queue_index(vkb::QueueType::graphics).value();
+			//initialize the memory allocator
+		VmaAllocatorCreateInfo allocatorInfo = {};
+		allocatorInfo.physicalDevice = _physical_device;
+		allocatorInfo.device = _device;
+		allocatorInfo.instance = _instance;
+		vmaCreateAllocator(&allocatorInfo, &_allocator);
 	}
 
 	void VulkanRenderer::init_swapchain() {

@@ -33,6 +33,7 @@ namespace render {
 		VkRenderPass _render_pass;
 		VkPipelineLayout _graphics_pipeline_layout;
 		VkPipeline _graphics_pipeline;
+		VmaAllocator _allocator;
 
 	private:
 		void init_instance();
