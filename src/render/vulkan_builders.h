@@ -38,6 +38,12 @@ namespace vkbuild {
 		ShaderType type;
 	};
 
+    struct VertexInputDescription {
+        ArrayList<VkVertexInputBindingDescription> bindings;
+        ArrayList<VkVertexInputAttributeDescription> attributes;
+        VkPipelineVertexInputStateCreateFlags flags {0};
+    };
+
 	class PipelineBuilder {
 	private:
 		// @TODO: perhaps give them all reasonable reserve
@@ -137,6 +143,8 @@ namespace vkbuild {
 
 		PipelineBuilder& add_vertex_attribute(u32 binding, u32 location,
 											  VkFormat format, u32 offset);
+
+        PipelineBuilder& set_vertex_input_description(VertexInputDescription&& desc);
 
 		PipelineBuilder& set_input_assembly(VkPrimitiveTopology topology,
 											bool primitive_restart_enable);

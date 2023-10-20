@@ -6,7 +6,8 @@ project(Guccigedon VERSION 0.1)
 add_executable(Guccigedon
     src/main.cpp
     src/render/renderer.cpp
-    src/render/vulkan_builders.cpp)
+    src/render/vulkan_builders.cpp
+    src/render/vulkan_mesh.cpp)
 find_package(Vulkan REQUIRED)
 find_package(SDL2)
 find_package(VulkanMemoryAllocator CONFIG)

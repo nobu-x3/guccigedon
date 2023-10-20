@@ -9,6 +9,7 @@
 #include "../core/logger.h"
 #include "vulkan_builders.h"
 #include "vulkan_types.h"
+
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
@@ -25,12 +26,19 @@ namespace render {
 			exit(-1);
 		}
 		init_instance();
+		// initialize the memory allocator
+		VmaAllocatorCreateInfo allocator_ci = {};
+		allocator_ci.physicalDevice = _physical_device;
+		allocator_ci.device = _device;
+		allocator_ci.instance = _instance;
+		vmaCreateAllocator(&allocator_ci, &_allocator);
 		init_swapchain();
 		init_default_renderpass();
 		init_framebuffers();
 		init_commands();
 		init_sync_objects();
 		init_pipeline();
+        load_mesh();
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -48,11 +56,12 @@ namespace render {
 			vkDestroyImageView(_device, _swapchain_image_views[i], nullptr);
 		}
 		vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        _mesh.deinit(_allocator);
+		vmaDestroyAllocator(_allocator);
 		vkDestroyDevice(_device, nullptr);
 		vkb::destroy_debug_utils_messenger(_instance, _debug_msger);
 		vkDestroyInstance(_instance, nullptr);
 		SDL_DestroyWindow(_p_window);
-		vmaDestroyAllocator(_allocator);
 	}
 
 	void VulkanRenderer::draw() {
@@ -87,7 +96,9 @@ namespace render {
 		// insert actual commands
 		vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 						  _graphics_pipeline);
-		vkCmdDraw(buf, 3, 1, 0, 0);
+        VkDeviceSize offset {0};
+        vkCmdBindVertexBuffers(buf, 0, 1, &_mesh.buffer.handle, &offset);
+		vkCmdDraw(buf, _mesh.vertices.size(), 1, 0, 0);
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
 		// waiting on _present_semaphore which is signaled when swapchain is
@@ -151,12 +162,6 @@ namespace render {
 		_graphics_queue = vkb_dev.get_queue(vkb::QueueType::graphics).value();
 		_graphics_queue_family =
 			vkb_dev.get_queue_index(vkb::QueueType::graphics).value();
-			//initialize the memory allocator
-		VmaAllocatorCreateInfo allocatorInfo = {};
-		allocatorInfo.physicalDevice = _physical_device;
-		allocatorInfo.device = _device;
-		allocatorInfo.instance = _instance;
-		vmaCreateAllocator(&allocatorInfo, &_allocator);
 	}
 
 	void VulkanRenderer::init_swapchain() {
@@ -267,7 +272,7 @@ namespace render {
 				.add_shader(_device,
 							"assets/shaders/default_shader.frag.glsl.spv",
 							vkbuild::ShaderType::FRAGMENT)
-				// @TODO: vertex input
+                .set_vertex_input_description(Vertex::get_description())
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				// @TODO: cull mode
@@ -284,4 +289,13 @@ namespace render {
 				.build_layout(_device);
 		_graphics_pipeline = builder.build_pipeline(_device, _render_pass);
 	}
+
+	void VulkanRenderer::load_mesh() {
+		ArrayList<Vertex>vertices{3};
+		vertices.push_back({{1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
+		vertices.push_back({{-1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
+		vertices.push_back({{1.f, -1.f, 0.f}, {1.f, 0.f, 1.f}});
+        _mesh.set_vertices(vertices).upload_mesh(_allocator);
+	}
+
 } // namespace render

@@ -1,8 +1,11 @@
 #pragma once
+#include <algorithm>
+#include <cstring>
+#include <glm/ext/vector_float3.hpp>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 #include <vk_mem_alloc.h>
-#include "../core/logger.h"
+#include "../core/core.h"
 
 #define VK_CHECK(x)                                                            \
 	do {                                                                       \
@@ -12,3 +15,14 @@
 			exit(-1);                                                          \
 		}                                                                      \
 	} while (0)
+
+struct Buffer {
+    VkBuffer handle;
+    VmaAllocation memory;
+};
+
+
+struct Material {
+    VkPipeline pipeline;
+    VkPipelineLayout layout;
+};

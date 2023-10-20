@@ -191,6 +191,13 @@ namespace vkbuild {
 		return *this;
 	}
 
+	PipelineBuilder& PipelineBuilder::set_vertex_input_description(
+		VertexInputDescription&& desc) {
+        _vertex_bindings = std::move(desc.bindings);
+        _vertex_attributes = std::move(desc.attributes);
+        return *this;
+    }
+
 	PipelineBuilder&
 	PipelineBuilder::set_input_assembly(VkPrimitiveTopology topology,
 										bool primitive_restart_enable) {

@@ -3,11 +3,18 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "../core/core.h"
+#include "vulkan_mesh.h"
 #include "vulkan_types.h"
 
 struct SDL_Window;
 
 namespace render {
+
+	struct RenderObject {
+		Mesh mesh;
+		Material Material;
+	};
+
 	class VulkanRenderer {
 
 	public:
@@ -23,9 +30,9 @@ namespace render {
 		u32 _graphics_queue_family;
 		VkFormat _swapchain_image_format;
 		VkSwapchainKHR _swapchain;
-		ArrayList<VkImage> _swapchain_images;
-		ArrayList<VkImageView> _swapchain_image_views;
-		ArrayList<VkFramebuffer> _framebuffers;
+		ArrayList<VkImage> _swapchain_images{};
+		ArrayList<VkImageView> _swapchain_image_views{};
+		ArrayList<VkFramebuffer> _framebuffers{};
 		VkCommandPool _command_pool;
 		VkCommandBuffer _main_command_buffer;
 		VkSemaphore _present_semaphore, _render_semaphore;
@@ -34,6 +41,7 @@ namespace render {
 		VkPipelineLayout _graphics_pipeline_layout;
 		VkPipeline _graphics_pipeline;
 		VmaAllocator _allocator;
+		Mesh _mesh {};
 
 	private:
 		void init_instance();
@@ -43,6 +51,7 @@ namespace render {
 		void init_default_renderpass();
 		void init_sync_objects();
 		void init_pipeline();
+		void load_mesh();
 
 	public:
 		VulkanRenderer();
