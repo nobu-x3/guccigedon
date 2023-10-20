@@ -3,43 +3,57 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 project(Guccigedon VERSION 0.1)
+
 add_executable(Guccigedon
     src/main.cpp
     src/render/renderer.cpp
     src/render/vulkan_builders.cpp
     src/render/vulkan_mesh.cpp)
+
 find_package(Vulkan REQUIRED)
 find_package(SDL2)
 find_package(VulkanMemoryAllocator CONFIG)
 find_package(glm)
+find_package(tinygltf)
 
 if(NOT SDL2_FOUND)
-    message("Cannot find SDL2")
+    message("Cannot find SDL2, using bundled version")
     execute_process(COMMAND git submodule update --init -- vendor/SDL
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_subdirectory(vendor/SDL)
 endif()
 
 if (NOT VulkanMemoryAllocator_DIR)
-    message("Cannot find VMA")
+    message("Cannot find VMA, using bundled version")
     execute_process(COMMAND git submodule update --init -- vendor/VulkanMemoryAllocator
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_subdirectory(vendor/VulkanMemoryAllocator SYSTEM)
+    set(VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR vendor/VulkanMemoryAllocator/include)
+    set(VULKAN_MEMORY_ALLOCATOR_LIBRARY VulkanMemoryAllocator)
 endif()
 
 if(NOT glm_FOUND)
-    message("Cannot find glm")
+    message("Cannot find glm, using bundled version")
     execute_process(COMMAND git submodule update --init -- vendor/glm
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_subdirectory(vendor/glm)
 endif()
 
+if(NOT tinygltf_FOUND)
+    message("Cannot find tinygltf, using bundled version")
+    execute_process(COMMAND git submodule update --init -- vendor/tinygltf
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+    add_subdirectory(vendor/tinygltf SYSTEM)
+    set(TINYGLTF_INCLUDE_DIR vendor/tinygltf/tinygltf.h)
+endif()
+
 # this stuff is temp, just wanna speed things up a little
 add_subdirectory(vendor/vk-bootstrap)
 
-include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS} ${GLM_INCLUDE_DIR}vendor/VulkanMemoryAllocator/include vendor/vk-bootstrap/src)
+include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS} ${GLM_INCLUDE_DIR} ${TINYGLTF_INCLUDE_DIR} ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src)
 target_include_directories(Guccigedon PUBLIC)
-target_link_libraries(Guccigedon ${SDL2_LIBRARIES} ${Vulkan_LIBRARY} ${GLM_LIBRARY} vk-bootstrap::vk-bootstrap VulkanMemoryAllocator)
+target_link_libraries(Guccigedon ${SDL2_LIBRARIES} ${Vulkan_LIBRARY} ${GLM_LIBRARY} ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}  vk-bootstrap::vk-bootstrap )
 # set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 find_program(GLSL_VALIDATOR glslangValidator)
