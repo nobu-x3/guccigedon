@@ -1,7 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cstring>
-#include <glm/ext/vector_float3.hpp>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 #include <vk_mem_alloc.h>
@@ -21,8 +21,12 @@ struct Buffer {
     VmaAllocation memory;
 };
 
-
 struct Material {
     VkPipeline pipeline;
     VkPipelineLayout layout;
+};
+
+struct MeshPushConstant {
+    glm::vec4 data;
+    glm::mat4 render_matrix;
 };

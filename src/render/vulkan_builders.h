@@ -38,11 +38,11 @@ namespace vkbuild {
 		ShaderType type;
 	};
 
-    struct VertexInputDescription {
-        ArrayList<VkVertexInputBindingDescription> bindings;
-        ArrayList<VkVertexInputAttributeDescription> attributes;
-        VkPipelineVertexInputStateCreateFlags flags {0};
-    };
+	struct VertexInputDescription {
+		ArrayList<VkVertexInputBindingDescription> bindings;
+		ArrayList<VkVertexInputAttributeDescription> attributes;
+		VkPipelineVertexInputStateCreateFlags flags{0};
+	};
 
 	class PipelineBuilder {
 	private:
@@ -61,7 +61,10 @@ namespace vkbuild {
 
 		ArrayList<VkRect2D> _scissors{};
 
-		ArrayList<VkPipelineColorBlendAttachmentState> _color_blend_attachments;
+		ArrayList<VkPipelineColorBlendAttachmentState>
+			_color_blend_attachments{};
+
+		ArrayList<VkPushConstantRange> _push_constants{};
 
 		VkPipelineInputAssemblyStateCreateInfo _input_assembly{
 			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -144,7 +147,8 @@ namespace vkbuild {
 		PipelineBuilder& add_vertex_attribute(u32 binding, u32 location,
 											  VkFormat format, u32 offset);
 
-        PipelineBuilder& set_vertex_input_description(VertexInputDescription&& desc);
+		PipelineBuilder&
+		set_vertex_input_description(VertexInputDescription&& desc);
 
 		PipelineBuilder& set_input_assembly(VkPrimitiveTopology topology,
 											bool primitive_restart_enable);
@@ -172,6 +176,8 @@ namespace vkbuild {
 		PipelineBuilder& add_viewport(VkViewport viewport);
 
 		PipelineBuilder& add_scissor(VkRect2D scissor);
+
+        PipelineBuilder& add_push_constant(u32 size, VkPipelineStageFlags stages);
 
 		VkPipelineLayout build_layout(VkDevice device);
 

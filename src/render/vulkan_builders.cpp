@@ -193,10 +193,10 @@ namespace vkbuild {
 
 	PipelineBuilder& PipelineBuilder::set_vertex_input_description(
 		VertexInputDescription&& desc) {
-        _vertex_bindings = std::move(desc.bindings);
-        _vertex_attributes = std::move(desc.attributes);
-        return *this;
-    }
+		_vertex_bindings = std::move(desc.bindings);
+		_vertex_attributes = std::move(desc.attributes);
+		return *this;
+	}
 
 	PipelineBuilder&
 	PipelineBuilder::set_input_assembly(VkPrimitiveTopology topology,
@@ -278,7 +278,20 @@ namespace vkbuild {
 		return *this;
 	}
 
+	PipelineBuilder&
+	PipelineBuilder::add_push_constant(u32 size, VkPipelineStageFlags stages) {
+        VkPushConstantRange pc {stages};
+        for(auto& c : _push_constants){
+            pc.offset += c.size;
+        }
+        pc.size = size;
+        _push_constants.push_back(pc);
+        return *this;
+    }
+
 	VkPipelineLayout PipelineBuilder::build_layout(VkDevice device) {
+        _layout_ci.pushConstantRangeCount = static_cast<u32>(_push_constants.size());
+        _layout_ci.pPushConstantRanges = _push_constants.data();
 		VK_CHECK(vkCreatePipelineLayout(device, &_layout_ci, nullptr,
 										&_pipeline_layout));
 		core::Logger::Trace("Pipeline LAYOUT successfully created.");

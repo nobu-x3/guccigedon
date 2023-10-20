@@ -4,6 +4,8 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_vulkan.h>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
 #include "../core/logger.h"
@@ -38,7 +40,7 @@ namespace render {
 		init_commands();
 		init_sync_objects();
 		init_pipeline();
-        load_mesh();
+		load_mesh();
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -56,7 +58,7 @@ namespace render {
 			vkDestroyImageView(_device, _swapchain_image_views[i], nullptr);
 		}
 		vkDestroySurfaceKHR(_instance, _surface, nullptr);
-        _mesh.deinit(_allocator);
+		_mesh.deinit(_allocator);
 		vmaDestroyAllocator(_allocator);
 		vkDestroyDevice(_device, nullptr);
 		vkb::destroy_debug_utils_messenger(_instance, _debug_msger);
@@ -96,8 +98,33 @@ namespace render {
 		// insert actual commands
 		vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 						  _graphics_pipeline);
-        VkDeviceSize offset {0};
-        vkCmdBindVertexBuffers(buf, 0, 1, &_mesh.buffer.handle, &offset);
+		VkDeviceSize offset{0};
+		vkCmdBindVertexBuffers(buf, 0, 1, &_mesh.buffer.handle, &offset);
+		// make a model view matrix for rendering the object
+		// camera position
+		glm::vec3 camPos = {0.f, 0.f, -2.f};
+
+		glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+		// camera projection
+		glm::mat4 projection = glm::perspective(
+			glm::radians(70.f),
+			static_cast<f32>(_window_extent.width) / _window_extent.height,
+			0.1f, 200.0f);
+		projection[1][1] *= -1;
+		// model rotation
+		glm::mat4 model = glm::rotate(
+			glm::mat4{1.0f}, glm::radians(frame_nr * 0.4f), glm::vec3(0, 1, 0));
+
+		// calculate final mesh matrix
+		glm::mat4 mesh_matrix = projection * view * model;
+
+		MeshPushConstant constants;
+		constants.render_matrix = mesh_matrix;
+
+		// upload the matrix to the GPU via push constants
+		vkCmdPushConstants(buf, _graphics_pipeline_layout,
+						   VK_SHADER_STAGE_VERTEX_BIT, 0,
+						   sizeof(MeshPushConstant), &constants);
 		vkCmdDraw(buf, _mesh.vertices.size(), 1, 0, 0);
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
@@ -272,13 +299,15 @@ namespace render {
 				.add_shader(_device,
 							"assets/shaders/default_shader.frag.glsl.spv",
 							vkbuild::ShaderType::FRAGMENT)
-                .set_vertex_input_description(Vertex::get_description())
+				.set_vertex_input_description(Vertex::get_description())
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				// @TODO: cull mode
 				.set_multisampling_enabled(false)
 				.add_default_color_blend_attachment()
 				.set_color_blending_enabled(false)
+				.add_push_constant(sizeof(MeshPushConstant),
+								   VK_SHADER_STAGE_VERTEX_BIT)
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
@@ -291,11 +320,11 @@ namespace render {
 	}
 
 	void VulkanRenderer::load_mesh() {
-		ArrayList<Vertex>vertices{3};
+		ArrayList<Vertex> vertices{3};
 		vertices.push_back({{1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
 		vertices.push_back({{-1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
 		vertices.push_back({{1.f, -1.f, 0.f}, {1.f, 0.f, 1.f}});
-        _mesh.set_vertices(vertices).upload_mesh(_allocator);
+		_mesh.set_vertices(vertices).upload_mesh(_allocator);
 	}
 
 } // namespace render
