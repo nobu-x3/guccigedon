@@ -5,7 +5,7 @@
 *.slo
 *.lo
 *.o
-*.obj
+# *.obj # conflict with .obj the wavefront
 
 # Precompiled Headers
 *.gch

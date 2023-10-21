@@ -86,6 +86,28 @@ foreach(dir ${dirs})
     cmake_print_variables(dir)
 endforeach()
 
+### Copy assets to bin
+
+# Copy files
+macro(resource_files files dest)
+    foreach(file ${files})
+        message(STATUS "Copying resource ${file}")
+        file(COPY ${file} DESTINATION ${dest})
+    endforeach()
+endmacro()
+
+# Copy directories
+macro(resource_dirs dirs dest)
+    foreach(dir ${dirs})
+        # Replace / at the end of the path (copy dir content VS copy dir)
+        string(REGEX REPLACE "/+$" "" dirclean "${dir}")
+        message(STATUS "Copying resource ${dirclean}")
+        file(COPY ${dirclean} DESTINATION ${dest})
+    endforeach()
+endmacro()
+resource_dirs(assets build/assets)
+
+### Compile shaders
 file(GLOB_RECURSE GLSL_SOURCE_FILES
     "${PROJECT_SOURCE_DIR}/assets/shaders/*.glsl"
     )
