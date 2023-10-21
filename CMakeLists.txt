@@ -14,7 +14,8 @@ find_package(Vulkan REQUIRED)
 find_package(SDL2)
 find_package(VulkanMemoryAllocator CONFIG)
 find_package(glm)
-find_package(tinygltf)
+find_package(tinygltf) # I eventually want to just have gltf support
+find_package(tinyobjloader) # but for now obj is fine. I need to get some meshes up.
 
 if(NOT SDL2_FOUND)
     message("Cannot find SDL2, using bundled version")
@@ -37,27 +38,53 @@ if(NOT glm_FOUND)
     execute_process(COMMAND git submodule update --init -- vendor/glm
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_subdirectory(vendor/glm)
+    set(GLM_INCLUDE_DIR vendor/glm)
+    set(GLM_LIBRARY glm)
 endif()
 
 if(NOT tinygltf_FOUND)
     message("Cannot find tinygltf, using bundled version")
     execute_process(COMMAND git submodule update --init -- vendor/tinygltf
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
     add_subdirectory(vendor/tinygltf SYSTEM)
     set(TINYGLTF_INCLUDE_DIR vendor/tinygltf/tinygltf.h)
+    set(TINYOBJLOADER_LIBRARY tinyobjloader)
 endif()
+
+if(NOT tinyobjloader_FOUND)
+    message("Cannot find tinyobj, using bundled version")
+    execute_process(COMMAND git submodule update --init -- vendor/tinyobj
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    add_subdirectory(vendor/tinyobj)
+    set(TINYOBJLOADER_INCLUDE_DIR vendor/tinyobj/tiny_obj_loader.h)
+endif()
+
+
 
 # this stuff is temp, just wanna speed things up a little
 add_subdirectory(vendor/vk-bootstrap)
 
-include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS} ${GLM_INCLUDE_DIR} ${TINYGLTF_INCLUDE_DIR} ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src)
+include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIR} ${TINYGLTF_INCLUDE_DIR}
+    ${TINYOBJLOADER_INCLUDE_DIR}
+    ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src)
+
 target_include_directories(Guccigedon PUBLIC)
-target_link_libraries(Guccigedon ${SDL2_LIBRARIES} ${Vulkan_LIBRARY} ${GLM_LIBRARY} ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}  vk-bootstrap::vk-bootstrap )
-# set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+
+target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
+    ${Vulkan_LIBRARY} ${GLM_LIBRARY}
+    ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}
+    ${TINYOBJLOADER_LIBRARY}
+    vk-bootstrap::vk-bootstrap )
 
 find_program(GLSL_VALIDATOR glslangValidator)
 
+include(CMakePrintHelpers)
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+message("Listing dependencies' include dirs:")
+foreach(dir ${dirs})
+    cmake_print_variables(dir)
+endforeach()
 
 file(GLOB_RECURSE GLSL_SOURCE_FILES
     "${PROJECT_SOURCE_DIR}/assets/shaders/*.glsl"
