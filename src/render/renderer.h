@@ -18,30 +18,31 @@ namespace render {
 	class VulkanRenderer {
 
 	public:
-		int _curr_frame{0};
-		VkExtent2D _window_extent{800, 600};
-		SDL_Window* _p_window{nullptr};
-		VkInstance _instance;
-		VkDebugUtilsMessengerEXT _debug_msger;
-		VkPhysicalDevice _physical_device;
-		VkDevice _device;
-		VkSurfaceKHR _surface;
-		VkQueue _graphics_queue;
-		u32 _graphics_queue_family;
-		VkFormat _swapchain_image_format;
-		VkSwapchainKHR _swapchain;
-		ArrayList<VkImage> _swapchain_images{};
-		ArrayList<VkImageView> _swapchain_image_views{};
-		ArrayList<VkFramebuffer> _framebuffers{};
-		VkCommandPool _command_pool;
-		VkCommandBuffer _main_command_buffer;
-		VkSemaphore _present_semaphore, _render_semaphore;
-		VkFence _render_fence;
-		VkRenderPass _render_pass;
-		VkPipelineLayout _graphics_pipeline_layout;
-		VkPipeline _graphics_pipeline;
-		VmaAllocator _allocator;
-		Mesh _mesh {};
+		int mCurrFrame{0};
+		VkExtent2D mWindowExtent{800, 600};
+		SDL_Window* mpWindow{nullptr};
+		VkInstance mInstance;
+		VkDebugUtilsMessengerEXT fpDebugMsger;
+		VkPhysicalDevice mPhysicalDevice;
+		VkDevice mDevice;
+		VkSurfaceKHR mSurface;
+		VkQueue mGraphicsQueue;
+		u32 mGraphicsQueueFamily;
+		VkFormat mSwapchainImageFormat;
+		VkSwapchainKHR mSwapchain;
+		ArrayList<VkImage> mSwapchainImages{};
+		ArrayList<VkImageView> mSwapchainImageViews{};
+		ArrayList<VkFramebuffer> mFramebuffers{};
+		VkCommandPool mCommandPool;
+		VkCommandBuffer mMainCommandBuffer;
+		VkSemaphore mPresentSemaphore, mRenderSemaphore;
+		VkFence mRenderFence;
+		VkRenderPass mRenderPass;
+		VkPipelineLayout mGraphicsPipelineLayout;
+		VkPipeline mGraphicsPipeline;
+		VmaAllocator mAllocator;
+		Mesh mMesh {};
+        Mesh mMonkeyMesh {};
 
 	private:
 		void init_instance();

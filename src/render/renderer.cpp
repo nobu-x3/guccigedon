@@ -18,11 +18,11 @@
 namespace render {
 	VulkanRenderer::VulkanRenderer() {
 		SDL_Init(SDL_INIT_VIDEO);
-		_p_window = SDL_CreateWindow(
+		mpWindow = SDL_CreateWindow(
 			"Guccigedon", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			_window_extent.width, _window_extent.height,
+			mWindowExtent.width, mWindowExtent.height,
 			(SDL_WindowFlags)(SDL_WINDOW_VULKAN));
-		if (!_p_window) {
+		if (!mpWindow) {
 			core::Logger::Fatal("Failed to create a window. %s",
 								SDL_GetError());
 			exit(-1);
@@ -30,10 +30,10 @@ namespace render {
 		init_instance();
 		// initialize the memory allocator
 		VmaAllocatorCreateInfo allocator_ci = {};
-		allocator_ci.physicalDevice = _physical_device;
-		allocator_ci.device = _device;
-		allocator_ci.instance = _instance;
-		vmaCreateAllocator(&allocator_ci, &_allocator);
+		allocator_ci.physicalDevice = mPhysicalDevice;
+		allocator_ci.device = mDevice;
+		allocator_ci.instance = mInstance;
+		vmaCreateAllocator(&allocator_ci, &mAllocator);
 		init_swapchain();
 		init_default_renderpass();
 		init_framebuffers();
@@ -44,43 +44,44 @@ namespace render {
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
-		vkDeviceWaitIdle(_device);
-		vkDestroyCommandPool(_device, _command_pool, nullptr);
-		vkDestroyFence(_device, _render_fence, nullptr);
-		vkDestroySemaphore(_device, _present_semaphore, nullptr);
-		vkDestroySemaphore(_device, _render_semaphore, nullptr);
-		vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-		vkDestroyRenderPass(_device, _render_pass, nullptr);
-		vkDestroyPipelineLayout(_device, _graphics_pipeline_layout, nullptr);
-		vkDestroyPipeline(_device, _graphics_pipeline, nullptr);
-		for (int i = 0; i < _framebuffers.size(); ++i) {
-			vkDestroyFramebuffer(_device, _framebuffers[i], nullptr);
-			vkDestroyImageView(_device, _swapchain_image_views[i], nullptr);
+		vkDeviceWaitIdle(mDevice);
+		vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+		vkDestroyFence(mDevice, mRenderFence, nullptr);
+		vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
+		vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
+		vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+		vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+		vkDestroyPipelineLayout(mDevice, mGraphicsPipelineLayout, nullptr);
+		vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
+		for (int i = 0; i < mFramebuffers.size(); ++i) {
+			vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
+			vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
 		}
-		vkDestroySurfaceKHR(_instance, _surface, nullptr);
-		_mesh.deinit(_allocator);
-		vmaDestroyAllocator(_allocator);
-		vkDestroyDevice(_device, nullptr);
-		vkb::destroy_debug_utils_messenger(_instance, _debug_msger);
-		vkDestroyInstance(_instance, nullptr);
-		SDL_DestroyWindow(_p_window);
+		vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+		mMesh.deinit(mAllocator);
+        mMonkeyMesh.deinit(mAllocator);
+		vmaDestroyAllocator(mAllocator);
+		vkDestroyDevice(mDevice, nullptr);
+		vkb::destroy_debug_utils_messenger(mInstance, fpDebugMsger);
+		vkDestroyInstance(mInstance, nullptr);
+		SDL_DestroyWindow(mpWindow);
 	}
 
 	void VulkanRenderer::draw() {
 		// Not rendering when minimized
-		if (SDL_GetWindowFlags(_p_window) & SDL_WINDOW_MINIMIZED) {
+		if (SDL_GetWindowFlags(mpWindow) & SDL_WINDOW_MINIMIZED) {
 			return;
 		}
 		// wait until last frame is rendered, timeout 1s
-		VK_CHECK(vkWaitForFences(_device, 1, &_render_fence, true, 1000000000));
-		VK_CHECK(vkResetFences(_device, 1, &_render_fence));
+		VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, 1000000000));
+		VK_CHECK(vkResetFences(mDevice, 1, &mRenderFence));
 		// now can reset command buffer safely
-		VK_CHECK(vkResetCommandBuffer(_main_command_buffer, 0));
+		VK_CHECK(vkResetCommandBuffer(mMainCommandBuffer, 0));
 		u32 image_index{};
-		VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000,
-									   _present_semaphore, nullptr,
+		VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, 1000000000,
+									   mPresentSemaphore, nullptr,
 									   &image_index));
-		VkCommandBuffer buf = _main_command_buffer;
+		VkCommandBuffer buf = mMainCommandBuffer;
 		VkCommandBufferBeginInfo buf_begin_info =
 			vkbuild::command_buffer_begin_info(
 				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -89,7 +90,7 @@ namespace render {
 		static u64 frame_nr{};
 
 		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
-			_render_pass, _window_extent, _framebuffers[image_index]);
+			mRenderPass, mWindowExtent, mFramebuffers[image_index]);
 		float flash = abs(sin(frame_nr / 120.f));
 		clear.color = {{0.f, 0.f, flash, 1.f}};
 		renderpass_info.clearValueCount = 1;
@@ -97,9 +98,9 @@ namespace render {
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 		// insert actual commands
 		vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-						  _graphics_pipeline);
+						  mGraphicsPipeline);
 		VkDeviceSize offset{0};
-		vkCmdBindVertexBuffers(buf, 0, 1, &_mesh.buffer.handle, &offset);
+		vkCmdBindVertexBuffers(buf, 0, 1, &mMonkeyMesh.buffer.handle, &offset);
 		// make a model view matrix for rendering the object
 		// camera position
 		glm::vec3 camPos = {0.f, 0.f, -2.f};
@@ -108,7 +109,7 @@ namespace render {
 		// camera projection
 		glm::mat4 projection = glm::perspective(
 			glm::radians(70.f),
-			static_cast<f32>(_window_extent.width) / _window_extent.height,
+			static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
 			0.1f, 200.0f);
 		projection[1][1] *= -1;
 		// model rotation
@@ -122,10 +123,10 @@ namespace render {
 		constants.render_matrix = mesh_matrix;
 
 		// upload the matrix to the GPU via push constants
-		vkCmdPushConstants(buf, _graphics_pipeline_layout,
+		vkCmdPushConstants(buf, mGraphicsPipelineLayout,
 						   VK_SHADER_STAGE_VERTEX_BIT, 0,
 						   sizeof(MeshPushConstant), &constants);
-		vkCmdDraw(buf, _mesh.vertices.size(), 1, 0, 0);
+		vkCmdDraw(buf, mMonkeyMesh.vertices.size(), 1, 0, 0);
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
 		// waiting on _present_semaphore which is signaled when swapchain is
@@ -135,20 +136,20 @@ namespace render {
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		submit.pWaitDstStageMask = &wait_stage;
 		submit.waitSemaphoreCount = 1;
-		submit.pWaitSemaphores = &_present_semaphore;
+		submit.pWaitSemaphores = &mPresentSemaphore;
 		submit.signalSemaphoreCount = 1;
-		submit.pSignalSemaphores = &_render_semaphore;
+		submit.pSignalSemaphores = &mRenderSemaphore;
 		// render fence blocks until commands finish executing
-		VK_CHECK(vkQueueSubmit(_graphics_queue, 1, &submit, _render_fence));
+		VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit, mRenderFence));
 
 		// waiting on rendering to finish, then presenting
 		VkPresentInfoKHR present_info = vkbuild::present_info();
 		present_info.swapchainCount = 1;
-		present_info.pSwapchains = &_swapchain;
+		present_info.pSwapchains = &mSwapchain;
 		present_info.waitSemaphoreCount = 1;
-		present_info.pWaitSemaphores = &_render_semaphore;
+		present_info.pWaitSemaphores = &mRenderSemaphore;
 		present_info.pImageIndices = &image_index;
-		VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
+		VK_CHECK(vkQueuePresentKHR(mGraphicsQueue, &present_info));
 		++frame_nr;
 	}
 
@@ -174,64 +175,64 @@ namespace render {
 									 .require_api_version(1, 1, 0)
 									 .build()
 									 .value();
-		_instance = vkb_inst.instance;
-		_debug_msger = vkb_inst.debug_messenger;
-		SDL_Vulkan_CreateSurface(_p_window, _instance, &_surface);
+		mInstance = vkb_inst.instance;
+		fpDebugMsger = vkb_inst.debug_messenger;
+		SDL_Vulkan_CreateSurface(mpWindow, mInstance, &mSurface);
 		vkb::PhysicalDeviceSelector selector{vkb_inst};
 		vkb::PhysicalDevice vkb_phys_dev = selector.set_minimum_version(1, 1)
-											   .set_surface(_surface)
+											   .set_surface(mSurface)
 											   .select()
 											   .value();
 		vkb::DeviceBuilder dev_builder{vkb_phys_dev};
 		vkb::Device vkb_dev = dev_builder.build().value();
-		_device = vkb_dev.device;
-		_physical_device = vkb_phys_dev.physical_device;
-		_graphics_queue = vkb_dev.get_queue(vkb::QueueType::graphics).value();
-		_graphics_queue_family =
+		mDevice = vkb_dev.device;
+		mPhysicalDevice = vkb_phys_dev.physical_device;
+		mGraphicsQueue = vkb_dev.get_queue(vkb::QueueType::graphics).value();
+		mGraphicsQueueFamily =
 			vkb_dev.get_queue_index(vkb::QueueType::graphics).value();
 	}
 
 	void VulkanRenderer::init_swapchain() {
-		vkb::SwapchainBuilder swap_buider{_physical_device, _device, _surface};
+		vkb::SwapchainBuilder swap_buider{mPhysicalDevice, mDevice, mSurface};
 		vkb::Swapchain vkb_swap =
 			swap_buider.use_default_format_selection()
 				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-				.set_desired_extent(_window_extent.width, _window_extent.height)
+				.set_desired_extent(mWindowExtent.width, mWindowExtent.height)
 				.build()
 				.value();
-		_swapchain = vkb_swap.swapchain;
-		_swapchain_images = vkb_swap.get_images().value();
-		_swapchain_image_views = vkb_swap.get_image_views().value();
-		_swapchain_image_format = vkb_swap.image_format;
+		mSwapchain = vkb_swap.swapchain;
+		mSwapchainImages = vkb_swap.get_images().value();
+		mSwapchainImageViews = vkb_swap.get_image_views().value();
+		mSwapchainImageFormat = vkb_swap.image_format;
 	}
 
 	void VulkanRenderer::init_commands() {
 		VkCommandPoolCreateInfo command_pool_ci = vkbuild::command_pool_ci(
-			_graphics_queue_family,
+			mGraphicsQueueFamily,
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		VK_CHECK(vkCreateCommandPool(_device, &command_pool_ci, nullptr,
-									 &_command_pool));
+		VK_CHECK(vkCreateCommandPool(mDevice, &command_pool_ci, nullptr,
+									 &mCommandPool));
 		VkCommandBufferAllocateInfo alloc_info =
-			vkbuild::command_buffer_ai(_command_pool, 1);
-		VK_CHECK(vkAllocateCommandBuffers(_device, &alloc_info,
-										  &_main_command_buffer));
+			vkbuild::command_buffer_ai(mCommandPool, 1);
+		VK_CHECK(vkAllocateCommandBuffers(mDevice, &alloc_info,
+										  &mMainCommandBuffer));
 	}
 
 	void VulkanRenderer::init_framebuffers() {
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(_render_pass, _window_extent);
-		const u32 image_count = _swapchain_images.size();
-		_framebuffers = std::vector<VkFramebuffer>(image_count);
+			vkbuild::framebuffer_ci(mRenderPass, mWindowExtent);
+		const u32 image_count = mSwapchainImages.size();
+		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
-			fb_ci.pAttachments = &_swapchain_image_views[i];
-			VK_CHECK(vkCreateFramebuffer(_device, &fb_ci, nullptr,
-										 &_framebuffers[i]));
+			fb_ci.pAttachments = &mSwapchainImageViews[i];
+			VK_CHECK(vkCreateFramebuffer(mDevice, &fb_ci, nullptr,
+										 &mFramebuffers[i]));
 		}
 	}
 
 	void VulkanRenderer::init_default_renderpass() {
 		VkAttachmentDescription color_attachment = {};
-		color_attachment.format = _swapchain_image_format;
+		color_attachment.format = mSwapchainImageFormat;
 		color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -265,8 +266,8 @@ namespace render {
 		render_pass_info.pSubpasses = &subpass;
 		render_pass_info.dependencyCount = 1;
 		render_pass_info.pDependencies = &dependency;
-		VK_CHECK(vkCreateRenderPass(_device, &render_pass_info, nullptr,
-									&_render_pass));
+		VK_CHECK(vkCreateRenderPass(mDevice, &render_pass_info, nullptr,
+									&mRenderPass));
 	}
 
 	void VulkanRenderer::init_sync_objects() {
@@ -279,30 +280,31 @@ namespace render {
 			vkbuild::fence_ci(VK_FENCE_CREATE_SIGNALED_BIT);
 
 		VK_CHECK(
-			vkCreateFence(_device, &fenceCreateInfo, nullptr, &_render_fence));
+			vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &mRenderFence));
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vkbuild::semaphore_ci();
 
-		VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr,
-								   &_present_semaphore));
-		VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr,
-								   &_render_semaphore));
+		VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
+								   &mPresentSemaphore));
+		VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
+								   &mRenderSemaphore));
 	}
 
 	void VulkanRenderer::init_pipeline() {
 		vkbuild::PipelineBuilder builder;
-		_graphics_pipeline_layout =
+		mGraphicsPipelineLayout =
 			builder
-				.add_shader(_device,
+				.add_shader(mDevice,
 							"assets/shaders/default_shader.vert.glsl.spv",
 							vkbuild::ShaderType::VERTEX)
-				.add_shader(_device,
+				.add_shader(mDevice,
 							"assets/shaders/default_shader.frag.glsl.spv",
 							vkbuild::ShaderType::FRAGMENT)
 				.set_vertex_input_description(Vertex::get_description())
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				// @TODO: cull mode
+                .set_cull_mode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
 				.set_multisampling_enabled(false)
 				.add_default_color_blend_attachment()
 				.set_color_blending_enabled(false)
@@ -311,12 +313,12 @@ namespace render {
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
-				.add_viewport({0, 0, static_cast<float>(_window_extent.width),
-							   static_cast<float>(_window_extent.height), 0.f,
+				.add_viewport({0, 0, static_cast<float>(mWindowExtent.width),
+							   static_cast<float>(mWindowExtent.height), 0.f,
 							   1.f})
-				.add_scissor({{0, 0}, _window_extent})
-				.build_layout(_device);
-		_graphics_pipeline = builder.build_pipeline(_device, _render_pass);
+				.add_scissor({{0, 0}, mWindowExtent})
+				.build_layout(mDevice);
+		mGraphicsPipeline = builder.build_pipeline(mDevice, mRenderPass);
 	}
 
 	void VulkanRenderer::load_mesh() {
@@ -324,7 +326,9 @@ namespace render {
 		vertices.push_back({{1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
 		vertices.push_back({{-1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
 		vertices.push_back({{1.f, -1.f, 0.f}, {1.f, 0.f, 1.f}});
-		_mesh.set_vertices(vertices).upload_mesh(_allocator);
+		mMesh.set_vertices(vertices).upload_mesh(mAllocator);
+        mMonkeyMesh.load_from_obj("assets/models/monkey.obj");
+        mMonkeyMesh.upload_mesh(mAllocator);
 	}
 
 } // namespace render

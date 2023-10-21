@@ -17,7 +17,6 @@ struct Vertex {
 	public:
 		ArrayList<Vertex> vertices;
 
-
 		Buffer buffer;
 
     public:
@@ -27,5 +26,7 @@ struct Vertex {
 		Mesh& set_vertices(ArrayList<Vertex>& data);
 
 		Mesh& upload_mesh(VmaAllocator allocator);
+
+        bool load_from_obj(const char* path);
     };
 } // namespace render

@@ -13,6 +13,13 @@ namespace core {
 		}
 
 		template <typename... Args>
+		static void Warning(const char* message, Args... args) {
+			printf("[WARN]\t");
+			printf(message, args...);
+			printf("\n");
+		}
+
+		template <typename... Args>
 		static void Error(const char* message, Args... args) {
 			printf("[ERROR]\t");
 			printf(message, args...);
