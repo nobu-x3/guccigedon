@@ -18,10 +18,10 @@
 namespace render {
 	VulkanRenderer::VulkanRenderer() {
 		SDL_Init(SDL_INIT_VIDEO);
-		mpWindow = SDL_CreateWindow(
-			"Guccigedon", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			mWindowExtent.width, mWindowExtent.height,
-			(SDL_WindowFlags)(SDL_WINDOW_VULKAN));
+		mpWindow = SDL_CreateWindow("Guccigedon", SDL_WINDOWPOS_CENTERED,
+									SDL_WINDOWPOS_CENTERED, mWindowExtent.width,
+									mWindowExtent.height,
+									(SDL_WindowFlags)(SDL_WINDOW_VULKAN));
 		if (!mpWindow) {
 			core::Logger::Fatal("Failed to create a window. %s",
 								SDL_GetError());
@@ -44,27 +44,60 @@ namespace render {
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
-		vkDeviceWaitIdle(mDevice);
-		vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
-		vkDestroyFence(mDevice, mRenderFence, nullptr);
-		vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
-		vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
-		vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
-		vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
-		vkDestroyPipelineLayout(mDevice, mGraphicsPipelineLayout, nullptr);
-		vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
-		for (int i = 0; i < mFramebuffers.size(); ++i) {
-			vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
-			vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
+		// this stuff is sort of unsafe, so need to check for handles > 0 before
+		// destroying, otherwise will segfault
+		if (mDevice) {
+			vkDeviceWaitIdle(mDevice);
+			if (mCommandPool) {
+				vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+			}
+			if (mRenderFence) {
+				vkDestroyFence(mDevice, mRenderFence, nullptr);
+			}
+			if (mPresentSemaphore) {
+				vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
+			}
+			if (mRenderSemaphore) {
+				vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
+			}
+			if (mSwapchain) {
+				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+			}
+			if (mRenderPass) {
+				vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+			}
+			if (mGraphicsPipelineLayout) {
+				vkDestroyPipelineLayout(mDevice, mGraphicsPipelineLayout,
+										nullptr);
+			}
+			if (mGraphicsPipeline) {
+				vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
+			}
+			for (int i = 0; i < mFramebuffers.size(); ++i) {
+				if (mFramebuffers[i])
+					vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
+				if (mSwapchainImageViews[i])
+					vkDestroyImageView(mDevice, mSwapchainImageViews[i],
+									   nullptr);
+			}
+			mMesh.deinit(mAllocator);
+			mMonkeyMesh.deinit(mAllocator);
+			vmaDestroyAllocator(mAllocator);
+			vkDestroyDevice(mDevice, nullptr);
 		}
-		vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
-		mMesh.deinit(mAllocator);
-        mMonkeyMesh.deinit(mAllocator);
-		vmaDestroyAllocator(mAllocator);
-		vkDestroyDevice(mDevice, nullptr);
-		vkb::destroy_debug_utils_messenger(mInstance, fpDebugMsger);
-		vkDestroyInstance(mInstance, nullptr);
-		SDL_DestroyWindow(mpWindow);
+		if (mInstance) {
+			if (mSurface) {
+				vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+			}
+			if (fpDebugMsger) {
+				vkb::destroy_debug_utils_messenger(mInstance, fpDebugMsger);
+			}
+			vkDestroyInstance(mInstance, nullptr);
+		}
+		if (mpWindow) {
+
+			SDL_DestroyWindow(mpWindow);
+		}
 	}
 
 	void VulkanRenderer::draw() {
@@ -109,8 +142,8 @@ namespace render {
 		// camera projection
 		glm::mat4 projection = glm::perspective(
 			glm::radians(70.f),
-			static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
-			0.1f, 200.0f);
+			static_cast<f32>(mWindowExtent.width) / mWindowExtent.height, 0.1f,
+			200.0f);
 		projection[1][1] *= -1;
 		// model rotation
 		glm::mat4 model = glm::rotate(
@@ -304,7 +337,7 @@ namespace render {
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				// @TODO: cull mode
-                .set_cull_mode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
+				.set_cull_mode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
 				.set_multisampling_enabled(false)
 				.add_default_color_blend_attachment()
 				.set_color_blending_enabled(false)
@@ -327,8 +360,8 @@ namespace render {
 		vertices.push_back({{-1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
 		vertices.push_back({{1.f, -1.f, 0.f}, {1.f, 0.f, 1.f}});
 		mMesh.set_vertices(vertices).upload_mesh(mAllocator);
-        mMonkeyMesh.load_from_obj("assets/models/monkey.obj");
-        mMonkeyMesh.upload_mesh(mAllocator);
+		mMonkeyMesh.load_from_obj("assets/models/monkey.obj");
+		mMonkeyMesh.upload_mesh(mAllocator);
 	}
 
 } // namespace render
