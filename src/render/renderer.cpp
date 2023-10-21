@@ -82,6 +82,7 @@ namespace render {
 			}
 			mMesh.deinit(mAllocator);
 			mMonkeyMesh.deinit(mAllocator);
+            mDepthAttachment.destroy();
 			vmaDestroyAllocator(mAllocator);
 			vkDestroyDevice(mDevice, nullptr);
 		}
@@ -95,7 +96,6 @@ namespace render {
 			vkDestroyInstance(mInstance, nullptr);
 		}
 		if (mpWindow) {
-
 			SDL_DestroyWindow(mpWindow);
 		}
 	}
@@ -119,15 +119,18 @@ namespace render {
 			vkbuild::command_buffer_begin_info(
 				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
-		VkClearValue clear;
+		VkClearValue color_clear{};
+        VkClearValue depth_clear{};
+        depth_clear.depthStencil.depth = 1.f;
 		static u64 frame_nr{};
 
 		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
 			mRenderPass, mWindowExtent, mFramebuffers[image_index]);
 		float flash = abs(sin(frame_nr / 120.f));
-		clear.color = {{0.f, 0.f, flash, 1.f}};
-		renderpass_info.clearValueCount = 1;
-		renderpass_info.pClearValues = &clear;
+		color_clear.color = {{0.f, 0.f, flash, 1.f}};
+        VkClearValue clear_values[] {color_clear, depth_clear};
+		renderpass_info.clearValueCount = 2;
+		renderpass_info.pClearValues = &clear_values[0];
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 		// insert actual commands
 		vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -237,6 +240,25 @@ namespace render {
 		mSwapchainImages = vkb_swap.get_images().value();
 		mSwapchainImageViews = vkb_swap.get_image_views().value();
 		mSwapchainImageFormat = vkb_swap.image_format;
+		VkExtent3D depthImageExtent = {mWindowExtent.width,
+									   mWindowExtent.height, 1};
+        VmaAllocationCreateInfo imgAllocCi {};
+        imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        imgAllocCi.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		auto res = Image::create_image(
+			mAllocator, mDevice,
+			vkbuild::image_ci(mDepthFormat,
+							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+							  depthImageExtent),
+            imgAllocCi
+			);
+        if(res.has_value()){
+            bool result = res->create_view(vkbuild::imageview_ci(mDepthFormat, res->handle, VK_IMAGE_ASPECT_DEPTH_BIT));
+            if (!result){
+                return;
+            }
+            mDepthAttachment = std::move(res.value());
+        }
 	}
 
 	void VulkanRenderer::init_commands() {
@@ -257,14 +279,17 @@ namespace render {
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
-			fb_ci.pAttachments = &mSwapchainImageViews[i];
+            VkImageView attachments[2] {mSwapchainImageViews[i], mDepthAttachment.view};
+			fb_ci.pAttachments = &attachments[0];
+            fb_ci.attachmentCount = 2;
 			VK_CHECK(vkCreateFramebuffer(mDevice, &fb_ci, nullptr,
 										 &mFramebuffers[i]));
 		}
 	}
 
 	void VulkanRenderer::init_default_renderpass() {
-		VkAttachmentDescription color_attachment = {};
+
+		VkAttachmentDescription color_attachment {};
 		color_attachment.format = mSwapchainImageFormat;
 		color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -277,28 +302,54 @@ namespace render {
 		color_attachment_ref.attachment = 0;
 		color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		// we are going to create 1 subpass, which is the minimum you can do
+
+		VkAttachmentDescription depth_attachment {};
+		depth_attachment.format = mDepthFormat;
+		depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attach_ref {};
+        depth_attach_ref.attachment = 1;
+        depth_attach_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &color_attachment_ref;
-		// 1 dependency, which is from "outside" into the subpass. And we can
-		// read or write color
+        subpass.pDepthStencilAttachment = &depth_attach_ref;
 
-		VkSubpassDependency dependency = {};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		VkSubpassDependency color_dependency = {};
+		color_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		color_dependency.dstSubpass = 0;
+		color_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		color_dependency.srcAccessMask = 0;
+		color_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		color_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		VkSubpassDependency depth_dependency = {};
+		depth_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		depth_dependency.dstSubpass = 0;
+		depth_dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		depth_dependency.srcAccessMask = 0;
+		depth_dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		depth_dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        VkAttachmentDescription attachments[2] {color_attachment, depth_attachment};
+        VkSubpassDependency dependencies[2] {color_dependency, depth_dependency};
+
 		VkRenderPassCreateInfo render_pass_info = {};
 		render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		render_pass_info.attachmentCount = 1;
-		render_pass_info.pAttachments = &color_attachment;
+		render_pass_info.attachmentCount = 2;
+		render_pass_info.pAttachments = &attachments[0];
 		render_pass_info.subpassCount = 1;
 		render_pass_info.pSubpasses = &subpass;
-		render_pass_info.dependencyCount = 1;
-		render_pass_info.pDependencies = &dependency;
+		render_pass_info.dependencyCount = 2;
+		render_pass_info.pDependencies = &dependencies[0];
 		VK_CHECK(vkCreateRenderPass(mDevice, &render_pass_info, nullptr,
 									&mRenderPass));
 	}
@@ -337,12 +388,13 @@ namespace render {
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				// @TODO: cull mode
-				.set_cull_mode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
+				.set_cull_mode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 				.set_multisampling_enabled(false)
 				.add_default_color_blend_attachment()
 				.set_color_blending_enabled(false)
 				.add_push_constant(sizeof(MeshPushConstant),
 								   VK_SHADER_STAGE_VERTEX_BIT)
+                .set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */

@@ -28,106 +28,149 @@ template <typename T>
 using ArrayList = std::vector<T>;
 
 struct Error {
-    std::error_code type;
-    VkResult vk_result = VK_SUCCESS; // optional error value if a vulkan call failed
+	std::error_code type;
+	VkResult vkResult =
+		VK_SUCCESS; // optional error value if a vulkan call failed
 };
 
-template <typename T> class Result {
-    public:
-    Result(const T& value) noexcept : m_value{ value }, m_init{ true } {}
-    Result(T&& value) noexcept : m_value{ std::move(value) }, m_init{ true } {}
+template <typename T>
+class Result {
 
-    Result(Error error) noexcept : m_error{ error }, m_init{ false } {}
+public:
+	Result(const T& value) noexcept : mValue{value}, mValid{true} {}
 
-    Result(std::error_code error_code, VkResult result = VK_SUCCESS) noexcept
-    : m_error{ error_code, result }, m_init{ false } {}
+	Result(T&& value) noexcept : mValue{std::move(value)}, mValid{true} {}
 
-    ~Result() noexcept { destroy(); }
-    Result(Result const& expected) noexcept : m_init(expected.m_init) {
-        if (m_init)
-            new (&m_value) T{ expected.m_value };
-        else
-            m_error = expected.m_error;
-    }
-    Result& operator=(Result const& result) noexcept {
-        m_init = result.m_init;
-        if (m_init)
-            new (&m_value) T{ result.m_value };
-        else
-            m_error = result.m_error;
-    }
-    Result(Result&& expected) noexcept : m_init(expected.m_init) {
-        if (m_init)
-            new (&m_value) T{ std::move(expected.m_value) };
-        else
-            m_error = std::move(expected.m_error);
-        expected.destroy();
-    }
-    Result& operator=(Result&& result) noexcept {
-        m_init = result.m_init;
-        if (m_init)
-            new (&m_value) T{ std::move(result.m_value) };
-        else
-            m_error = std::move(result.m_error);
-    }
-    Result& operator=(const T& expect) noexcept {
-        destroy();
-        m_init = true;
-        new (&m_value) T{ expect };
-        return *this;
-    }
-    Result& operator=(T&& expect) noexcept {
-        destroy();
-        m_init = true;
-        new (&m_value) T{ std::move(expect) };
-        return *this;
-    }
-    Result& operator=(const Error& error) noexcept {
-        destroy();
-        m_init = false;
-        m_error = error;
-        return *this;
-    }
-    Result& operator=(Error&& error) noexcept {
-        destroy();
-        m_init = false;
-        m_error = error;
-        return *this;
-    }
-    // clang-format off
-	const T* operator-> () const noexcept { assert (m_init); return &m_value; }
-	T*       operator-> ()       noexcept { assert (m_init); return &m_value; }
-	const T& operator* () const& noexcept { assert (m_init);	return m_value; }
-	T&       operator* () &      noexcept { assert (m_init); return m_value; }
-	T&&      operator* () &&	 noexcept { assert (m_init); return std::move (m_value); }
-	const T&  value () const&    noexcept { assert (m_init); return m_value; }
-	T&        value () &         noexcept { assert (m_init); return m_value; }
-	const T&& value () const&&   noexcept { assert (m_init); return std::move (m_value); }
-	T&&       value () &&        noexcept { assert (m_init); return std::move (m_value); }
+	Result(Error error) noexcept : mError{error}, mValid{false} {}
+
+	Result(VkResult result) noexcept {
+		if (result != VK_SUCCESS) {
+			mError = {{}, result};
+			mValid = false;
+		}
+	}
+
+	Result(std::error_code error_code, VkResult result = VK_SUCCESS) noexcept :
+		mError{error_code, result}, mValid{false} {}
+
+	~Result() noexcept { destroy(); }
+
+	Result(Result const& expected) noexcept : mValid(expected.mValid) {
+		if (mValid)
+			new (&mValue) T{expected.mValue};
+		else
+			mError = expected.mError;
+	}
+
+	Result& operator=(Result const& result) noexcept {
+		mValid = result.mValid;
+		if (mValid)
+			new (&mValue) T{result.mValue};
+		else
+			mError = result.mError;
+	}
+
+	Result(Result&& expected) noexcept : mValid(expected.mValid) {
+		if (mValid)
+			new (&mValue) T{std::move(expected.mValue)};
+		else
+			mError = std::move(expected.mError);
+		expected.destroy();
+	}
+
+	Result& operator=(Result&& result) noexcept {
+		mValid = result.mValid;
+		if (mValid)
+			new (&mValue) T{std::move(result.mValue)};
+		else
+			mError = std::move(result.mError);
+	}
+
+	Result& operator=(const T& expect) noexcept {
+		destroy();
+		mValid = true;
+		new (&mValue) T{expect};
+		return *this;
+	}
+
+	Result& operator=(T&& expect) noexcept {
+		destroy();
+		mValid = true;
+		new (&mValue) T{std::move(expect)};
+		return *this;
+	}
+
+	Result& operator=(const Error& error) noexcept {
+		destroy();
+		mValid = false;
+		mError = error;
+		return *this;
+	}
+
+	Result& operator=(Error&& error) noexcept {
+		destroy();
+		mValid = false;
+		mError = error;
+		return *this;
+	}
+
+	Result& operator=(const VkResult& res) noexcept {
+		if (res != VK_SUCCESS) {
+			destroy();
+			mError = {{}, res};
+			mValid = false;
+		}
+		return *this;
+	}
+
+	Result& operator=(VkResult&& res) noexcept {
+		if (res != VK_SUCCESS) {
+			destroy();
+			mError = {{}, res};
+			mValid = false;
+		}
+		return *this;
+	}
+
+	// clang-format off
+	const T* operator-> () const noexcept { assert (mValid); return &mValue; }
+	T*       operator-> ()       noexcept { assert (mValid); return &mValue; }
+	const T& operator* () const& noexcept { assert (mValid);	return mValue; }
+	T&       operator* () &      noexcept { assert (mValid); return mValue; }
+	T&&      operator* () &&	 noexcept { assert (mValid); return std::move (mValue); }
+	const T&  value () const&    noexcept { assert (mValid); return mValue; }
+	T&        value () &         noexcept { assert (mValid); return mValue; }
+	const T&& value () const&&   noexcept { assert (mValid); return std::move (mValue); }
+	T&&       value () &&        noexcept { assert (mValid); return std::move (mValue); }
 
     // std::error_code associated with the error
-    std::error_code error() const { assert (!m_init); return m_error.type; }
+    std::error_code error() const { assert (!mValid); return mError.type; }
+
     // optional VkResult that could of been produced due to the error
-    VkResult vk_result() const { assert (!m_init); return m_error.vk_result; }
+    VkResult vk_result() const { assert (!mValid); return mError.vkResult; }
+
     // Returns the struct that holds the std::error_code and VkResult
-    Error full_error() const { assert (!m_init); return m_error; }
-    // clang-format on
+    Error full_error() const { assert (!mValid); return mError; }
+	// clang-format on
 
-    // check if the result has an error that matches a specific error case
-    template <typename E> bool matches_error(E error_enum_value) const {
-        return !m_init && static_cast<E>(m_error.type.value()) == error_enum_value;
-    }
+	// check if the result has an error that matches a specific error case
+	template <typename E>
+	bool matches_error(E error_enum_value) const {
+		return !mValid &&
+			static_cast<E>(mError.type.value()) == error_enum_value;
+	}
 
-    bool has_value() const { return m_init; }
-    explicit operator bool() const { return m_init; }
+	bool has_value() const { return mValid; }
+	explicit operator bool() const { return mValid; }
 
-    private:
-    void destroy() {
-        if (m_init) m_value.~T();
-    }
-    union {
-        T m_value;
-        Error m_error;
-    };
-    bool m_init;
+private:
+	void destroy() {
+		if (mValid)
+			mValue.~T();
+	}
+	union {
+		T mValue;
+		Error mError;
+	};
+	bool mValid;
 };

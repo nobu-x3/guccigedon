@@ -110,6 +110,45 @@ namespace vkbuild {
 		return info;
 	}
 
+	VkImageCreateInfo image_ci(VkFormat format, VkImageUsageFlags usageFlags,
+							   VkExtent3D extent) {
+		VkImageCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		info.pNext = nullptr;
+
+		info.imageType = VK_IMAGE_TYPE_2D;
+
+		info.format = format;
+		info.extent = extent;
+
+		info.mipLevels = 1;
+		info.arrayLayers = 1;
+		info.samples = VK_SAMPLE_COUNT_1_BIT;
+		info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		info.usage = usageFlags;
+
+		return info;
+	}
+
+	VkImageViewCreateInfo imageview_ci(VkFormat format, VkImage image,
+									   VkImageAspectFlags aspectFlags) {
+		// build a image-view for the depth image to use for rendering
+		VkImageViewCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		info.pNext = nullptr;
+
+		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		info.image = image;
+		info.format = format;
+		info.subresourceRange.baseMipLevel = 0;
+		info.subresourceRange.levelCount = 1;
+		info.subresourceRange.baseArrayLayer = 0;
+		info.subresourceRange.layerCount = 1;
+		info.subresourceRange.aspectMask = aspectFlags;
+
+		return info;
+	}
+
 	PipelineBuilder& PipelineBuilder::add_shader(VkDevice device,
 												 const char* path,
 												 ShaderType type) {
@@ -280,18 +319,19 @@ namespace vkbuild {
 
 	PipelineBuilder&
 	PipelineBuilder::add_push_constant(u32 size, VkPipelineStageFlags stages) {
-        VkPushConstantRange pc {stages};
-        for(auto& c : _push_constants){
-            pc.offset += c.size;
-        }
-        pc.size = size;
-        _push_constants.push_back(pc);
-        return *this;
-    }
+		VkPushConstantRange pc{stages};
+		for (auto& c : _push_constants) {
+			pc.offset += c.size;
+		}
+		pc.size = size;
+		_push_constants.push_back(pc);
+		return *this;
+	}
 
 	VkPipelineLayout PipelineBuilder::build_layout(VkDevice device) {
-        _layout_ci.pushConstantRangeCount = static_cast<u32>(_push_constants.size());
-        _layout_ci.pPushConstantRanges = _push_constants.data();
+		_layout_ci.pushConstantRangeCount =
+			static_cast<u32>(_push_constants.size());
+		_layout_ci.pPushConstantRanges = _push_constants.data();
 		VK_CHECK(vkCreatePipelineLayout(device, &_layout_ci, nullptr,
 										&_pipeline_layout));
 		core::Logger::Trace("Pipeline LAYOUT successfully created.");

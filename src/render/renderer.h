@@ -3,6 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "../core/core.h"
+#include "vulkan_image.h"
 #include "vulkan_mesh.h"
 #include "vulkan_types.h"
 
@@ -17,32 +18,37 @@ namespace render {
 
 	class VulkanRenderer {
 
+        // I'm obviously not gonna keep all this in this megaclass.
+        // This is temporary, I'll refactor once I get it running.
+
 	public:
 		int mCurrFrame{0};
 		VkExtent2D mWindowExtent{800, 600};
 		SDL_Window* mpWindow{nullptr};
-		VkInstance mInstance;
-		VkDebugUtilsMessengerEXT fpDebugMsger;
-		VkPhysicalDevice mPhysicalDevice;
-		VkDevice mDevice;
-		VkSurfaceKHR mSurface;
-		VkQueue mGraphicsQueue;
-		u32 mGraphicsQueueFamily;
-		VkFormat mSwapchainImageFormat;
-		VkSwapchainKHR mSwapchain;
+		VkInstance mInstance {};
+		VkDebugUtilsMessengerEXT fpDebugMsger {};
+		VkPhysicalDevice mPhysicalDevice {};
+		VkDevice mDevice {};
+		VkSurfaceKHR mSurface {};
+		VkQueue mGraphicsQueue {};
+		u32 mGraphicsQueueFamily {};
+		VkFormat mSwapchainImageFormat {};
+		VkSwapchainKHR mSwapchain {};
 		ArrayList<VkImage> mSwapchainImages{};
 		ArrayList<VkImageView> mSwapchainImageViews{};
 		ArrayList<VkFramebuffer> mFramebuffers{};
-		VkCommandPool mCommandPool;
-		VkCommandBuffer mMainCommandBuffer;
-		VkSemaphore mPresentSemaphore, mRenderSemaphore;
-		VkFence mRenderFence;
-		VkRenderPass mRenderPass;
-		VkPipelineLayout mGraphicsPipelineLayout;
-		VkPipeline mGraphicsPipeline;
-		VmaAllocator mAllocator;
+		VkCommandPool mCommandPool {};
+		VkCommandBuffer mMainCommandBuffer {};
+		VkSemaphore mPresentSemaphore {}, mRenderSemaphore {};
+		VkFence mRenderFence {};
+		VkRenderPass mRenderPass {};
+		VkPipelineLayout mGraphicsPipelineLayout {};
+		VkPipeline mGraphicsPipeline {};
+		VmaAllocator mAllocator {};
 		Mesh mMesh {};
         Mesh mMonkeyMesh {};
+        VkFormat mDepthFormat {VK_FORMAT_D32_SFLOAT};
+        Image mDepthAttachment {};
 
 	private:
 		void init_instance();

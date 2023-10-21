@@ -17,16 +17,17 @@
 	} while (0)
 
 struct Buffer {
-    VkBuffer handle;
-    VmaAllocation memory;
+    VkBuffer handle {};
+    VmaAllocation memory {};
 };
 
+
 struct Material {
-    VkPipeline pipeline;
-    VkPipelineLayout layout;
+    VkPipeline pipeline {};
+    VkPipelineLayout layout {};
 };
 
 struct MeshPushConstant {
-    glm::vec4 data;
-    glm::mat4 render_matrix;
+    glm::vec4 data {};
+    glm::mat4 render_matrix {};
 };
