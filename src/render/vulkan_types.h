@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -25,6 +26,19 @@ struct Buffer {
 struct Material {
     VkPipeline pipeline {};
     VkPipelineLayout layout {};
+
+    bool operator==(const Material& other) const {
+        return pipeline == other.pipeline;
+    }
+
+};
+
+    template<>
+    struct std::hash<Material>
+{
+    std::size_t operator()(const Material& k) const {
+        return hash<void*>()(k.pipeline);
+    }
 };
 
 struct MeshPushConstant {

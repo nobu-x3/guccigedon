@@ -1,6 +1,7 @@
 
 #include <cassert>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -26,6 +27,9 @@ using f64 = double;
 
 template <typename T>
 using ArrayList = std::vector<T>;
+
+template <typename T, typename K>
+using HashMap = std::unordered_map<T, K>;
 
 struct Error {
 	std::error_code type;

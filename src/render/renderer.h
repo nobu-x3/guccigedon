@@ -45,10 +45,9 @@ namespace render {
 		VkPipelineLayout mGraphicsPipelineLayout {};
 		VkPipeline mGraphicsPipeline {};
 		VmaAllocator mAllocator {};
-		Mesh mMesh {};
-        Mesh mMonkeyMesh {};
         VkFormat mDepthFormat {VK_FORMAT_D32_SFLOAT};
         Image mDepthAttachment {};
+        HashMap<Material, ArrayList<Mesh>> mMaterialMap;
 
 	private:
 		void init_instance();
@@ -58,11 +57,12 @@ namespace render {
 		void init_default_renderpass();
 		void init_sync_objects();
 		void init_pipeline();
-		void load_mesh();
+        void init_scene();
 
 	public:
 		VulkanRenderer();
 		~VulkanRenderer();
+        void add_material_to_mesh(const Material& material, const Mesh& mesh);
 		void draw();
 		void run();
 	};

@@ -40,7 +40,7 @@ namespace render {
 		init_commands();
 		init_sync_objects();
 		init_pipeline();
-		load_mesh();
+		init_scene();
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -66,13 +66,6 @@ namespace render {
 			if (mRenderPass) {
 				vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 			}
-			if (mGraphicsPipelineLayout) {
-				vkDestroyPipelineLayout(mDevice, mGraphicsPipelineLayout,
-										nullptr);
-			}
-			if (mGraphicsPipeline) {
-				vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
-			}
 			for (int i = 0; i < mFramebuffers.size(); ++i) {
 				if (mFramebuffers[i])
 					vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
@@ -80,9 +73,15 @@ namespace render {
 					vkDestroyImageView(mDevice, mSwapchainImageViews[i],
 									   nullptr);
 			}
-			mMesh.deinit(mAllocator);
-			mMonkeyMesh.deinit(mAllocator);
-            mDepthAttachment.destroy();
+			for (std::pair<const Material, ArrayList<Mesh>>& entry :
+				 mMaterialMap) {
+				vkDestroyPipelineLayout(mDevice, entry.first.layout, nullptr);
+				vkDestroyPipeline(mDevice, entry.first.pipeline, nullptr);
+				for (Mesh& mesh : entry.second) {
+					mesh.deinit(mAllocator);
+				}
+			}
+			mDepthAttachment.destroy();
 			vmaDestroyAllocator(mAllocator);
 			vkDestroyDevice(mDevice, nullptr);
 		}
@@ -120,23 +119,20 @@ namespace render {
 				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
 		VkClearValue color_clear{};
-        VkClearValue depth_clear{};
-        depth_clear.depthStencil.depth = 1.f;
+		VkClearValue depth_clear{};
+		depth_clear.depthStencil.depth = 1.f;
 		static u64 frame_nr{};
 
 		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
 			mRenderPass, mWindowExtent, mFramebuffers[image_index]);
 		float flash = abs(sin(frame_nr / 120.f));
 		color_clear.color = {{0.f, 0.f, flash, 1.f}};
-        VkClearValue clear_values[] {color_clear, depth_clear};
+		VkClearValue clear_values[]{color_clear, depth_clear};
 		renderpass_info.clearValueCount = 2;
 		renderpass_info.pClearValues = &clear_values[0];
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 		// insert actual commands
-		vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-						  mGraphicsPipeline);
 		VkDeviceSize offset{0};
-		vkCmdBindVertexBuffers(buf, 0, 1, &mMonkeyMesh.buffer.handle, &offset);
 		// make a model view matrix for rendering the object
 		// camera position
 		glm::vec3 camPos = {0.f, 0.f, -2.f};
@@ -158,11 +154,18 @@ namespace render {
 		MeshPushConstant constants;
 		constants.render_matrix = mesh_matrix;
 
-		// upload the matrix to the GPU via push constants
-		vkCmdPushConstants(buf, mGraphicsPipelineLayout,
-						   VK_SHADER_STAGE_VERTEX_BIT, 0,
-						   sizeof(MeshPushConstant), &constants);
-		vkCmdDraw(buf, mMonkeyMesh.vertices.size(), 1, 0, 0);
+		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+							  entry.first.pipeline);
+			for (Mesh& mesh : entry.second) {
+				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
+				// upload the matrix to the GPU via push constants
+				vkCmdPushConstants(buf, mGraphicsPipelineLayout,
+								   VK_SHADER_STAGE_VERTEX_BIT, 0,
+								   sizeof(MeshPushConstant), &constants);
+				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
+			}
+		}
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
 		// waiting on _present_semaphore which is signaled when swapchain is
@@ -242,23 +245,24 @@ namespace render {
 		mSwapchainImageFormat = vkb_swap.image_format;
 		VkExtent3D depthImageExtent = {mWindowExtent.width,
 									   mWindowExtent.height, 1};
-        VmaAllocationCreateInfo imgAllocCi {};
-        imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-        imgAllocCi.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VmaAllocationCreateInfo imgAllocCi{};
+		imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		imgAllocCi.requiredFlags =
+			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		auto res = Image::create_image(
 			mAllocator, mDevice,
 			vkbuild::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
-            imgAllocCi
-			);
-        if(res.has_value()){
-            bool result = res->create_view(vkbuild::imageview_ci(mDepthFormat, res->handle, VK_IMAGE_ASPECT_DEPTH_BIT));
-            if (!result){
-                return;
-            }
-            mDepthAttachment = std::move(res.value());
-        }
+			imgAllocCi);
+		if (res.has_value()) {
+			bool result = res->create_view(vkbuild::imageview_ci(
+				mDepthFormat, res->handle, VK_IMAGE_ASPECT_DEPTH_BIT));
+			if (!result) {
+				return;
+			}
+			mDepthAttachment = std::move(res.value());
+		}
 	}
 
 	void VulkanRenderer::init_commands() {
@@ -279,9 +283,10 @@ namespace render {
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
-            VkImageView attachments[2] {mSwapchainImageViews[i], mDepthAttachment.view};
+			VkImageView attachments[2]{mSwapchainImageViews[i],
+									   mDepthAttachment.view};
 			fb_ci.pAttachments = &attachments[0];
-            fb_ci.attachmentCount = 2;
+			fb_ci.attachmentCount = 2;
 			VK_CHECK(vkCreateFramebuffer(mDevice, &fb_ci, nullptr,
 										 &mFramebuffers[i]));
 		}
@@ -289,7 +294,7 @@ namespace render {
 
 	void VulkanRenderer::init_default_renderpass() {
 
-		VkAttachmentDescription color_attachment {};
+		VkAttachmentDescription color_attachment{};
 		color_attachment.format = mSwapchainImageFormat;
 		color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -303,7 +308,7 @@ namespace render {
 		color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		// we are going to create 1 subpass, which is the minimum you can do
 
-		VkAttachmentDescription depth_attachment {};
+		VkAttachmentDescription depth_attachment{};
 		depth_attachment.format = mDepthFormat;
 		depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -311,36 +316,46 @@ namespace render {
 		depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depth_attachment.finalLayout =
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference depth_attach_ref {};
-        depth_attach_ref.attachment = 1;
-        depth_attach_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		VkAttachmentReference depth_attach_ref{};
+		depth_attach_ref.attachment = 1;
+		depth_attach_ref.layout =
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &color_attachment_ref;
-        subpass.pDepthStencilAttachment = &depth_attach_ref;
+		subpass.pDepthStencilAttachment = &depth_attach_ref;
 
 		VkSubpassDependency color_dependency = {};
 		color_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		color_dependency.dstSubpass = 0;
-		color_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		color_dependency.srcStageMask =
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		color_dependency.srcAccessMask = 0;
-		color_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		color_dependency.dstStageMask =
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		color_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 		VkSubpassDependency depth_dependency = {};
 		depth_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		depth_dependency.dstSubpass = 0;
-		depth_dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		depth_dependency.srcStageMask =
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		depth_dependency.srcAccessMask = 0;
-		depth_dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		depth_dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		depth_dependency.dstStageMask =
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		depth_dependency.dstAccessMask =
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        VkAttachmentDescription attachments[2] {color_attachment, depth_attachment};
-        VkSubpassDependency dependencies[2] {color_dependency, depth_dependency};
+		VkAttachmentDescription attachments[2]{color_attachment,
+											   depth_attachment};
+		VkSubpassDependency dependencies[2]{color_dependency, depth_dependency};
 
 		VkRenderPassCreateInfo render_pass_info = {};
 		render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -388,13 +403,14 @@ namespace render {
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				// @TODO: cull mode
-				.set_cull_mode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+							   VK_FRONT_FACE_COUNTER_CLOCKWISE)
 				.set_multisampling_enabled(false)
 				.add_default_color_blend_attachment()
 				.set_color_blending_enabled(false)
 				.add_push_constant(sizeof(MeshPushConstant),
 								   VK_SHADER_STAGE_VERTEX_BIT)
-                .set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
@@ -406,14 +422,53 @@ namespace render {
 		mGraphicsPipeline = builder.build_pipeline(mDevice, mRenderPass);
 	}
 
-	void VulkanRenderer::load_mesh() {
-		ArrayList<Vertex> vertices{3};
-		vertices.push_back({{1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
-		vertices.push_back({{-1.f, 1.f, 0.f}, {1.f, 0.f, 1.f}});
-		vertices.push_back({{1.f, -1.f, 0.f}, {1.f, 0.f, 1.f}});
-		mMesh.set_vertices(vertices).upload_mesh(mAllocator);
-		mMonkeyMesh.load_from_obj("assets/models/monkey.obj");
-		mMonkeyMesh.upload_mesh(mAllocator);
+	void VulkanRenderer::init_scene() {
+		Material material{};
+		vkbuild::PipelineBuilder builder;
+		material.layout =
+			builder
+				.add_shader(mDevice,
+							"assets/shaders/default_shader.vert.glsl.spv",
+							vkbuild::ShaderType::VERTEX)
+				.add_shader(mDevice,
+							"assets/shaders/default_shader.frag.glsl.spv",
+							vkbuild::ShaderType::FRAGMENT)
+				.set_vertex_input_description(Vertex::get_description())
+				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
+				.set_polygon_mode(VK_POLYGON_MODE_FILL)
+				// @TODO: cull mode
+				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+							   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+				.set_multisampling_enabled(false)
+				.add_default_color_blend_attachment()
+				.set_color_blending_enabled(false)
+				.add_push_constant(sizeof(MeshPushConstant),
+								   VK_SHADER_STAGE_VERTEX_BIT)
+				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
+				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
+				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
+				.add_viewport({0, 0, static_cast<float>(mWindowExtent.width),
+							   static_cast<float>(mWindowExtent.height), 0.f,
+							   1.f})
+				.add_scissor({{0, 0}, mWindowExtent})
+				.build_layout(mDevice);
+		material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
+		Mesh monkeyMesh{};
+		monkeyMesh.load_from_obj("assets/models/monkey.obj");
+		monkeyMesh.upload_mesh(mAllocator);
+		add_material_to_mesh(material, monkeyMesh);
+	}
+
+	void VulkanRenderer::add_material_to_mesh(const Material& material,
+											  const Mesh& mesh) {
+		if (mMaterialMap.contains(material)) {
+			core::Logger::Trace("Before %d", mMaterialMap[material].size());
+			mMaterialMap[material].push_back(mesh);
+			core::Logger::Trace("after %d", mMaterialMap[material].size());
+			return;
+		}
+		mMaterialMap.insert({material, {mesh}});
 	}
 
 } // namespace render
