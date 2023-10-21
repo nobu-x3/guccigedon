@@ -38,7 +38,6 @@ namespace render {
 
 	void Mesh::deinit(VmaAllocator alloc) {
 		vmaDestroyBuffer(alloc, buffer.handle, buffer.memory);
-		vmaFreeMemory(alloc, buffer.memory);
 	}
 
 	Mesh& Mesh::set_vertices(ArrayList<Vertex>& data) {
