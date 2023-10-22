@@ -39,7 +39,6 @@ namespace render {
 		init_framebuffers();
 		init_commands();
 		init_sync_objects();
-		init_pipeline();
 		init_scene();
 	}
 
@@ -160,7 +159,7 @@ namespace render {
 			for (Mesh& mesh : entry.second) {
 				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
 				// upload the matrix to the GPU via push constants
-				vkCmdPushConstants(buf, mGraphicsPipelineLayout,
+				vkCmdPushConstants(buf, entry.first.layout,
 								   VK_SHADER_STAGE_VERTEX_BIT, 0,
 								   sizeof(MeshPushConstant), &constants);
 				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
@@ -387,39 +386,6 @@ namespace render {
 								   &mPresentSemaphore));
 		VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
 								   &mRenderSemaphore));
-	}
-
-	void VulkanRenderer::init_pipeline() {
-		vkbuild::PipelineBuilder builder;
-		mGraphicsPipelineLayout =
-			builder
-				.add_shader(mDevice,
-							"assets/shaders/default_shader.vert.glsl.spv",
-							vkbuild::ShaderType::VERTEX)
-				.add_shader(mDevice,
-							"assets/shaders/default_shader.frag.glsl.spv",
-							vkbuild::ShaderType::FRAGMENT)
-				.set_vertex_input_description(Vertex::get_description())
-				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
-				.set_polygon_mode(VK_POLYGON_MODE_FILL)
-				// @TODO: cull mode
-				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
-							   VK_FRONT_FACE_COUNTER_CLOCKWISE)
-				.set_multisampling_enabled(false)
-				.add_default_color_blend_attachment()
-				.set_color_blending_enabled(false)
-				.add_push_constant(sizeof(MeshPushConstant),
-								   VK_SHADER_STAGE_VERTEX_BIT)
-				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
-				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
-				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
-				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
-				.add_viewport({0, 0, static_cast<float>(mWindowExtent.width),
-							   static_cast<float>(mWindowExtent.height), 0.f,
-							   1.f})
-				.add_scissor({{0, 0}, mWindowExtent})
-				.build_layout(mDevice);
-		mGraphicsPipeline = builder.build_pipeline(mDevice, mRenderPass);
 	}
 
 	void VulkanRenderer::init_scene() {

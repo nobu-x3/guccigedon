@@ -42,8 +42,6 @@ namespace render {
 		VkSemaphore mPresentSemaphore {}, mRenderSemaphore {};
 		VkFence mRenderFence {};
 		VkRenderPass mRenderPass {};
-		VkPipelineLayout mGraphicsPipelineLayout {};
-		VkPipeline mGraphicsPipeline {};
 		VmaAllocator mAllocator {};
         VkFormat mDepthFormat {VK_FORMAT_D32_SFLOAT};
         Image mDepthAttachment {};
@@ -56,7 +54,6 @@ namespace render {
 		void init_framebuffers();
 		void init_default_renderpass();
 		void init_sync_objects();
-		void init_pipeline();
         void init_scene();
 
 	public:
