@@ -3,6 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "../core/core.h"
+#include "scene.h"
 #include "vulkan_image.h"
 #include "vulkan_mesh.h"
 #include "vulkan_types.h"
@@ -30,6 +31,7 @@ namespace render {
 		VkInstance mInstance{};
 		VkDebugUtilsMessengerEXT fpDebugMsger{};
 		VkPhysicalDevice mPhysicalDevice{};
+        VkPhysicalDeviceProperties mPhysicalDeviceProperties{};
 		VkDevice mDevice{};
 		VkSurfaceKHR mSurface{};
 		VkQueue mGraphicsQueue{};
@@ -43,10 +45,11 @@ namespace render {
 		VmaAllocator mAllocator{};
 		VkFormat mDepthFormat{VK_FORMAT_D32_SFLOAT};
 		Image mDepthAttachment{};
-		HashMap<Material, ArrayList<Mesh>> mMaterialMap;
+		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
-        VkDescriptorSetLayout mGlobalDescriptorSetLayout;
-        VkDescriptorPool mDescriptorPool;
+        VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
+        VkDescriptorPool mDescriptorPool{};
+        Scene mScene{};
 
 	private:
 		void init_instance();
@@ -57,6 +60,7 @@ namespace render {
 		void init_sync_objects();
         void init_descriptors();
 		void init_scene();
+        size_t pad_uniform_buffer(size_t original_size);
 
 	public:
 		VulkanRenderer();

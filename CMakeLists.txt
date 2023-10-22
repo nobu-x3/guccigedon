@@ -9,7 +9,9 @@ add_executable(Guccigedon
     src/render/renderer.cpp
     src/render/vulkan_builders.cpp
     src/render/vulkan_mesh.cpp
-    src/render/vulkan_types.cpp)
+    src/render/vulkan_types.cpp
+    src/render/scene.cpp
+    )
 
 find_package(Vulkan REQUIRED)
 find_package(SDL2)

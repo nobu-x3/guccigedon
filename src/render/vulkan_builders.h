@@ -31,165 +31,175 @@ namespace vkbuild {
 												VkExtent2D extent,
 												VkFramebuffer framebuffer);
 
-	VkImageCreateInfo image_ci(VkFormat format,
-										VkImageUsageFlags usageFlags,
-										VkExtent3D extent);
+	VkImageCreateInfo image_ci(VkFormat format, VkImageUsageFlags usageFlags,
+							   VkExtent3D extent);
 
 	VkImageViewCreateInfo imageview_ci(VkFormat format, VkImage image,
-												VkImageAspectFlags aspectFlags);
+									   VkImageAspectFlags aspectFlags);
 
-enum class ShaderType : u64 { VERTEX = 0x00000001, FRAGMENT = 0x00000010 };
+	VkDescriptorSetLayoutBinding descriptorset_layout_binding(
+		VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding);
 
-struct Shader {
-	VkShaderModule module;
-	ShaderType type;
-};
+	VkWriteDescriptorSet
+	write_descriptor_buffer(VkDescriptorType type, VkDescriptorSet dstSet,
+							VkDescriptorBufferInfo* bufferInfo,
+							uint32_t binding);
+	enum class ShaderType : u64 { VERTEX = 0x00000001, FRAGMENT = 0x00000010 };
 
-struct VertexInputDescription {
-	ArrayList<VkVertexInputBindingDescription> bindings;
-	ArrayList<VkVertexInputAttributeDescription> attributes;
-	VkPipelineVertexInputStateCreateFlags flags{0};
-};
+	struct Shader {
+		VkShaderModule module;
+		ShaderType type;
+	};
 
-class PipelineBuilder {
-private:
-	// @TODO: perhaps give them all reasonable reserve
-	ArrayList<Shader> mShaders{};
+	struct VertexInputDescription {
+		ArrayList<VkVertexInputBindingDescription> bindings;
+		ArrayList<VkVertexInputAttributeDescription> attributes;
+		VkPipelineVertexInputStateCreateFlags flags{0};
+	};
 
-	ArrayList<VkPipelineShaderStageCreateInfo> mShaderStages{};
+	class PipelineBuilder {
+	private:
+		// @TODO: perhaps give them all reasonable reserve
+		ArrayList<Shader> mShaders{};
 
-	ArrayList<VkVertexInputBindingDescription> mVertexBindings{};
+		ArrayList<VkPipelineShaderStageCreateInfo> mShaderStages{};
 
-	ArrayList<VkVertexInputAttributeDescription> mVertexAttributes{};
+		ArrayList<VkVertexInputBindingDescription> mVertexBindings{};
 
-	ArrayList<VkDynamicState> mDynamicStates{};
+		ArrayList<VkVertexInputAttributeDescription> mVertexAttributes{};
 
-	ArrayList<VkViewport> mViewports{};
+		ArrayList<VkDynamicState> mDynamicStates{};
 
-	ArrayList<VkRect2D> mScissors{};
+		ArrayList<VkViewport> mViewports{};
 
-	ArrayList<VkPipelineColorBlendAttachmentState> mColorBlendAttachments{};
+		ArrayList<VkRect2D> mScissors{};
 
-	ArrayList<VkPushConstantRange> mPushConstants{};
+		ArrayList<VkPipelineColorBlendAttachmentState> mColorBlendAttachments{};
 
-    ArrayList<VkDescriptorSetLayout> mDescriptorSetLayouts;
+		ArrayList<VkPushConstantRange> mPushConstants{};
 
-	VkPipelineInputAssemblyStateCreateInfo mInputAssembly{
-		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
-		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false};
+		ArrayList<VkDescriptorSetLayout> mDescriptorSetLayouts;
 
-	VkPipelineRasterizationStateCreateInfo mRasterizer{
-		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-		nullptr,
-		0,
-		false,
-		false,
-		VK_POLYGON_MODE_FILL,
-		0,
-		VK_FRONT_FACE_CLOCKWISE,
-		false,
-		0.f,
-		0.f,
-		0.f,
-		1.f};
+		VkPipelineInputAssemblyStateCreateInfo mInputAssembly{
+			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			nullptr, 0, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false};
 
-	VkPipelineMultisampleStateCreateInfo mMultisampling{
-		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-		nullptr,
-		0,
-		VK_SAMPLE_COUNT_1_BIT,
-		false,
-		1.f,
-		nullptr,
-		0,
-		0};
+		VkPipelineRasterizationStateCreateInfo mRasterizer{
+			VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			false,
+			false,
+			VK_POLYGON_MODE_FILL,
+			0,
+			VK_FRONT_FACE_CLOCKWISE,
+			false,
+			0.f,
+			0.f,
+			0.f,
+			1.f};
 
-	VkPipelineDepthStencilStateCreateInfo mDepthStencil{
-		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-		nullptr,
-		0,
-		false,
-		false,
-		VK_COMPARE_OP_LESS_OR_EQUAL,
-		false,
-		false,
-		{},
-		{},
-		0.f,
-		1.f};
+		VkPipelineMultisampleStateCreateInfo mMultisampling{
+			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_SAMPLE_COUNT_1_BIT,
+			false,
+			1.f,
+			nullptr,
+			0,
+			0};
 
-	VkPipelineColorBlendStateCreateInfo mColorBlendState{
-		// @TODO: add color attachments array_list
-		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-		nullptr,
-		0,
-		false,
-		VK_LOGIC_OP_COPY,
-		0,
-		nullptr,
-		{0.f, 0.f, 0.f, 0.f}};
+		VkPipelineDepthStencilStateCreateInfo mDepthStencil{
+			VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			false,
+			false,
+			VK_COMPARE_OP_LESS_OR_EQUAL,
+			false,
+			false,
+			{},
+			{},
+			0.f,
+			1.f};
 
-	VkPipelineLayoutCreateInfo mLayoutCi{
-		// @TODO: add methods to add more descriptor sets and push constants
-		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-		nullptr,
-		0,
-		0,
-		nullptr,
-		0,
-		nullptr};
+		VkPipelineColorBlendStateCreateInfo mColorBlendState{
+			// @TODO: add color attachments array_list
+			VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			false,
+			VK_LOGIC_OP_COPY,
+			0,
+			nullptr,
+			{0.f, 0.f, 0.f, 0.f}};
 
-	VkPipelineDynamicStateCreateInfo mDynamicStateCis{
-		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 0,
-		nullptr};
+		VkPipelineLayoutCreateInfo mLayoutCi{
+			// @TODO: add methods to add more descriptor sets and push
+			// constants
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			0,
+			nullptr,
+			0,
+			nullptr};
 
-	VkPipelineLayout mPipelineLayout{};
+		VkPipelineDynamicStateCreateInfo mDynamicStateCis{
+			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 0,
+			nullptr};
 
-public:
-	PipelineBuilder& add_shader(VkDevice device, const char* path,
-								ShaderType type);
+		VkPipelineLayout mPipelineLayout{};
 
-	PipelineBuilder& add_vertex_binding(u32 stride,
-										VkVertexInputRate input_rate);
+	public:
+		PipelineBuilder& add_shader(VkDevice device, const char* path,
+									ShaderType type);
 
-	PipelineBuilder& add_vertex_attribute(u32 binding, u32 location,
-										  VkFormat format, u32 offset);
+		PipelineBuilder& add_vertex_binding(u32 stride,
+											VkVertexInputRate input_rate);
 
-	PipelineBuilder&
-	set_vertex_input_description(VertexInputDescription&& desc);
+		PipelineBuilder& add_vertex_attribute(u32 binding, u32 location,
+											  VkFormat format, u32 offset);
 
-	PipelineBuilder& set_input_assembly(VkPrimitiveTopology topology,
-										bool primitive_restart_enable);
+		PipelineBuilder&
+		set_vertex_input_description(VertexInputDescription&& desc);
 
-	PipelineBuilder& set_cull_mode(VkCullModeFlags cull_mode,
-								   VkFrontFace front_face);
+		PipelineBuilder& set_input_assembly(VkPrimitiveTopology topology,
+											bool primitive_restart_enable);
 
-	PipelineBuilder& set_polygon_mode(VkPolygonMode mode);
+		PipelineBuilder& set_cull_mode(VkCullModeFlags cull_mode,
+									   VkFrontFace front_face);
 
-	PipelineBuilder& add_default_color_blend_attachment();
+		PipelineBuilder& set_polygon_mode(VkPolygonMode mode);
 
-	PipelineBuilder& set_multisampling_enabled(
-		bool val, VkSampleCountFlagBits count = VK_SAMPLE_COUNT_1_BIT);
+		PipelineBuilder& add_default_color_blend_attachment();
 
-	PipelineBuilder&
-	set_depth_testing(bool testEnabled, bool depthWrite,
-					  VkCompareOp compare_op = VK_COMPARE_OP_LESS_OR_EQUAL);
+		PipelineBuilder& set_multisampling_enabled(
+			bool val, VkSampleCountFlagBits count = VK_SAMPLE_COUNT_1_BIT);
 
-	PipelineBuilder&
-	set_color_blending_enabled(bool enabled, VkLogicOp op = VK_LOGIC_OP_COPY);
+		PipelineBuilder&
+		set_depth_testing(bool testEnabled, bool depthWrite,
+						  VkCompareOp compare_op = VK_COMPARE_OP_LESS_OR_EQUAL);
 
-	PipelineBuilder& add_dynamic_state(VkDynamicState dynamic_state);
+		PipelineBuilder&
+		set_color_blending_enabled(bool enabled,
+								   VkLogicOp op = VK_LOGIC_OP_COPY);
 
-	PipelineBuilder& add_viewport(VkViewport viewport);
+		PipelineBuilder& add_dynamic_state(VkDynamicState dynamic_state);
 
-	PipelineBuilder& add_scissor(VkRect2D scissor);
+		PipelineBuilder& add_viewport(VkViewport viewport);
 
-	PipelineBuilder& add_push_constant(u32 size, VkPipelineStageFlags stages);
+		PipelineBuilder& add_scissor(VkRect2D scissor);
 
-    PipelineBuilder& add_descriptor_set_layout(VkDescriptorSetLayout layout);
+		PipelineBuilder& add_push_constant(u32 size,
+										   VkPipelineStageFlags stages);
 
-	VkPipelineLayout build_layout(VkDevice device);
+		PipelineBuilder&
+		add_descriptor_set_layout(VkDescriptorSetLayout layout);
 
-	VkPipeline build_pipeline(VkDevice device, VkRenderPass pass);
-};
+		VkPipelineLayout build_layout(VkDevice device);
+
+		VkPipeline build_pipeline(VkDevice device, VkRenderPass pass);
+	};
 } // namespace vkbuild
