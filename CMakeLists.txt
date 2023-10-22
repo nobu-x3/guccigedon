@@ -8,7 +8,8 @@ add_executable(Guccigedon
     src/main.cpp
     src/render/renderer.cpp
     src/render/vulkan_builders.cpp
-    src/render/vulkan_mesh.cpp)
+    src/render/vulkan_mesh.cpp
+    src/render/vulkan_types.cpp)
 
 find_package(Vulkan REQUIRED)
 find_package(SDL2)

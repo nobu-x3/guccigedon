@@ -54,29 +54,31 @@ struct VertexInputDescription {
 class PipelineBuilder {
 private:
 	// @TODO: perhaps give them all reasonable reserve
-	ArrayList<Shader> _shaders{};
+	ArrayList<Shader> mShaders{};
 
-	ArrayList<VkPipelineShaderStageCreateInfo> _shader_stages{};
+	ArrayList<VkPipelineShaderStageCreateInfo> mShaderStages{};
 
-	ArrayList<VkVertexInputBindingDescription> _vertex_bindings{};
+	ArrayList<VkVertexInputBindingDescription> mVertexBindings{};
 
-	ArrayList<VkVertexInputAttributeDescription> _vertex_attributes{};
+	ArrayList<VkVertexInputAttributeDescription> mVertexAttributes{};
 
-	ArrayList<VkDynamicState> _dynamic_states{};
+	ArrayList<VkDynamicState> mDynamicStates{};
 
-	ArrayList<VkViewport> _viewports{};
+	ArrayList<VkViewport> mViewports{};
 
-	ArrayList<VkRect2D> _scissors{};
+	ArrayList<VkRect2D> mScissors{};
 
-	ArrayList<VkPipelineColorBlendAttachmentState> _color_blend_attachments{};
+	ArrayList<VkPipelineColorBlendAttachmentState> mColorBlendAttachments{};
 
-	ArrayList<VkPushConstantRange> _push_constants{};
+	ArrayList<VkPushConstantRange> mPushConstants{};
 
-	VkPipelineInputAssemblyStateCreateInfo _input_assembly{
+    ArrayList<VkDescriptorSetLayout> mDescriptorSetLayouts;
+
+	VkPipelineInputAssemblyStateCreateInfo mInputAssembly{
 		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false};
 
-	VkPipelineRasterizationStateCreateInfo _rasterizer{
+	VkPipelineRasterizationStateCreateInfo mRasterizer{
 		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 		nullptr,
 		0,
@@ -91,7 +93,7 @@ private:
 		0.f,
 		1.f};
 
-	VkPipelineMultisampleStateCreateInfo _multisampling{
+	VkPipelineMultisampleStateCreateInfo mMultisampling{
 		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
 		nullptr,
 		0,
@@ -102,7 +104,7 @@ private:
 		0,
 		0};
 
-	VkPipelineDepthStencilStateCreateInfo _depth_stencil{
+	VkPipelineDepthStencilStateCreateInfo mDepthStencil{
 		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 		nullptr,
 		0,
@@ -116,7 +118,7 @@ private:
 		0.f,
 		1.f};
 
-	VkPipelineColorBlendStateCreateInfo _color_blend_state{
+	VkPipelineColorBlendStateCreateInfo mColorBlendState{
 		// @TODO: add color attachments array_list
 		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 		nullptr,
@@ -127,7 +129,7 @@ private:
 		nullptr,
 		{0.f, 0.f, 0.f, 0.f}};
 
-	VkPipelineLayoutCreateInfo _layout_ci{
+	VkPipelineLayoutCreateInfo mLayoutCi{
 		// @TODO: add methods to add more descriptor sets and push constants
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		nullptr,
@@ -137,11 +139,11 @@ private:
 		0,
 		nullptr};
 
-	VkPipelineDynamicStateCreateInfo _dynamic_state_cis{
+	VkPipelineDynamicStateCreateInfo mDynamicStateCis{
 		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 0,
 		nullptr};
 
-	VkPipelineLayout _pipeline_layout{};
+	VkPipelineLayout mPipelineLayout{};
 
 public:
 	PipelineBuilder& add_shader(VkDevice device, const char* path,
@@ -183,6 +185,8 @@ public:
 	PipelineBuilder& add_scissor(VkRect2D scissor);
 
 	PipelineBuilder& add_push_constant(u32 size, VkPipelineStageFlags stages);
+
+    PipelineBuilder& add_descriptor_set_layout(VkDescriptorSetLayout layout);
 
 	VkPipelineLayout build_layout(VkDevice device);
 

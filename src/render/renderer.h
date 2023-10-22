@@ -11,6 +11,8 @@ struct SDL_Window;
 
 namespace render {
 
+	constexpr u32 MAXIMUM_FRAMES_IN_FLIGHT = 2;
+
 	struct RenderObject {
 		Mesh mesh;
 		Material Material;
@@ -18,34 +20,33 @@ namespace render {
 
 	class VulkanRenderer {
 
-        // I'm obviously not gonna keep all this in this megaclass.
-        // This is temporary, I'll refactor once I get it running.
+		// I'm obviously not gonna keep all this in this megaclass.
+		// This is temporary, I'll refactor once I get it running.
 
-	public:
-		int mCurrFrame{0};
+	private:
+		u32 mCurrFrame{0};
 		VkExtent2D mWindowExtent{800, 600};
 		SDL_Window* mpWindow{nullptr};
-		VkInstance mInstance {};
-		VkDebugUtilsMessengerEXT fpDebugMsger {};
-		VkPhysicalDevice mPhysicalDevice {};
-		VkDevice mDevice {};
-		VkSurfaceKHR mSurface {};
-		VkQueue mGraphicsQueue {};
-		u32 mGraphicsQueueFamily {};
-		VkFormat mSwapchainImageFormat {};
-		VkSwapchainKHR mSwapchain {};
+		VkInstance mInstance{};
+		VkDebugUtilsMessengerEXT fpDebugMsger{};
+		VkPhysicalDevice mPhysicalDevice{};
+		VkDevice mDevice{};
+		VkSurfaceKHR mSurface{};
+		VkQueue mGraphicsQueue{};
+		u32 mGraphicsQueueFamily{};
+		VkFormat mSwapchainImageFormat{};
+		VkSwapchainKHR mSwapchain{};
 		ArrayList<VkImage> mSwapchainImages{};
 		ArrayList<VkImageView> mSwapchainImageViews{};
 		ArrayList<VkFramebuffer> mFramebuffers{};
-		VkCommandPool mCommandPool {};
-		VkCommandBuffer mMainCommandBuffer {};
-		VkSemaphore mPresentSemaphore {}, mRenderSemaphore {};
-		VkFence mRenderFence {};
-		VkRenderPass mRenderPass {};
-		VmaAllocator mAllocator {};
-        VkFormat mDepthFormat {VK_FORMAT_D32_SFLOAT};
-        Image mDepthAttachment {};
-        HashMap<Material, ArrayList<Mesh>> mMaterialMap;
+		VkRenderPass mRenderPass{};
+		VmaAllocator mAllocator{};
+		VkFormat mDepthFormat{VK_FORMAT_D32_SFLOAT};
+		Image mDepthAttachment{};
+		HashMap<Material, ArrayList<Mesh>> mMaterialMap;
+		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
+        VkDescriptorSetLayout mGlobalDescriptorSetLayout;
+        VkDescriptorPool mDescriptorPool;
 
 	private:
 		void init_instance();
@@ -54,12 +55,18 @@ namespace render {
 		void init_framebuffers();
 		void init_default_renderpass();
 		void init_sync_objects();
-        void init_scene();
+        void init_descriptors();
+		void init_scene();
 
 	public:
 		VulkanRenderer();
 		~VulkanRenderer();
-        void add_material_to_mesh(const Material& material, const Mesh& mesh);
+		void add_material_to_mesh(const Material& material, const Mesh& mesh);
+
+		inline FrameData& get_current_frame() {
+			return mFrames[mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT];
+		}
+
 		void draw();
 		void run();
 	};

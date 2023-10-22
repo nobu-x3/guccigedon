@@ -6,6 +6,7 @@
 #include <SDL2/SDL_vulkan.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <iterator>
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
 #include "../core/logger.h"
@@ -39,6 +40,7 @@ namespace render {
 		init_framebuffers();
 		init_commands();
 		init_sync_objects();
+		init_descriptors();
 		init_scene();
 	}
 
@@ -47,17 +49,25 @@ namespace render {
 		// destroying, otherwise will segfault
 		if (mDevice) {
 			vkDeviceWaitIdle(mDevice);
-			if (mCommandPool) {
-				vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
-			}
-			if (mRenderFence) {
-				vkDestroyFence(mDevice, mRenderFence, nullptr);
-			}
-			if (mPresentSemaphore) {
-				vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
-			}
-			if (mRenderSemaphore) {
-				vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
+			for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+				if (mFrames[i].command_pool) {
+					vkDestroyCommandPool(mDevice, mFrames[i].command_pool,
+										 nullptr);
+				}
+				if (mFrames[i].render_fence) {
+					vkDestroyFence(mDevice, mFrames[i].render_fence, nullptr);
+				}
+				if (mFrames[i].present_semaphore) {
+					vkDestroySemaphore(mDevice, mFrames[i].present_semaphore,
+									   nullptr);
+				}
+				if (mFrames[i].render_semaphore) {
+					vkDestroySemaphore(mDevice, mFrames[i].render_semaphore,
+									   nullptr);
+				}
+				if (mFrames[i].camera_buffer.handle) {
+					mFrames[i].camera_buffer.destroy();
+				}
 			}
 			if (mSwapchain) {
 				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
@@ -81,6 +91,9 @@ namespace render {
 				}
 			}
 			mDepthAttachment.destroy();
+			vkDestroyDescriptorSetLayout(mDevice, mGlobalDescriptorSetLayout,
+										 nullptr);
+            vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 			vmaDestroyAllocator(mAllocator);
 			vkDestroyDevice(mDevice, nullptr);
 		}
@@ -104,15 +117,17 @@ namespace render {
 			return;
 		}
 		// wait until last frame is rendered, timeout 1s
-		VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, 1000000000));
-		VK_CHECK(vkResetFences(mDevice, 1, &mRenderFence));
+		FrameData& frame_data = get_current_frame();
+		VK_CHECK(vkWaitForFences(mDevice, 1, &frame_data.render_fence, true,
+								 1000000000));
+		VK_CHECK(vkResetFences(mDevice, 1, &frame_data.render_fence));
 		// now can reset command buffer safely
-		VK_CHECK(vkResetCommandBuffer(mMainCommandBuffer, 0));
+		VK_CHECK(vkResetCommandBuffer(frame_data.command_buffer, 0));
 		u32 image_index{};
 		VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, 1000000000,
-									   mPresentSemaphore, nullptr,
+									   frame_data.present_semaphore, nullptr,
 									   &image_index));
-		VkCommandBuffer buf = mMainCommandBuffer;
+		VkCommandBuffer buf = frame_data.command_buffer;
 		VkCommandBufferBeginInfo buf_begin_info =
 			vkbuild::command_buffer_begin_info(
 				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -120,11 +135,10 @@ namespace render {
 		VkClearValue color_clear{};
 		VkClearValue depth_clear{};
 		depth_clear.depthStencil.depth = 1.f;
-		static u64 frame_nr{};
 
 		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
 			mRenderPass, mWindowExtent, mFramebuffers[image_index]);
-		float flash = abs(sin(frame_nr / 120.f));
+		float flash = abs(sin(mCurrFrame / 120.f));
 		color_clear.color = {{0.f, 0.f, flash, 1.f}};
 		VkClearValue clear_values[]{color_clear, depth_clear};
 		renderpass_info.clearValueCount = 2;
@@ -145,17 +159,25 @@ namespace render {
 		projection[1][1] *= -1;
 		// model rotation
 		glm::mat4 model = glm::rotate(
-			glm::mat4{1.0f}, glm::radians(frame_nr * 0.4f), glm::vec3(0, 1, 0));
+			glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.4f), glm::vec3(0, 1, 0));
 
 		// calculate final mesh matrix
 		glm::mat4 mesh_matrix = projection * view * model;
 
 		MeshPushConstant constants;
 		constants.render_matrix = mesh_matrix;
-
+        CameraData cam_data = {};
+        cam_data.proj = projection;
+        cam_data.view = view;
+        cam_data.view_proj = projection * view;
+        void* data;
+        vmaMapMemory(mAllocator, frame_data.camera_buffer.memory, &data);
+        memcpy(data, &cam_data, sizeof(CameraData));
+        vmaUnmapMemory(mAllocator, frame_data.camera_buffer.memory);
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
 			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							  entry.first.pipeline);
+            vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1, &frame_data.global_descriptor, 0, nullptr);
 			for (Mesh& mesh : entry.second) {
 				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
 				// upload the matrix to the GPU via push constants
@@ -174,21 +196,22 @@ namespace render {
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		submit.pWaitDstStageMask = &wait_stage;
 		submit.waitSemaphoreCount = 1;
-		submit.pWaitSemaphores = &mPresentSemaphore;
+		submit.pWaitSemaphores = &frame_data.present_semaphore;
 		submit.signalSemaphoreCount = 1;
-		submit.pSignalSemaphores = &mRenderSemaphore;
+		submit.pSignalSemaphores = &frame_data.render_semaphore;
 		// render fence blocks until commands finish executing
-		VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit, mRenderFence));
+		VK_CHECK(
+			vkQueueSubmit(mGraphicsQueue, 1, &submit, frame_data.render_fence));
 
 		// waiting on rendering to finish, then presenting
 		VkPresentInfoKHR present_info = vkbuild::present_info();
 		present_info.swapchainCount = 1;
 		present_info.pSwapchains = &mSwapchain;
 		present_info.waitSemaphoreCount = 1;
-		present_info.pWaitSemaphores = &mRenderSemaphore;
+		present_info.pWaitSemaphores = &frame_data.render_semaphore;
 		present_info.pImageIndices = &image_index;
 		VK_CHECK(vkQueuePresentKHR(mGraphicsQueue, &present_info));
-		++frame_nr;
+		++mCurrFrame;
 	}
 
 	void VulkanRenderer::run() {
@@ -265,15 +288,17 @@ namespace render {
 	}
 
 	void VulkanRenderer::init_commands() {
-		VkCommandPoolCreateInfo command_pool_ci = vkbuild::command_pool_ci(
-			mGraphicsQueueFamily,
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		VK_CHECK(vkCreateCommandPool(mDevice, &command_pool_ci, nullptr,
-									 &mCommandPool));
-		VkCommandBufferAllocateInfo alloc_info =
-			vkbuild::command_buffer_ai(mCommandPool, 1);
-		VK_CHECK(vkAllocateCommandBuffers(mDevice, &alloc_info,
-										  &mMainCommandBuffer));
+		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+			VkCommandPoolCreateInfo command_pool_ci = vkbuild::command_pool_ci(
+				mGraphicsQueueFamily,
+				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+			VK_CHECK(vkCreateCommandPool(mDevice, &command_pool_ci, nullptr,
+										 &mFrames[i].command_pool));
+			VkCommandBufferAllocateInfo alloc_info =
+				vkbuild::command_buffer_ai(mFrames[i].command_pool, 1);
+			VK_CHECK(vkAllocateCommandBuffers(mDevice, &alloc_info,
+											  &mFrames[i].command_buffer));
+		}
 	}
 
 	void VulkanRenderer::init_framebuffers() {
@@ -374,18 +399,17 @@ namespace render {
 		// and 2 semaphores to syncronize rendering with swapchain
 		// we want the fence to start signalled so we can wait on it on the
 		// first frame
-		VkFenceCreateInfo fenceCreateInfo =
-			vkbuild::fence_ci(VK_FENCE_CREATE_SIGNALED_BIT);
-
-		VK_CHECK(
-			vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &mRenderFence));
-
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vkbuild::semaphore_ci();
-
-		VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
-								   &mPresentSemaphore));
-		VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
-								   &mRenderSemaphore));
+		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+			VkFenceCreateInfo fenceCreateInfo =
+				vkbuild::fence_ci(VK_FENCE_CREATE_SIGNALED_BIT);
+			VK_CHECK(vkCreateFence(mDevice, &fenceCreateInfo, nullptr,
+								   &mFrames[i].render_fence));
+			VkSemaphoreCreateInfo semaphoreCreateInfo = vkbuild::semaphore_ci();
+			VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
+									   &mFrames[i].present_semaphore));
+			VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
+									   &mFrames[i].render_semaphore));
+		}
 	}
 
 	void VulkanRenderer::init_scene() {
@@ -410,6 +434,7 @@ namespace render {
 				.set_color_blending_enabled(false)
 				.add_push_constant(sizeof(MeshPushConstant),
 								   VK_SHADER_STAGE_VERTEX_BIT)
+				.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
 				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
@@ -424,6 +449,50 @@ namespace render {
 		monkeyMesh.load_from_obj("assets/models/monkey.obj");
 		monkeyMesh.upload_mesh(mAllocator);
 		add_material_to_mesh(material, monkeyMesh);
+	}
+
+	void VulkanRenderer::init_descriptors() {
+		VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10}};
+		VkDescriptorPoolCreateInfo pool_ci{
+			VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			nullptr,
+			0,
+			10,
+			static_cast<u32>(std::size(sizes)),
+			&sizes[0]};
+		VK_CHECK(vkCreateDescriptorPool(mDevice, &pool_ci, nullptr,
+										&mDescriptorPool));
+		VkDescriptorSetLayoutBinding cam_buffer_binding{
+			0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+			VK_SHADER_STAGE_VERTEX_BIT};
+		VkDescriptorSetLayoutCreateInfo set_ci = {
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
+			&cam_buffer_binding};
+		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &set_ci, nullptr,
+											 &mGlobalDescriptorSetLayout));
+		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+			mFrames[i].camera_buffer = {mAllocator, sizeof(CameraData),
+										VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+										VMA_MEMORY_USAGE_CPU_TO_GPU};
+			VkDescriptorSetAllocateInfo alloc_info{
+				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+				mDescriptorPool, 1, &mGlobalDescriptorSetLayout};
+			VK_CHECK(vkAllocateDescriptorSets(mDevice, &alloc_info,
+											  &mFrames[i].global_descriptor));
+			VkDescriptorBufferInfo buf_info{mFrames[i].camera_buffer.handle, 0,
+											sizeof(CameraData)};
+			VkWriteDescriptorSet set_write{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				nullptr,
+				mFrames[i].global_descriptor,
+				0,
+				0,
+				1,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				nullptr,
+				&buf_info};
+            vkUpdateDescriptorSets(mDevice, 1, &set_write, 0, nullptr);
+		}
 	}
 
 	void VulkanRenderer::add_material_to_mesh(const Material& material,

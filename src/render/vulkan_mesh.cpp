@@ -37,7 +37,7 @@ namespace render {
 	}
 
 	void Mesh::deinit(VmaAllocator alloc) {
-		vmaDestroyBuffer(alloc, buffer.handle, buffer.memory);
+        buffer.destroy();
 	}
 
 	Mesh& Mesh::set_vertices(ArrayList<Vertex>& data) {
@@ -46,14 +46,7 @@ namespace render {
 	}
 
 	Mesh& Mesh::upload_mesh(VmaAllocator alloc) {
-		VkBufferCreateInfo buf_ci{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-								  nullptr};
-		buf_ci.size = vertices.size() * sizeof(Vertex);
-		buf_ci.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		VmaAllocationCreateInfo alloc_info{};
-		alloc_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-		VK_CHECK(vmaCreateBuffer(alloc, &buf_ci, &alloc_info, &buffer.handle,
-								 &buffer.memory, nullptr));
+        buffer = {alloc, vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU};
 		void* data;
 		vmaMapMemory(alloc, buffer.memory, &data);
 		memcpy(data, vertices.data(), vertices.size() * sizeof(Vertex));

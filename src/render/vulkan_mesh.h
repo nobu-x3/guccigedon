@@ -5,13 +5,13 @@
 
 namespace render {
 
-struct Vertex {
-    glm::vec3 position;
-    glm::vec3 color;
-    glm::vec3 normal;
+	struct Vertex {
+		glm::vec3 position;
+		glm::vec3 color;
+		glm::vec3 normal;
 
-    static vkbuild::VertexInputDescription get_description();
-};
+		static vkbuild::VertexInputDescription get_description();
+	};
 
 	class Mesh {
 	public:
@@ -19,14 +19,13 @@ struct Vertex {
 
 		Buffer buffer;
 
-    public:
-
-        void deinit(VmaAllocator alloc);
+	public:
+		void deinit(VmaAllocator alloc);
 
 		Mesh& set_vertices(ArrayList<Vertex>& data);
 
 		Mesh& upload_mesh(VmaAllocator allocator);
 
-        bool load_from_obj(const char* path);
-    };
+		bool load_from_obj(const char* path);
+	};
 } // namespace render

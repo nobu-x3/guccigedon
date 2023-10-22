@@ -152,7 +152,7 @@ namespace vkbuild {
 	PipelineBuilder& PipelineBuilder::add_shader(VkDevice device,
 												 const char* path,
 												 ShaderType type) {
-		for (auto& shader : _shaders) {
+		for (auto& shader : mShaders) {
 			if (shader.type == type) {
 #define PROCESS_VAL(p)                                                         \
 	case (p):                                                                  \
@@ -199,7 +199,7 @@ namespace vkbuild {
 			core::Logger::Trace("Failed to create shader module. %d", res);
 			return *this;
 		}
-		_shaders.push_back(shader);
+		mShaders.push_back(shader);
 		VkPipelineShaderStageCreateInfo stage_ci{
 			VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			nullptr,
@@ -207,7 +207,7 @@ namespace vkbuild {
 			static_cast<VkShaderStageFlagBits>(type),
 			shader.module,
 			"main"};
-		_shader_stages.push_back(stage_ci);
+		mShaderStages.push_back(stage_ci);
 		return *this;
 	}
 
@@ -215,8 +215,8 @@ namespace vkbuild {
 	PipelineBuilder::add_vertex_binding(u32 stride,
 										VkVertexInputRate input_rate) {
 		VkVertexInputBindingDescription desc{
-			static_cast<u32>(_vertex_bindings.size()), stride, input_rate};
-		_vertex_bindings.push_back(desc);
+			static_cast<u32>(mVertexBindings.size()), stride, input_rate};
+		mVertexBindings.push_back(desc);
 		return *this;
 	}
 
@@ -226,58 +226,58 @@ namespace vkbuild {
 														   u32 offset) {
 		VkVertexInputAttributeDescription desc{location, binding, format,
 											   offset};
-		_vertex_attributes.push_back(desc);
+		mVertexAttributes.push_back(desc);
 		return *this;
 	}
 
 	PipelineBuilder& PipelineBuilder::set_vertex_input_description(
 		VertexInputDescription&& desc) {
-		_vertex_bindings = std::move(desc.bindings);
-		_vertex_attributes = std::move(desc.attributes);
+		mVertexBindings = std::move(desc.bindings);
+		mVertexAttributes = std::move(desc.attributes);
 		return *this;
 	}
 
 	PipelineBuilder&
 	PipelineBuilder::set_input_assembly(VkPrimitiveTopology topology,
 										bool primitive_restart_enable) {
-		_input_assembly.topology = topology;
-		_input_assembly.primitiveRestartEnable = primitive_restart_enable;
+		mInputAssembly.topology = topology;
+		mInputAssembly.primitiveRestartEnable = primitive_restart_enable;
 		return *this;
 	}
 
 	PipelineBuilder& PipelineBuilder::set_cull_mode(VkCullModeFlags cull_mode,
 													VkFrontFace front_face) {
-		_rasterizer.cullMode = cull_mode;
-		_rasterizer.frontFace = front_face;
+		mRasterizer.cullMode = cull_mode;
+		mRasterizer.frontFace = front_face;
 		return *this;
 	}
 
 	PipelineBuilder& PipelineBuilder::set_polygon_mode(VkPolygonMode mode) {
-		_rasterizer.polygonMode = mode;
+		mRasterizer.polygonMode = mode;
 		return *this;
 	}
 
 	PipelineBuilder&
 	PipelineBuilder::set_multisampling_enabled(bool val,
 											   VkSampleCountFlagBits count) {
-		_multisampling.sampleShadingEnable = val;
-		_multisampling.rasterizationSamples = count;
+		mMultisampling.sampleShadingEnable = val;
+		mMultisampling.rasterizationSamples = count;
 		return *this;
 	}
 
 	PipelineBuilder&
 	PipelineBuilder::set_depth_testing(bool testEnabled, bool depthWrite,
 									   VkCompareOp compare_op) {
-		_depth_stencil.depthTestEnable = testEnabled;
-		_depth_stencil.depthWriteEnable = depthWrite;
-		_depth_stencil.depthCompareOp = compare_op;
+		mDepthStencil.depthTestEnable = testEnabled;
+		mDepthStencil.depthWriteEnable = depthWrite;
+		mDepthStencil.depthCompareOp = compare_op;
 		return *this;
 	}
 
 	PipelineBuilder& PipelineBuilder::set_color_blending_enabled(bool enabled,
 																 VkLogicOp op) {
-		_color_blend_state.logicOpEnable = enabled;
-		_color_blend_state.logicOp = op;
+		mColorBlendState.logicOpEnable = enabled;
+		mColorBlendState.logicOp = op;
 		return *this;
 	}
 	PipelineBuilder& PipelineBuilder::add_default_color_blend_attachment() {
@@ -291,51 +291,60 @@ namespace vkbuild {
 			VK_BLEND_OP_ADD,
 			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 				VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
-		_color_blend_attachments.push_back(color_blend_attachment);
-		_color_blend_state.pAttachments = _color_blend_attachments.data();
-		_color_blend_state.attachmentCount =
-			static_cast<int>(_color_blend_attachments.size());
+		mColorBlendAttachments.push_back(color_blend_attachment);
+		mColorBlendState.pAttachments = mColorBlendAttachments.data();
+		mColorBlendState.attachmentCount =
+			static_cast<int>(mColorBlendAttachments.size());
 		return *this;
 	}
 
 	PipelineBuilder&
 	PipelineBuilder::add_dynamic_state(VkDynamicState dynamic_state) {
-		_dynamic_states.push_back(dynamic_state);
-		_dynamic_state_cis.pDynamicStates = _dynamic_states.data();
-		_dynamic_state_cis.dynamicStateCount =
-			static_cast<u32>(_dynamic_states.size());
+		mDynamicStates.push_back(dynamic_state);
+		mDynamicStateCis.pDynamicStates = mDynamicStates.data();
+		mDynamicStateCis.dynamicStateCount =
+			static_cast<u32>(mDynamicStates.size());
 		return *this;
 	}
 
 	PipelineBuilder& PipelineBuilder::add_viewport(VkViewport viewport) {
-		_viewports.push_back(viewport);
+		mViewports.push_back(viewport);
 		return *this;
 	}
 
 	PipelineBuilder& PipelineBuilder::add_scissor(VkRect2D scissor) {
-		_scissors.push_back(scissor);
+		mScissors.push_back(scissor);
 		return *this;
 	}
 
 	PipelineBuilder&
 	PipelineBuilder::add_push_constant(u32 size, VkPipelineStageFlags stages) {
 		VkPushConstantRange pc{stages};
-		for (auto& c : _push_constants) {
+		for (auto& c : mPushConstants) {
 			pc.offset += c.size;
 		}
 		pc.size = size;
-		_push_constants.push_back(pc);
+		mPushConstants.push_back(pc);
+		return *this;
+	}
+
+	PipelineBuilder&
+	PipelineBuilder::add_descriptor_set_layout(VkDescriptorSetLayout layout) {
+		mDescriptorSetLayouts.push_back(layout);
 		return *this;
 	}
 
 	VkPipelineLayout PipelineBuilder::build_layout(VkDevice device) {
-		_layout_ci.pushConstantRangeCount =
-			static_cast<u32>(_push_constants.size());
-		_layout_ci.pPushConstantRanges = _push_constants.data();
-		VK_CHECK(vkCreatePipelineLayout(device, &_layout_ci, nullptr,
-										&_pipeline_layout));
+		mLayoutCi.pushConstantRangeCount =
+			static_cast<u32>(mPushConstants.size());
+		mLayoutCi.pPushConstantRanges = mPushConstants.data();
+		mLayoutCi.setLayoutCount =
+			static_cast<u32>(mDescriptorSetLayouts.size());
+		mLayoutCi.pSetLayouts = mDescriptorSetLayouts.data();
+		VK_CHECK(vkCreatePipelineLayout(device, &mLayoutCi, nullptr,
+										&mPipelineLayout));
 		core::Logger::Trace("Pipeline LAYOUT successfully created.");
-		return _pipeline_layout;
+		return mPipelineLayout;
 	}
 
 	VkPipeline PipelineBuilder::build_pipeline(VkDevice device,
@@ -345,36 +354,36 @@ namespace vkbuild {
 			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 			nullptr,
 			0,
-			static_cast<u32>(_vertex_bindings.size()),
-			_vertex_bindings.data(),
-			static_cast<u32>(_vertex_attributes.size()),
-			_vertex_attributes.data()};
+			static_cast<u32>(mVertexBindings.size()),
+			mVertexBindings.data(),
+			static_cast<u32>(mVertexAttributes.size()),
+			mVertexAttributes.data()};
 
 		VkPipelineViewportStateCreateInfo viewport_ci{
 			VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
 			nullptr,
 			0,
-			static_cast<u32>(_viewports.size()),
-			_viewports.data(),
-			static_cast<u32>(_scissors.size()),
-			_scissors.data()};
+			static_cast<u32>(mViewports.size()),
+			mViewports.data(),
+			static_cast<u32>(mScissors.size()),
+			mScissors.data()};
 
 		VkGraphicsPipelineCreateInfo pipeline_ci{
 			VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 			nullptr,
 			0,
-			static_cast<u32>(_shader_stages.size()),
-			_shader_stages.data(),
+			static_cast<u32>(mShaderStages.size()),
+			mShaderStages.data(),
 			&vertex_input,
-			&_input_assembly,
+			&mInputAssembly,
 			nullptr, // @TODO handle tesselation stage
 			&viewport_ci,
-			&_rasterizer,
-			&_multisampling,
-			&_depth_stencil,
-			&_color_blend_state,
-			&_dynamic_state_cis,
-			_pipeline_layout,
+			&mRasterizer,
+			&mMultisampling,
+			&mDepthStencil,
+			&mColorBlendState,
+			&mDynamicStateCis,
+			mPipelineLayout,
 			pass,
 			0,
 			nullptr,
@@ -385,7 +394,7 @@ namespace vkbuild {
 		VK_CHECK(vkCreateGraphicsPipelines(device, nullptr, 1, &pipeline_ci,
 										   nullptr, &pipeline));
 		core::Logger::Trace("Pipeline successfully created.");
-		for (auto& shader : _shaders) {
+		for (auto& shader : mShaders) {
 			vkDestroyShaderModule(device, shader.module, nullptr);
 		}
 		return pipeline;
