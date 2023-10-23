@@ -146,6 +146,7 @@ namespace render {
 		renderpass_info.clearValueCount = 2;
 		renderpass_info.pClearValues = &clear_values[0];
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
+
 		// insert actual commands
 		VkDeviceSize offset{0};
 		// make a model view matrix for rendering the object
@@ -162,11 +163,10 @@ namespace render {
 		glm::mat4 model =
 			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.4f),
 						glm::vec3(0, 1, 0));
-		// calculate final mesh matrix
-		glm::mat4 mesh_matrix = projection * view * model;
 
+		// calculate final mesh matrix
 		MeshPushConstant constants;
-		constants.render_matrix = mesh_matrix;
+		constants.render_matrix = model;
 		CameraData cam_data = {};
 		cam_data.proj = projection;
 		cam_data.view = view;
