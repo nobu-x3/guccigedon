@@ -72,6 +72,9 @@ namespace render {
 					mFrames[i].object_buffer.destroy();
 				}
 			}
+			if (mUploadContext.upload_fence) {
+				vkDestroyFence(mDevice, mUploadContext.upload_fence, nullptr);
+			}
 			if (mSwapchain) {
 				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
 			}
@@ -185,7 +188,7 @@ namespace render {
 		int ssbo_index{0};
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
 			for (Mesh& mesh : entry.second) {
-                mesh.transform = model;
+				mesh.transform = model;
 				object_ssbo[ssbo_index].model_matrix = mesh.transform;
 				ssbo_index++;
 			}
@@ -274,7 +277,8 @@ namespace render {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
 			nullptr, VK_TRUE};
 		vkb::DeviceBuilder dev_builder{vkb_phys_dev};
-		vkb::Device vkb_dev = dev_builder.add_pNext(&shader_dram_param_feat).build().value();
+		vkb::Device vkb_dev =
+			dev_builder.add_pNext(&shader_dram_param_feat).build().value();
 		mDevice = vkb_dev.device;
 		mPhysicalDevice = vkb_phys_dev.physical_device;
 		mPhysicalDeviceProperties = vkb_dev.physical_device.properties;
@@ -329,6 +333,14 @@ namespace render {
 			VK_CHECK(vkAllocateCommandBuffers(mDevice, &alloc_info,
 											  &mFrames[i].command_buffer));
 		}
+		VkCommandPoolCreateInfo upload_ctx_cmd_pool_ci{
+			vkbuild::command_pool_ci(mGraphicsQueueFamily)};
+		VK_CHECK(vkCreateCommandPool(mDevice, &upload_ctx_cmd_pool_ci, nullptr,
+									 &mUploadContext.command_pool));
+		VkCommandBufferAllocateInfo upload_ctx_cmd_ai{
+			vkbuild::command_buffer_ai(mUploadContext.command_pool)};
+		VK_CHECK(vkAllocateCommandBuffers(mDevice, &upload_ctx_cmd_ai,
+										  &mUploadContext.command_buffer));
 	}
 
 	void VulkanRenderer::init_framebuffers() {
@@ -440,6 +452,10 @@ namespace render {
 			VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
 									   &mFrames[i].render_semaphore));
 		}
+		// no signaled bit because we don't have to wait
+		VkFenceCreateInfo upload_fence_ci{vkbuild::fence_ci()};
+		VK_CHECK(vkCreateFence(mDevice, &upload_fence_ci, nullptr,
+							   &mUploadContext.upload_fence));
 	}
 
 	void VulkanRenderer::init_scene() {
@@ -518,8 +534,8 @@ namespace render {
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
 			std::size(bindings), bindings};
 		VkDescriptorSetLayoutCreateInfo object_set_ci{
-			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			1, &object_buffer_binding};
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
+			&object_buffer_binding};
 		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &scene_set_ci, nullptr,
 											 &mGlobalDescriptorSetLayout));
 		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &object_set_ci, nullptr,
@@ -540,7 +556,8 @@ namespace render {
 			VkDescriptorSetAllocateInfo objects_buffer_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mObjectsDescriptorSetLayout};
-			VK_CHECK(vkAllocateDescriptorSets(mDevice, &objects_buffer_alloc_info,
+			VK_CHECK(vkAllocateDescriptorSets(mDevice,
+											  &objects_buffer_alloc_info,
 											  &mFrames[i].object_descriptor));
 			VkDescriptorBufferInfo camera_buffer_info{
 				mFrames[i].camera_buffer.handle, 0, sizeof(CameraData)};
@@ -588,4 +605,17 @@ namespace render {
 		return alignedSize;
 	}
 
+	void VulkanRenderer::immediate_submit(const auto& fn) {
+		VkCommandBuffer cmd = mUploadContext.command_buffer;
+		VkCommandBufferBeginInfo begin_info{vkbuild::command_buffer_begin_info(
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)};
+        VK_CHECK(vkBeginCommandBuffer(cmd, &begin_info));
+        fn(cmd);
+        VK_CHECK(vkEndCommandBuffer(cmd));
+        VkSubmitInfo submit {vkbuild::submit_info(&cmd)};
+        VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit, mUploadContext.upload_fence));
+        vkWaitForFences(mDevice, 1, &mUploadContext.upload_fence, true, 1000000000);
+        vkResetFences(mDevice, 1, &mUploadContext.upload_fence);
+        vkResetCommandPool(mDevice, mUploadContext.command_pool, 0);
+	}
 } // namespace render

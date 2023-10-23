@@ -44,6 +44,7 @@ namespace vkbuild {
 	write_descriptor_buffer(VkDescriptorType type, VkDescriptorSet dstSet,
 							VkDescriptorBufferInfo* bufferInfo,
 							uint32_t binding);
+
 	enum class ShaderType : u64 { VERTEX = 0x00000001, FRAGMENT = 0x00000010 };
 
 	struct Shader {

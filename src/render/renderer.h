@@ -15,12 +15,6 @@ namespace render {
 	constexpr u32 MAXIMUM_FRAMES_IN_FLIGHT = 2;
 	constexpr u32 MAX_OBJECTS = 1000;
 
-	struct RenderObject {
-		Mesh mesh;
-		Material Material;
-        glm::mat4 transform{};
-	};
-
 	class VulkanRenderer {
 
 		// I'm obviously not gonna keep all this in this megaclass.
@@ -53,6 +47,7 @@ namespace render {
 		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
 		VkDescriptorPool mDescriptorPool{};
 		Scene mScene{};
+		UploadContext mUploadContext{};
 
 	private:
 		void init_instance();
@@ -68,7 +63,11 @@ namespace render {
 	public:
 		VulkanRenderer();
 		~VulkanRenderer();
+
 		void add_material_to_mesh(const Material& material, const Mesh& mesh);
+
+		// function template instead of std::function because c++20
+		void immediate_submit(const auto& fn);
 
 		inline FrameData& get_current_frame() {
 			return mFrames[mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT];
