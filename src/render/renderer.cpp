@@ -68,6 +68,9 @@ namespace render {
 				if (mFrames[i].camera_buffer.handle) {
 					mFrames[i].camera_buffer.destroy();
 				}
+				if (mFrames[i].object_buffer.handle) {
+					mFrames[i].object_buffer.destroy();
+				}
 			}
 			if (mSwapchain) {
 				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
@@ -94,6 +97,8 @@ namespace render {
 			vkDestroyDescriptorSetLayout(mDevice, mGlobalDescriptorSetLayout,
 										 nullptr);
 			mScene.destroy();
+			vkDestroyDescriptorSetLayout(mDevice, mObjectsDescriptorSetLayout,
+										 nullptr);
 			vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 			vmaDestroyAllocator(mAllocator);
 			vkDestroyDevice(mDevice, nullptr);
@@ -163,7 +168,6 @@ namespace render {
 		glm::mat4 model =
 			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.4f),
 						glm::vec3(0, 1, 0));
-
 		// calculate final mesh matrix
 		MeshPushConstant constants;
 		constants.render_matrix = model;
@@ -171,10 +175,22 @@ namespace render {
 		cam_data.proj = projection;
 		cam_data.view = view;
 		cam_data.view_proj = projection * view;
-		void* data;
+		void* data; // classic approach
 		vmaMapMemory(mAllocator, frame_data.camera_buffer.memory, &data);
 		memcpy(data, &cam_data, sizeof(CameraData));
 		vmaUnmapMemory(mAllocator, frame_data.camera_buffer.memory);
+		void* object_data; // lil trick
+		vmaMapMemory(mAllocator, frame_data.object_buffer.memory, &object_data);
+		ObjectData* object_ssbo = static_cast<ObjectData*>(object_data);
+		int ssbo_index{0};
+		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+			for (Mesh& mesh : entry.second) {
+                mesh.transform = model;
+				object_ssbo[ssbo_index].model_matrix = mesh.transform;
+				ssbo_index++;
+			}
+		}
+		vmaUnmapMemory(mAllocator, frame_data.object_buffer.memory);
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
@@ -184,6 +200,9 @@ namespace render {
 			vkCmdBindDescriptorSets(
 				buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
 				&frame_data.global_descriptor, 1, &uniform_offset);
+			vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+									entry.first.layout, 1, 1,
+									&frame_data.object_descriptor, 0, nullptr);
 			for (Mesh& mesh : entry.second) {
 				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
 				// upload the matrix to the GPU via push constants
@@ -193,10 +212,11 @@ namespace render {
 				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
 			}
 		}
+
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
-		// waiting on _present_semaphore which is signaled when swapchain is
-		// ready. signal _render_semaphore when finished rendering.
+		// waiting on present_semaphore which is signaled when swapchain is
+		// ready. signal render_semaphore when finished rendering.
 		VkSubmitInfo submit = vkbuild::submit_info(&buf);
 		VkPipelineStageFlags wait_stage =
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -250,8 +270,11 @@ namespace render {
 											   .set_surface(mSurface)
 											   .select()
 											   .value();
+		VkPhysicalDeviceShaderDrawParametersFeatures shader_dram_param_feat{
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
+			nullptr, VK_TRUE};
 		vkb::DeviceBuilder dev_builder{vkb_phys_dev};
-		vkb::Device vkb_dev = dev_builder.build().value();
+		vkb::Device vkb_dev = dev_builder.add_pNext(&shader_dram_param_feat).build().value();
 		mDevice = vkb_dev.device;
 		mPhysicalDevice = vkb_phys_dev.physical_device;
 		mPhysicalDeviceProperties = vkb_dev.physical_device.properties;
@@ -442,6 +465,7 @@ namespace render {
 				.add_push_constant(sizeof(MeshPushConstant),
 								   VK_SHADER_STAGE_VERTEX_BIT)
 				.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
+				.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
 				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
@@ -465,7 +489,8 @@ namespace render {
 		mScene = {mAllocator, scene_param_buffer_size, {}};
 		VkDescriptorPoolSize sizes[]{
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10}};
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10},
+			{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10}};
 		VkDescriptorPoolCreateInfo pool_ci{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 			nullptr,
@@ -485,23 +510,44 @@ namespace render {
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 		VkDescriptorSetLayoutBinding bindings[]{cam_buffer_binding,
 												scene_buffer_binding};
-		VkDescriptorSetLayoutCreateInfo set_ci = {
+		VkDescriptorSetLayoutBinding object_buffer_binding =
+			vkbuild::descriptorset_layout_binding(
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
+				0);
+		VkDescriptorSetLayoutCreateInfo scene_set_ci{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
 			std::size(bindings), bindings};
-		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &set_ci, nullptr,
+		VkDescriptorSetLayoutCreateInfo object_set_ci{
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+			1, &object_buffer_binding};
+		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &scene_set_ci, nullptr,
 											 &mGlobalDescriptorSetLayout));
+		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &object_set_ci, nullptr,
+											 &mObjectsDescriptorSetLayout));
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 			mFrames[i].camera_buffer = {mAllocator, sizeof(CameraData),
 										VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 										VMA_MEMORY_USAGE_CPU_TO_GPU};
-			VkDescriptorSetAllocateInfo alloc_info{
+			mFrames[i].object_buffer = {mAllocator,
+										sizeof(ObjectData) * MAX_OBJECTS,
+										VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+										VMA_MEMORY_USAGE_CPU_TO_GPU};
+			VkDescriptorSetAllocateInfo scene_buffer_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mGlobalDescriptorSetLayout};
-			VK_CHECK(vkAllocateDescriptorSets(mDevice, &alloc_info,
+			VK_CHECK(vkAllocateDescriptorSets(mDevice, &scene_buffer_alloc_info,
 											  &mFrames[i].global_descriptor));
+			VkDescriptorSetAllocateInfo objects_buffer_alloc_info{
+				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+				mDescriptorPool, 1, &mObjectsDescriptorSetLayout};
+			VK_CHECK(vkAllocateDescriptorSets(mDevice, &objects_buffer_alloc_info,
+											  &mFrames[i].object_descriptor));
 			VkDescriptorBufferInfo camera_buffer_info{
 				mFrames[i].camera_buffer.handle, 0, sizeof(CameraData)};
 			VkDescriptorBufferInfo scene_buffer_info = mScene.buffer_info(0);
+			VkDescriptorBufferInfo object_buffer_info{
+				mFrames[i].object_buffer.handle, 0,
+				sizeof(ObjectData) * MAX_OBJECTS};
 			VkWriteDescriptorSet camera_write =
 				vkbuild::write_descriptor_buffer(
 					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -509,8 +555,13 @@ namespace render {
 			VkWriteDescriptorSet scene_write = vkbuild::write_descriptor_buffer(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				mFrames[i].global_descriptor, &scene_buffer_info, 1);
-			VkWriteDescriptorSet set_writes[]{camera_write, scene_write};
-			vkUpdateDescriptorSets(mDevice, 2, set_writes, 0, nullptr);
+			VkWriteDescriptorSet objects_write =
+				vkbuild::write_descriptor_buffer(
+					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+					mFrames[i].object_descriptor, &object_buffer_info, 0);
+			VkWriteDescriptorSet set_writes[]{camera_write, scene_write,
+											  objects_write};
+			vkUpdateDescriptorSets(mDevice, 3, set_writes, 0, nullptr);
 		}
 	}
 

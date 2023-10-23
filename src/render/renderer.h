@@ -13,10 +13,12 @@ struct SDL_Window;
 namespace render {
 
 	constexpr u32 MAXIMUM_FRAMES_IN_FLIGHT = 2;
+	constexpr u32 MAX_OBJECTS = 1000;
 
 	struct RenderObject {
 		Mesh mesh;
 		Material Material;
+        glm::mat4 transform{};
 	};
 
 	class VulkanRenderer {
@@ -31,7 +33,7 @@ namespace render {
 		VkInstance mInstance{};
 		VkDebugUtilsMessengerEXT fpDebugMsger{};
 		VkPhysicalDevice mPhysicalDevice{};
-        VkPhysicalDeviceProperties mPhysicalDeviceProperties{};
+		VkPhysicalDeviceProperties mPhysicalDeviceProperties{};
 		VkDevice mDevice{};
 		VkSurfaceKHR mSurface{};
 		VkQueue mGraphicsQueue{};
@@ -47,9 +49,10 @@ namespace render {
 		Image mDepthAttachment{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
-        VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
-        VkDescriptorPool mDescriptorPool{};
-        Scene mScene{};
+		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
+		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
+		VkDescriptorPool mDescriptorPool{};
+		Scene mScene{};
 
 	private:
 		void init_instance();
@@ -58,9 +61,9 @@ namespace render {
 		void init_framebuffers();
 		void init_default_renderpass();
 		void init_sync_objects();
-        void init_descriptors();
+		void init_descriptors();
 		void init_scene();
-        size_t pad_uniform_buffer(size_t original_size);
+		size_t pad_uniform_buffer(size_t original_size);
 
 	public:
 		VulkanRenderer();

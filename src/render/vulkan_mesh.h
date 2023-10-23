@@ -15,9 +15,11 @@ namespace render {
 
 	class Mesh {
 	public:
-		ArrayList<Vertex> vertices;
+		ArrayList<Vertex> vertices{};
 
-		Buffer buffer;
+		Buffer buffer{};
+
+        glm::mat4 transform{};
 
 	public:
 		void deinit(VmaAllocator alloc);

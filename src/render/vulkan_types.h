@@ -58,10 +58,10 @@ namespace render {
 		VkCommandBuffer command_buffer{};
 		VkSemaphore present_semaphore{}, render_semaphore{};
 		VkFence render_fence{};
-		Buffer camera_buffer;
-		VkDescriptorSet global_descriptor;
-		Buffer object_buffer;
-		VkDescriptorSet object_descriptor;
+		Buffer camera_buffer{};
+		VkDescriptorSet global_descriptor{};
+		Buffer object_buffer{};
+		VkDescriptorSet object_descriptor{};
 	};
 
 	struct CameraData {
