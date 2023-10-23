@@ -66,6 +66,8 @@ namespace render {
 
 		void add_material_to_mesh(const Material& material, const Mesh& mesh);
 
+		void upload_mesh(Mesh& mesh);
+
 		// function template instead of std::function because c++20
 		void immediate_submit(const auto& fn);
 

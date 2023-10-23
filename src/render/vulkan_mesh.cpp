@@ -45,14 +45,6 @@ namespace render {
 		return *this;
 	}
 
-	Mesh& Mesh::upload_mesh(VmaAllocator alloc) {
-        buffer = {alloc, vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU};
-		void* data;
-		vmaMapMemory(alloc, buffer.memory, &data);
-		memcpy(data, vertices.data(), vertices.size() * sizeof(Vertex));
-		vmaUnmapMemory(alloc, buffer.memory);
-		return *this;
-	}
 
 	bool Mesh::load_from_obj(const char* path) {
 		// attrib will contain the vertex arrays of the file

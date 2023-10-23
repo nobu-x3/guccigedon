@@ -26,7 +26,6 @@ namespace render {
 
 		Mesh& set_vertices(ArrayList<Vertex>& data);
 
-		Mesh& upload_mesh(VmaAllocator allocator);
 
 		bool load_from_obj(const char* path);
 	};

@@ -75,6 +75,9 @@ namespace render {
 			if (mUploadContext.upload_fence) {
 				vkDestroyFence(mDevice, mUploadContext.upload_fence, nullptr);
 			}
+            if(mUploadContext.command_pool){
+                vkDestroyCommandPool(mDevice, mUploadContext.command_pool, nullptr);
+            }
 			if (mSwapchain) {
 				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
 			}
@@ -494,7 +497,7 @@ namespace render {
 		material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
 		Mesh monkeyMesh{};
 		monkeyMesh.load_from_obj("assets/models/monkey.obj");
-		monkeyMesh.upload_mesh(mAllocator);
+		upload_mesh(monkeyMesh);
 		add_material_to_mesh(material, monkeyMesh);
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
@@ -605,17 +608,37 @@ namespace render {
 		return alignedSize;
 	}
 
+	void VulkanRenderer::upload_mesh(Mesh& mesh) {
+		const size_t buf_size = mesh.vertices.size() * sizeof(Vertex);
+		Buffer staging{mAllocator, buf_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY};
+		void* data;
+		vmaMapMemory(mAllocator, staging.memory, &data);
+		memcpy(data, mesh.vertices.data(), buf_size);
+		vmaUnmapMemory(mAllocator, staging.memory);
+		mesh.buffer = {mAllocator, buf_size,
+					   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+						   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+					   VMA_MEMORY_USAGE_GPU_ONLY};
+		immediate_submit([=](VkCommandBuffer cmd) {
+			VkBufferCopy copy{0, 0, buf_size};
+			vkCmdCopyBuffer(cmd, staging.handle, mesh.buffer.handle, 1, &copy);
+		});
+        staging.destroy();
+	}
+
 	void VulkanRenderer::immediate_submit(const auto& fn) {
 		VkCommandBuffer cmd = mUploadContext.command_buffer;
 		VkCommandBufferBeginInfo begin_info{vkbuild::command_buffer_begin_info(
 			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)};
-        VK_CHECK(vkBeginCommandBuffer(cmd, &begin_info));
-        fn(cmd);
-        VK_CHECK(vkEndCommandBuffer(cmd));
-        VkSubmitInfo submit {vkbuild::submit_info(&cmd)};
-        VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit, mUploadContext.upload_fence));
-        vkWaitForFences(mDevice, 1, &mUploadContext.upload_fence, true, 1000000000);
-        vkResetFences(mDevice, 1, &mUploadContext.upload_fence);
-        vkResetCommandPool(mDevice, mUploadContext.command_pool, 0);
+		VK_CHECK(vkBeginCommandBuffer(cmd, &begin_info));
+		fn(cmd);
+		VK_CHECK(vkEndCommandBuffer(cmd));
+		VkSubmitInfo submit{vkbuild::submit_info(&cmd)};
+		VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit,
+							   mUploadContext.upload_fence));
+		vkWaitForFences(mDevice, 1, &mUploadContext.upload_fence, true,
+						1000000000);
+		vkResetFences(mDevice, 1, &mUploadContext.upload_fence);
+		vkResetCommandPool(mDevice, mUploadContext.command_pool, 0);
 	}
 } // namespace render
