@@ -16,3 +16,6 @@
 [submodule "vendor/tinyobj"]
 	path = vendor/tinyobj
 	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "vendor/stb"]
+	path = vendor/stb
+	url = https://github.com/nothings/stb

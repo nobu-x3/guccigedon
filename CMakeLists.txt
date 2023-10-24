@@ -10,6 +10,7 @@ add_executable(Guccigedon
     src/render/vulkan_builders.cpp
     src/render/vulkan_mesh.cpp
     src/render/vulkan_types.cpp
+    src/render/vulkan_image.cpp
     src/render/scene.cpp
     )
 
@@ -19,6 +20,7 @@ find_package(VulkanMemoryAllocator CONFIG)
 find_package(glm)
 find_package(tinygltf) # I eventually want to just have gltf support
 find_package(tinyobjloader) # but for now obj is fine. I need to get some meshes up.
+
 
 if(NOT SDL2_FOUND)
     message("Cannot find SDL2, using bundled version")
@@ -67,10 +69,14 @@ endif()
 # this stuff is temp, just wanna speed things up a little
 add_subdirectory(vendor/vk-bootstrap)
 
+# stb_image stuff
+execute_process(COMMAND git submodule update --init -- vendor/stb
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIR} ${TINYGLTF_INCLUDE_DIR}
     ${TINYOBJLOADER_INCLUDE_DIR}
-    ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src)
+    ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src vendor/stb)
 
 target_include_directories(Guccigedon PUBLIC)
 
@@ -78,7 +84,7 @@ target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
     ${Vulkan_LIBRARY} ${GLM_LIBRARY}
     ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}
     ${TINYOBJLOADER_LIBRARY}
-    vk-bootstrap::vk-bootstrap )
+    vk-bootstrap::vk-bootstrap)
 
 find_program(GLSL_VALIDATOR glslangValidator)
 
