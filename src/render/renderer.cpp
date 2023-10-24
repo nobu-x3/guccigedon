@@ -499,6 +499,9 @@ namespace render {
 		monkeyMesh.load_from_obj("assets/models/monkey.obj");
 		upload_mesh(monkeyMesh);
 		add_material_to_mesh(material, monkeyMesh);
+        Mesh lost_empire{};
+        lost_empire.load_from_obj("assets/models/lost_empire.obj");
+		add_material_to_mesh(material, lost_empire);
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
 

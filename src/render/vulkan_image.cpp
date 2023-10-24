@@ -92,6 +92,8 @@ namespace render {
 								 &img_barrier_shader_readable);
 		});
         staging_buffer.destroy();
+        VkImageViewCreateInfo view_ci = vkbuild::imageview_ci(VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
+        vkCreateImageView(device, , nullptr, &view);
 	}
 
 	void Image::destroy() {
