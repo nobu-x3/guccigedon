@@ -35,6 +35,7 @@ namespace render {
 		// ctor/assignment: causes double free.
 		void destroy();
 
+
 	private:
 		VmaAllocator mAlloc;
 	};
@@ -64,11 +65,11 @@ namespace render {
 		VkDescriptorSet object_descriptor{};
 	};
 
-    struct UploadContext {
-        VkFence upload_fence;
-        VkCommandPool command_pool;
-        VkCommandBuffer command_buffer;
-    };
+	struct UploadContext {
+		VkFence upload_fence;
+		VkCommandPool command_pool;
+		VkCommandBuffer command_buffer;
+	};
 
 	struct CameraData {
 		glm::mat4 view;

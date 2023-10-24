@@ -13,6 +13,10 @@ namespace render {
 								 &memory, nullptr));
 	}
 
-	void Buffer::destroy() { vmaDestroyBuffer(mAlloc, handle, memory); }
+	void Buffer::destroy() {
+		if (mAlloc && handle && memory) {
+			vmaDestroyBuffer(mAlloc, handle, memory);
+		}
+	}
 
 } // namespace render
