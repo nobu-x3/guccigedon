@@ -21,7 +21,6 @@ namespace render {
 				 const auto& immediate_submit_fn) :
 		allocator(alloc),
 		device(device) {
-            core::Logger::Trace("Holl");
 		int texWidth, texHeight, texChannels;
 		stbi_uc* pixels = stbi_load(path, &texWidth, &texHeight, &texChannels,
 									STBI_rgb_alpha);
@@ -93,7 +92,7 @@ namespace render {
 		});
         staging_buffer.destroy();
         VkImageViewCreateInfo view_ci = vkbuild::imageview_ci(VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
-        vkCreateImageView(device, , nullptr, &view);
+        vkCreateImageView(device, &view_ci, nullptr, &view);
 	}
 
 	void Image::destroy() {

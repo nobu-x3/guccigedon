@@ -501,6 +501,7 @@ namespace render {
 		add_material_to_mesh(material, monkeyMesh);
         Mesh lost_empire{};
         lost_empire.load_from_obj("assets/models/lost_empire.obj");
+		upload_mesh(lost_empire);
 		add_material_to_mesh(material, lost_empire);
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
@@ -591,9 +592,7 @@ namespace render {
 	void VulkanRenderer::add_material_to_mesh(const Material& material,
 											  const Mesh& mesh) {
 		if (mMaterialMap.contains(material)) {
-			core::Logger::Trace("Before %d", mMaterialMap[material].size());
 			mMaterialMap[material].push_back(mesh);
-			core::Logger::Trace("after %d", mMaterialMap[material].size());
 			return;
 		}
 		mMaterialMap.insert({material, {mesh}});

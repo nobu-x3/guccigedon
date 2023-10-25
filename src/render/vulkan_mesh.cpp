@@ -66,12 +66,12 @@ namespace render {
 		// make sure to output the warnings to the console, in case there are
 		// issues with the file
 		if (!warn.empty()) {
-            core::Logger::Warning("%s", warn);
+            // core::Logger::Warning("%s", warn);
 		}
 		// if we have any error, print it to the console, and break the mesh
 		// loading. This happens if the file cant be found or is malformed
 		if (!err.empty()) {
-            core::Logger::Error("%s", err);
+            // core::Logger::Error("%s", err);
 			return false;
 		}
 		// Loop over shapes
