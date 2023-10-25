@@ -75,9 +75,10 @@ namespace render {
 			if (mUploadContext.upload_fence) {
 				vkDestroyFence(mDevice, mUploadContext.upload_fence, nullptr);
 			}
-            if(mUploadContext.command_pool){
-                vkDestroyCommandPool(mDevice, mUploadContext.command_pool, nullptr);
-            }
+			if (mUploadContext.command_pool) {
+				vkDestroyCommandPool(mDevice, mUploadContext.command_pool,
+									 nullptr);
+			}
 			if (mSwapchain) {
 				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
 			}
@@ -209,6 +210,9 @@ namespace render {
 			vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 									entry.first.layout, 1, 1,
 									&frame_data.object_descriptor, 0, nullptr);
+			if(entry.first.textureSet != VK_NULL_HANDLE){
+				vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,  entry.first.layout, 2, 1, &entry.first.textureSet, 0, nullptr);
+			}
 			for (Mesh& mesh : entry.second) {
 				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
 				// upload the matrix to the GPU via push constants
@@ -462,47 +466,100 @@ namespace render {
 	}
 
 	void VulkanRenderer::init_scene() {
-		Material material{};
-		vkbuild::PipelineBuilder builder;
-		material.layout =
-			builder
-				.add_shader(mDevice,
-							"assets/shaders/default_shader.vert.glsl.spv",
-							vkbuild::ShaderType::VERTEX)
-				.add_shader(mDevice,
-							"assets/shaders/default_shader.frag.glsl.spv",
-							vkbuild::ShaderType::FRAGMENT)
-				.set_vertex_input_description(Vertex::get_description())
-				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
-				.set_polygon_mode(VK_POLYGON_MODE_FILL)
-				// @TODO: cull mode
-				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
-							   VK_FRONT_FACE_COUNTER_CLOCKWISE)
-				.set_multisampling_enabled(false)
-				.add_default_color_blend_attachment()
-				.set_color_blending_enabled(false)
-				.add_push_constant(sizeof(MeshPushConstant),
-								   VK_SHADER_STAGE_VERTEX_BIT)
-				.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
-				.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
-				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
-				/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
-				/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
-				/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
-				.add_viewport({0, 0, static_cast<float>(mWindowExtent.width),
-							   static_cast<float>(mWindowExtent.height), 0.f,
-							   1.f})
-				.add_scissor({{0, 0}, mWindowExtent})
-				.build_layout(mDevice);
-		material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
-		Mesh monkeyMesh{};
-		monkeyMesh.load_from_obj("assets/models/monkey.obj");
-		upload_mesh(monkeyMesh);
-		add_material_to_mesh(material, monkeyMesh);
-        Mesh lost_empire{};
-        lost_empire.load_from_obj("assets/models/lost_empire.obj");
-		upload_mesh(lost_empire);
-		add_material_to_mesh(material, lost_empire);
+		{
+			Material material{};
+			vkbuild::PipelineBuilder builder;
+			material.layout =
+				builder
+					.add_shader(mDevice,
+								"assets/shaders/default_shader.vert.glsl.spv",
+								vkbuild::ShaderType::VERTEX)
+					.add_shader(mDevice,
+								"assets/shaders/default_shader.frag.glsl.spv",
+								vkbuild::ShaderType::FRAGMENT)
+					.set_vertex_input_description(Vertex::get_description())
+					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+										false)
+					.set_polygon_mode(VK_POLYGON_MODE_FILL)
+					// @TODO: cull mode
+					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.set_multisampling_enabled(false)
+					.add_default_color_blend_attachment()
+					.set_color_blending_enabled(false)
+					.add_push_constant(sizeof(MeshPushConstant),
+									   VK_SHADER_STAGE_VERTEX_BIT)
+					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
+					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
+					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
+					.add_viewport(
+						{0, 0, static_cast<float>(mWindowExtent.width),
+						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
+					.add_scissor({{0, 0}, mWindowExtent})
+					.build_layout(mDevice);
+			material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
+			Mesh monkeyMesh{};
+			monkeyMesh.load_from_obj("assets/models/monkey.obj");
+			upload_mesh(monkeyMesh);
+			add_material_to_mesh(material, monkeyMesh);
+		}
+		{
+			Material material{};
+			VkSamplerCreateInfo sampler_info =
+				vkbuild::sampler_create_info(VK_FILTER_NEAREST);
+			VkSampler sampler;
+			vkCreateSampler(mDevice, &sampler_info, nullptr, &sampler);
+			VkDescriptorSetAllocateInfo texture_alloc_info{
+				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+				mDescriptorPool, 1, &mTextureSamplerDescriptorSetLayout};
+			VK_CHECK(vkAllocateDescriptorSets(mDevice, &texture_alloc_info, &material.textureSet));
+			Image texture {"assets/textures/lost_empire-RGBA.png", mAllocator, mDevice, *this};
+			VkDescriptorImageInfo image_buf_info {sampler, texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+			VkWriteDescriptorSet tex_write = vkbuild::write_descriptor_image(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet, &image_buf_info, 0);
+			vkUpdateDescriptorSets(mDevice, 1, &tex_write, 0, nullptr);
+			vkbuild::PipelineBuilder builder;
+			material.layout =
+				builder
+					.add_shader(mDevice,
+								"assets/shaders/textured_mesh.vert.glsl.spv",
+								vkbuild::ShaderType::VERTEX)
+					.add_shader(mDevice,
+								"assets/shaders/textured_mesh.frag.glsl.spv",
+								vkbuild::ShaderType::FRAGMENT)
+					.set_vertex_input_description(Vertex::get_description())
+					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+										false)
+					.set_polygon_mode(VK_POLYGON_MODE_FILL)
+					// @TODO: cull mode
+					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.set_multisampling_enabled(false)
+					.add_default_color_blend_attachment()
+					.set_color_blending_enabled(false)
+					.add_push_constant(sizeof(MeshPushConstant),
+									   VK_SHADER_STAGE_VERTEX_BIT)
+					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
+					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
+					.add_descriptor_set_layout(
+						mTextureSamplerDescriptorSetLayout)
+					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
+					.add_viewport(
+						{0, 0, static_cast<float>(mWindowExtent.width),
+						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
+					.add_scissor({{0, 0}, mWindowExtent})
+					.build_layout(mDevice);
+			material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
+			Mesh lost_empire{};
+			lost_empire.load_from_obj("assets/models/lost_empire.obj");
+			upload_mesh(lost_empire);
+			add_material_to_mesh(material, lost_empire);
+		}
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
 
@@ -513,7 +570,8 @@ namespace render {
 		VkDescriptorPoolSize sizes[]{
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10},
-			{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10}};
+			{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10},
+			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10}};
 		VkDescriptorPoolCreateInfo pool_ci{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 			nullptr,
@@ -537,16 +595,26 @@ namespace render {
 			vkbuild::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
 				0);
+		VkDescriptorSetLayoutBinding texture_sampler_binding =
+			vkbuild::descriptorset_layout_binding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 		VkDescriptorSetLayoutCreateInfo scene_set_ci{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
 			std::size(bindings), bindings};
 		VkDescriptorSetLayoutCreateInfo object_set_ci{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
 			&object_buffer_binding};
+		VkDescriptorSetLayoutCreateInfo sampler_descriptor_set{
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
+			&texture_sampler_binding};
 		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &scene_set_ci, nullptr,
 											 &mGlobalDescriptorSetLayout));
 		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &object_set_ci, nullptr,
 											 &mObjectsDescriptorSetLayout));
+		VK_CHECK(vkCreateDescriptorSetLayout(
+			mDevice, &sampler_descriptor_set, nullptr,
+			&mTextureSamplerDescriptorSetLayout));
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 			mFrames[i].camera_buffer = {mAllocator, sizeof(CameraData),
 										VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -563,6 +631,10 @@ namespace render {
 			VkDescriptorSetAllocateInfo objects_buffer_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mObjectsDescriptorSetLayout};
+			VK_CHECK(vkAllocateDescriptorSets(mDevice,
+											  &objects_buffer_alloc_info,
+											  &mFrames[i].object_descriptor));
+
 			VK_CHECK(vkAllocateDescriptorSets(mDevice,
 											  &objects_buffer_alloc_info,
 											  &mFrames[i].object_descriptor));
@@ -612,7 +684,8 @@ namespace render {
 
 	void VulkanRenderer::upload_mesh(Mesh& mesh) {
 		const size_t buf_size = mesh.vertices.size() * sizeof(Vertex);
-		Buffer staging{mAllocator, buf_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY};
+		Buffer staging{mAllocator, buf_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+					   VMA_MEMORY_USAGE_CPU_ONLY};
 		void* data;
 		vmaMapMemory(mAllocator, staging.memory, &data);
 		memcpy(data, mesh.vertices.data(), buf_size);
@@ -625,10 +698,10 @@ namespace render {
 			VkBufferCopy copy{0, 0, buf_size};
 			vkCmdCopyBuffer(cmd, staging.handle, mesh.buffer.handle, 1, &copy);
 		});
-        staging.destroy();
+		staging.destroy();
 	}
 
-	void VulkanRenderer::immediate_submit(const auto& fn) {
+	void VulkanRenderer::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& fn) {
 		VkCommandBuffer cmd = mUploadContext.command_buffer;
 		VkCommandBufferBeginInfo begin_info{vkbuild::command_buffer_begin_info(
 			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)};

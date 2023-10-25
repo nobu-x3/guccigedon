@@ -45,6 +45,7 @@ namespace render {
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
 		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
 		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
+		VkDescriptorSetLayout mTextureSamplerDescriptorSetLayout{};
 		VkDescriptorPool mDescriptorPool{};
 		Scene mScene{};
 		UploadContext mUploadContext{};
@@ -68,8 +69,9 @@ namespace render {
 
 		void upload_mesh(Mesh& mesh);
 
-		// function template instead of std::function because c++20
-		void immediate_submit(const auto& fn);
+		// function template instead of std::function because c++20...
+		// @TODO: figure out lambdas as param and passing this fn as pointer
+		void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 		inline FrameData& get_current_frame() {
 			return mFrames[mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT];

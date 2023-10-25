@@ -1,8 +1,11 @@
 #pragma once
+#include <functional>
 #include "vulkan/vulkan_core.h"
 #include "vulkan_types.h"
 
 namespace render {
+	class VulkanRenderer;
+	
 	class Image {
 	public:
 		VkImage handle{};
@@ -20,8 +23,10 @@ namespace render {
 			  const VkImageCreateInfo& image_ci,
 			  const VmaAllocationCreateInfo& alloc_info);
 
+		// the function pointer is a mess @TODO
+		// instead of passing a reference to renderer, pass pfn
 		Image(const char* path, VmaAllocator alloc, VkDevice device,
-			  const auto& immediate_submit_fn);
+			  VulkanRenderer& renderer);
 
 		void destroy();
 

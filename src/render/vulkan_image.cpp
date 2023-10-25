@@ -1,13 +1,15 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <vk_mem_alloc.h>
 #include "vulkan/vulkan_core.h"
-#include "vulkan_builders.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "vulkan_image.h"
+#include "vulkan_builders.h"
+#include "renderer.h"
 
 namespace render {
 
+	
 	Image::Image(VmaAllocator alloc, VkDevice device,
 				 const VkImageCreateInfo& image_ci,
 				 const VmaAllocationCreateInfo& alloc_info) :
@@ -17,8 +19,8 @@ namespace render {
 								nullptr));
 	}
 
-	Image::Image(const char* path, VmaAllocator alloc, VkDevice device,
-				 const auto& immediate_submit_fn) :
+	Image::Image(
+		const char* path, VmaAllocator alloc, VkDevice device,  VulkanRenderer& renderer) :
 		allocator(alloc),
 		device(device) {
 		int texWidth, texHeight, texChannels;
@@ -50,7 +52,7 @@ namespace render {
 		alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		VK_CHECK(vmaCreateImage(alloc, &image_ci, &alloc_info, &handle, &memory,
 								nullptr));
-		immediate_submit_fn([&](VkCommandBuffer buf) {
+		renderer.immediate_submit([&](VkCommandBuffer buf) {
 			VkImageSubresourceRange range;
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			range.baseMipLevel = 0;
@@ -90,9 +92,10 @@ namespace render {
 								 nullptr, 0, nullptr, 1,
 								 &img_barrier_shader_readable);
 		});
-        staging_buffer.destroy();
-        VkImageViewCreateInfo view_ci = vkbuild::imageview_ci(VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
-        vkCreateImageView(device, &view_ci, nullptr, &view);
+		staging_buffer.destroy();
+		VkImageViewCreateInfo view_ci = vkbuild::imageview_ci(
+			VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
+		vkCreateImageView(device, &view_ci, nullptr, &view);
 	}
 
 	void Image::destroy() {
