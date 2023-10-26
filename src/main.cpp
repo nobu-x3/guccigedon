@@ -4,7 +4,7 @@
 #include "render/vulkan/renderer.h"
 
 int main() {
-    render::VulkanRenderer renderer {};
+    render::vulkan::VulkanRenderer renderer {};
     renderer.run();
 	return 0;
 }

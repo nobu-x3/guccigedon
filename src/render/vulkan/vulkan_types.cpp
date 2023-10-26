@@ -1,7 +1,7 @@
 #include "render/vulkan/vulkan_types.h"
 #include "vulkan/vulkan_core.h"
 
-namespace render {
+namespace render::vulkan {
 	Buffer::Buffer(VmaAllocator alloc, size_t allocation_size,
 				   VkBufferUsageFlags usage, VmaMemoryUsage mem_usage) :
 		mAlloc(alloc) {

@@ -2,7 +2,7 @@
 #include "tiny_obj_loader.h"
 #include "vk_mem_alloc.h"
 
-namespace render {
+namespace render::vulkan {
 
 	vkbuild::VertexInputDescription Vertex::get_description() {
 		vkbuild::VertexInputDescription description;

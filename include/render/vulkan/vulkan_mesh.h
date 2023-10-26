@@ -3,13 +3,13 @@
 #include "vulkan_builders.h"
 #include "vulkan_types.h"
 
-namespace render {
+namespace render::vulkan {
 
 	struct Vertex {
 		glm::vec3 position;
 		glm::vec3 color;
 		glm::vec3 normal;
-        glm::vec2 uv;
+		glm::vec2 uv;
 
 		static vkbuild::VertexInputDescription get_description();
 	};
@@ -20,14 +20,13 @@ namespace render {
 
 		Buffer buffer{};
 
-        glm::mat4 transform{};
+		glm::mat4 transform{};
 
 	public:
 		void deinit(VmaAllocator alloc);
 
 		Mesh& set_vertices(ArrayList<Vertex>& data);
 
-
 		bool load_from_obj(const char* path);
 	};
-} // namespace render
+} // namespace render::vulkan

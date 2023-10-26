@@ -7,7 +7,8 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
-namespace render {
+
+namespace render::vulkan {
 
 #define VK_CHECK(x)                                                            \
 	do {                                                                       \
@@ -34,7 +35,6 @@ namespace render {
 		// destroy the handle when object's lifetime is over. Consider copy
 		// ctor/assignment: causes double free.
 		void destroy();
-
 
 	private:
 		VmaAllocator mAlloc;
@@ -85,11 +85,17 @@ namespace render {
 	struct ObjectData {
 		glm::mat4 model_matrix;
 	};
-} // namespace render
-  //
+
+	enum class ObjectLifetime : u8 {
+		TEMP = 0,
+		OWNED = 1,
+	};
+
+} // namespace render::vulkan
+
 template <>
-struct std::hash<render::Material> {
-	std::size_t operator()(const render::Material& k) const {
+struct std::hash<render::vulkan::Material> {
+	std::size_t operator()(const render::vulkan::Material& k) const {
 		return hash<void*>()(k.pipeline);
 	}
 };

@@ -1,7 +1,7 @@
 #include "render/vulkan/scene.h"
 #include "render/vulkan/vulkan_types.h"
 
-namespace render {
+namespace render::vulkan {
 
 	Scene::Scene(VmaAllocator allocator, size_t buffer_size, SceneData data) :
 		mBufferSize(buffer_size), scene_data(data), mAllocator(allocator) {

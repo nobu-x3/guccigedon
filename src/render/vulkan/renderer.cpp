@@ -16,7 +16,7 @@
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
-namespace render {
+namespace render::vulkan {
 	VulkanRenderer::VulkanRenderer() {
 		SDL_Init(SDL_INIT_VIDEO);
 		mpWindow = SDL_CreateWindow("Guccigedon", SDL_WINDOWPOS_CENTERED,
@@ -31,8 +31,8 @@ namespace render {
 		init_instance();
 		// initialize the memory allocator
 		VmaAllocatorCreateInfo allocator_ci = {};
-		allocator_ci.physicalDevice = mPhysicalDevice;
-		allocator_ci.device = mDevice;
+		allocator_ci.physicalDevice = mDevice.physical_device();
+		allocator_ci.device = mDevice.logical_device();
 		allocator_ci.instance = mInstance;
 		vmaCreateAllocator(&allocator_ci, &mAllocator);
 		init_swapchain();
@@ -47,69 +47,71 @@ namespace render {
 	VulkanRenderer::~VulkanRenderer() {
 		// this stuff is sort of unsafe, so need to check for handles > 0 before
 		// destroying, otherwise will segfault
-		if (mDevice) {
-			vkDeviceWaitIdle(mDevice);
-			for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
-				if (mFrames[i].command_pool) {
-					vkDestroyCommandPool(mDevice, mFrames[i].command_pool,
-										 nullptr);
-				}
-				if (mFrames[i].render_fence) {
-					vkDestroyFence(mDevice, mFrames[i].render_fence, nullptr);
-				}
-				if (mFrames[i].present_semaphore) {
-					vkDestroySemaphore(mDevice, mFrames[i].present_semaphore,
-									   nullptr);
-				}
-				if (mFrames[i].render_semaphore) {
-					vkDestroySemaphore(mDevice, mFrames[i].render_semaphore,
-									   nullptr);
-				}
-				if (mFrames[i].camera_buffer.handle) {
-					mFrames[i].camera_buffer.destroy();
-				}
-				if (mFrames[i].object_buffer.handle) {
-					mFrames[i].object_buffer.destroy();
-				}
+		mDevice.wait_idle();
+		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+			if (mFrames[i].command_pool) {
+				vkDestroyCommandPool(mDevice.logical_device(),
+									 mFrames[i].command_pool, nullptr);
 			}
-			if (mUploadContext.upload_fence) {
-				vkDestroyFence(mDevice, mUploadContext.upload_fence, nullptr);
+			if (mFrames[i].render_fence) {
+				vkDestroyFence(mDevice.logical_device(),
+							   mFrames[i].render_fence, nullptr);
 			}
-			if (mUploadContext.command_pool) {
-				vkDestroyCommandPool(mDevice, mUploadContext.command_pool,
-									 nullptr);
+			if (mFrames[i].present_semaphore) {
+				vkDestroySemaphore(mDevice.logical_device(),
+								   mFrames[i].present_semaphore, nullptr);
 			}
-			if (mSwapchain) {
-				vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+			if (mFrames[i].render_semaphore) {
+				vkDestroySemaphore(mDevice.logical_device(),
+								   mFrames[i].render_semaphore, nullptr);
 			}
-			if (mRenderPass) {
-				vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+			if (mFrames[i].camera_buffer.handle) {
+				mFrames[i].camera_buffer.destroy();
 			}
-			for (int i = 0; i < mFramebuffers.size(); ++i) {
-				if (mFramebuffers[i])
-					vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
-				if (mSwapchainImageViews[i])
-					vkDestroyImageView(mDevice, mSwapchainImageViews[i],
-									   nullptr);
+			if (mFrames[i].object_buffer.handle) {
+				mFrames[i].object_buffer.destroy();
 			}
-			for (std::pair<const Material, ArrayList<Mesh>>& entry :
-				 mMaterialMap) {
-				vkDestroyPipelineLayout(mDevice, entry.first.layout, nullptr);
-				vkDestroyPipeline(mDevice, entry.first.pipeline, nullptr);
-				for (Mesh& mesh : entry.second) {
-					mesh.deinit(mAllocator);
-				}
-			}
-			mDepthAttachment.destroy();
-			vkDestroyDescriptorSetLayout(mDevice, mGlobalDescriptorSetLayout,
-										 nullptr);
-			mScene.destroy();
-			vkDestroyDescriptorSetLayout(mDevice, mObjectsDescriptorSetLayout,
-										 nullptr);
-			vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-			vmaDestroyAllocator(mAllocator);
-			vkDestroyDevice(mDevice, nullptr);
 		}
+		if (mUploadContext.upload_fence) {
+			vkDestroyFence(mDevice.logical_device(),
+						   mUploadContext.upload_fence, nullptr);
+		}
+		if (mUploadContext.command_pool) {
+			vkDestroyCommandPool(mDevice.logical_device(),
+								 mUploadContext.command_pool, nullptr);
+		}
+		if (mSwapchain) {
+			vkDestroySwapchainKHR(mDevice.logical_device(), mSwapchain,
+								  nullptr);
+		}
+		if (mRenderPass) {
+			vkDestroyRenderPass(mDevice.logical_device(), mRenderPass, nullptr);
+		}
+		for (int i = 0; i < mFramebuffers.size(); ++i) {
+			if (mFramebuffers[i])
+				vkDestroyFramebuffer(mDevice.logical_device(), mFramebuffers[i],
+									 nullptr);
+			if (mSwapchainImageViews[i])
+				vkDestroyImageView(mDevice.logical_device(),
+								   mSwapchainImageViews[i], nullptr);
+		}
+		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+			vkDestroyPipelineLayout(mDevice.logical_device(),
+									entry.first.layout, nullptr);
+			vkDestroyPipeline(mDevice.logical_device(), entry.first.pipeline,
+							  nullptr);
+			for (Mesh& mesh : entry.second) {
+				mesh.deinit(mAllocator);
+			}
+		}
+		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
+									 mGlobalDescriptorSetLayout, nullptr);
+		mScene.destroy();
+		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
+									 mObjectsDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorPool(mDevice.logical_device(), mDescriptorPool,
+								nullptr);
+		vmaDestroyAllocator(mAllocator);
 		if (mInstance) {
 			if (mSurface) {
 				vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
@@ -132,15 +134,16 @@ namespace render {
 		// wait until last frame is rendered, timeout 1s
 		FrameData& frame_data = get_current_frame();
 		u32 frame_index = mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT;
-		VK_CHECK(vkWaitForFences(mDevice, 1, &frame_data.render_fence, true,
-								 1000000000));
-		VK_CHECK(vkResetFences(mDevice, 1, &frame_data.render_fence));
+		VK_CHECK(vkWaitForFences(mDevice.logical_device(), 1,
+								 &frame_data.render_fence, true, 1000000000));
+		VK_CHECK(vkResetFences(mDevice.logical_device(), 1,
+							   &frame_data.render_fence));
 		// now can reset command buffer safely
 		VK_CHECK(vkResetCommandBuffer(frame_data.command_buffer, 0));
 		u32 image_index{};
-		VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, 1000000000,
-									   frame_data.present_semaphore, nullptr,
-									   &image_index));
+		VK_CHECK(vkAcquireNextImageKHR(mDevice.logical_device(), mSwapchain,
+									   1000000000, frame_data.present_semaphore,
+									   nullptr, &image_index));
 		VkCommandBuffer buf = frame_data.command_buffer;
 		VkCommandBufferBeginInfo buf_begin_info =
 			vkbuild::command_buffer_begin_info(
@@ -210,8 +213,10 @@ namespace render {
 			vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 									entry.first.layout, 1, 1,
 									&frame_data.object_descriptor, 0, nullptr);
-			if(entry.first.textureSet != VK_NULL_HANDLE){
-				vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,  entry.first.layout, 2, 1, &entry.first.textureSet, 0, nullptr);
+			if (entry.first.textureSet != VK_NULL_HANDLE) {
+				vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+										entry.first.layout, 2, 1,
+										&entry.first.textureSet, 0, nullptr);
 			}
 			for (Mesh& mesh : entry.second) {
 				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
@@ -236,8 +241,8 @@ namespace render {
 		submit.signalSemaphoreCount = 1;
 		submit.pSignalSemaphores = &frame_data.render_semaphore;
 		// render fence blocks until commands finish executing
-		VK_CHECK(
-			vkQueueSubmit(mGraphicsQueue, 1, &submit, frame_data.render_fence));
+		VK_CHECK(vkQueueSubmit(mDevice.graphics_queue(), 1, &submit,
+							   frame_data.render_fence));
 
 		// waiting on rendering to finish, then presenting
 		VkPresentInfoKHR present_info = vkbuild::present_info();
@@ -246,7 +251,7 @@ namespace render {
 		present_info.waitSemaphoreCount = 1;
 		present_info.pWaitSemaphores = &frame_data.render_semaphore;
 		present_info.pImageIndices = &image_index;
-		VK_CHECK(vkQueuePresentKHR(mGraphicsQueue, &present_info));
+		VK_CHECK(vkQueuePresentKHR(mDevice.graphics_queue(), &present_info));
 		++mCurrFrame;
 	}
 
@@ -275,27 +280,12 @@ namespace render {
 		mInstance = vkb_inst.instance;
 		fpDebugMsger = vkb_inst.debug_messenger;
 		SDL_Vulkan_CreateSurface(mpWindow, mInstance, &mSurface);
-		vkb::PhysicalDeviceSelector selector{vkb_inst};
-		vkb::PhysicalDevice vkb_phys_dev = selector.set_minimum_version(1, 1)
-											   .set_surface(mSurface)
-											   .select()
-											   .value();
-		VkPhysicalDeviceShaderDrawParametersFeatures shader_dram_param_feat{
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
-			nullptr, VK_TRUE};
-		vkb::DeviceBuilder dev_builder{vkb_phys_dev};
-		vkb::Device vkb_dev =
-			dev_builder.add_pNext(&shader_dram_param_feat).build().value();
-		mDevice = vkb_dev.device;
-		mPhysicalDevice = vkb_phys_dev.physical_device;
-		mPhysicalDeviceProperties = vkb_dev.physical_device.properties;
-		mGraphicsQueue = vkb_dev.get_queue(vkb::QueueType::graphics).value();
-		mGraphicsQueueFamily =
-			vkb_dev.get_queue_index(vkb::QueueType::graphics).value();
+		mDevice = {vkb_inst, mSurface};
 	}
 
 	void VulkanRenderer::init_swapchain() {
-		vkb::SwapchainBuilder swap_buider{mPhysicalDevice, mDevice, mSurface};
+		vkb::SwapchainBuilder swap_buider{mDevice.physical_device(),
+										  mDevice.logical_device(), mSurface};
 		vkb::Swapchain vkb_swap =
 			swap_buider.use_default_format_selection()
 				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
@@ -312,41 +302,37 @@ namespace render {
 		imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		imgAllocCi.requiredFlags =
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		auto res = Image::create_image(
-			mAllocator, mDevice,
+		mDepthAttachment = {
+			mAllocator, mDevice.logical_device(),
 			vkbuild::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
-			imgAllocCi);
-		if (res.has_value()) {
-			bool result = res->create_view(vkbuild::imageview_ci(
-				mDepthFormat, res->handle, VK_IMAGE_ASPECT_DEPTH_BIT));
-			if (!result) {
-				return;
-			}
-			mDepthAttachment = std::move(res.value());
-		}
+			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
 	}
 
 	void VulkanRenderer::init_commands() {
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 			VkCommandPoolCreateInfo command_pool_ci = vkbuild::command_pool_ci(
-				mGraphicsQueueFamily,
+				mDevice.graphics_queue_family(),
 				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-			VK_CHECK(vkCreateCommandPool(mDevice, &command_pool_ci, nullptr,
+			VK_CHECK(vkCreateCommandPool(mDevice.logical_device(),
+										 &command_pool_ci, nullptr,
 										 &mFrames[i].command_pool));
 			VkCommandBufferAllocateInfo alloc_info =
 				vkbuild::command_buffer_ai(mFrames[i].command_pool, 1);
-			VK_CHECK(vkAllocateCommandBuffers(mDevice, &alloc_info,
+			VK_CHECK(vkAllocateCommandBuffers(mDevice.logical_device(),
+											  &alloc_info,
 											  &mFrames[i].command_buffer));
 		}
 		VkCommandPoolCreateInfo upload_ctx_cmd_pool_ci{
-			vkbuild::command_pool_ci(mGraphicsQueueFamily)};
-		VK_CHECK(vkCreateCommandPool(mDevice, &upload_ctx_cmd_pool_ci, nullptr,
+			vkbuild::command_pool_ci(mDevice.graphics_queue_family())};
+		VK_CHECK(vkCreateCommandPool(mDevice.logical_device(),
+									 &upload_ctx_cmd_pool_ci, nullptr,
 									 &mUploadContext.command_pool));
 		VkCommandBufferAllocateInfo upload_ctx_cmd_ai{
 			vkbuild::command_buffer_ai(mUploadContext.command_pool)};
-		VK_CHECK(vkAllocateCommandBuffers(mDevice, &upload_ctx_cmd_ai,
+		VK_CHECK(vkAllocateCommandBuffers(mDevice.logical_device(),
+										  &upload_ctx_cmd_ai,
 										  &mUploadContext.command_buffer));
 	}
 
@@ -360,8 +346,8 @@ namespace render {
 									   mDepthAttachment.view};
 			fb_ci.pAttachments = &attachments[0];
 			fb_ci.attachmentCount = 2;
-			VK_CHECK(vkCreateFramebuffer(mDevice, &fb_ci, nullptr,
-										 &mFramebuffers[i]));
+			VK_CHECK(vkCreateFramebuffer(mDevice.logical_device(), &fb_ci,
+										 nullptr, &mFramebuffers[i]));
 		}
 	}
 
@@ -438,8 +424,8 @@ namespace render {
 		render_pass_info.pSubpasses = &subpass;
 		render_pass_info.dependencyCount = 2;
 		render_pass_info.pDependencies = &dependencies[0];
-		VK_CHECK(vkCreateRenderPass(mDevice, &render_pass_info, nullptr,
-									&mRenderPass));
+		VK_CHECK(vkCreateRenderPass(mDevice.logical_device(), &render_pass_info,
+									nullptr, &mRenderPass));
 	}
 
 	void VulkanRenderer::init_sync_objects() {
@@ -451,18 +437,20 @@ namespace render {
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 			VkFenceCreateInfo fenceCreateInfo =
 				vkbuild::fence_ci(VK_FENCE_CREATE_SIGNALED_BIT);
-			VK_CHECK(vkCreateFence(mDevice, &fenceCreateInfo, nullptr,
-								   &mFrames[i].render_fence));
+			VK_CHECK(vkCreateFence(mDevice.logical_device(), &fenceCreateInfo,
+								   nullptr, &mFrames[i].render_fence));
 			VkSemaphoreCreateInfo semaphoreCreateInfo = vkbuild::semaphore_ci();
-			VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
+			VK_CHECK(vkCreateSemaphore(mDevice.logical_device(),
+									   &semaphoreCreateInfo, nullptr,
 									   &mFrames[i].present_semaphore));
-			VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr,
+			VK_CHECK(vkCreateSemaphore(mDevice.logical_device(),
+									   &semaphoreCreateInfo, nullptr,
 									   &mFrames[i].render_semaphore));
 		}
 		// no signaled bit because we don't have to wait
 		VkFenceCreateInfo upload_fence_ci{vkbuild::fence_ci()};
-		VK_CHECK(vkCreateFence(mDevice, &upload_fence_ci, nullptr,
-							   &mUploadContext.upload_fence));
+		VK_CHECK(vkCreateFence(mDevice.logical_device(), &upload_fence_ci,
+							   nullptr, &mUploadContext.upload_fence));
 	}
 
 	void VulkanRenderer::init_scene() {
@@ -471,10 +459,10 @@ namespace render {
 			vkbuild::PipelineBuilder builder;
 			material.layout =
 				builder
-					.add_shader(mDevice,
+					.add_shader(mDevice.logical_device(),
 								"assets/shaders/default_shader.vert.glsl.spv",
 								vkbuild::ShaderType::VERTEX)
-					.add_shader(mDevice,
+					.add_shader(mDevice.logical_device(),
 								"assets/shaders/default_shader.frag.glsl.spv",
 								vkbuild::ShaderType::FRAGMENT)
 					.set_vertex_input_description(Vertex::get_description())
@@ -499,8 +487,9 @@ namespace render {
 						{0, 0, static_cast<float>(mWindowExtent.width),
 						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
 					.add_scissor({{0, 0}, mWindowExtent})
-					.build_layout(mDevice);
-			material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
+					.build_layout(mDevice.logical_device());
+			material.pipeline =
+				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
 			Mesh monkeyMesh{};
 			monkeyMesh.load_from_obj("assets/models/monkey.obj");
 			upload_mesh(monkeyMesh);
@@ -511,22 +500,31 @@ namespace render {
 			VkSamplerCreateInfo sampler_info =
 				vkbuild::sampler_create_info(VK_FILTER_NEAREST);
 			VkSampler sampler;
-			vkCreateSampler(mDevice, &sampler_info, nullptr, &sampler);
+			vkCreateSampler(mDevice.logical_device(), &sampler_info, nullptr,
+							&sampler);
 			VkDescriptorSetAllocateInfo texture_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mTextureSamplerDescriptorSetLayout};
-			VK_CHECK(vkAllocateDescriptorSets(mDevice, &texture_alloc_info, &material.textureSet));
-			Image texture {"assets/textures/lost_empire-RGBA.png", mAllocator, mDevice, *this};
-			VkDescriptorImageInfo image_buf_info {sampler, texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-			VkWriteDescriptorSet tex_write = vkbuild::write_descriptor_image(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet, &image_buf_info, 0);
-			vkUpdateDescriptorSets(mDevice, 1, &tex_write, 0, nullptr);
+			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
+											  &texture_alloc_info,
+											  &material.textureSet));
+			Image texture{"assets/textures/lost_empire-RGBA.png", mAllocator,
+						  mDevice.logical_device(), *this};
+			VkDescriptorImageInfo image_buf_info{
+				sampler, texture.view,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+			VkWriteDescriptorSet tex_write = vkbuild::write_descriptor_image(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet,
+				&image_buf_info, 0);
+			vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write, 0,
+								   nullptr);
 			vkbuild::PipelineBuilder builder;
 			material.layout =
 				builder
-					.add_shader(mDevice,
+					.add_shader(mDevice.logical_device(),
 								"assets/shaders/textured_mesh.vert.glsl.spv",
 								vkbuild::ShaderType::VERTEX)
-					.add_shader(mDevice,
+					.add_shader(mDevice.logical_device(),
 								"assets/shaders/textured_mesh.frag.glsl.spv",
 								vkbuild::ShaderType::FRAGMENT)
 					.set_vertex_input_description(Vertex::get_description())
@@ -553,12 +551,13 @@ namespace render {
 						{0, 0, static_cast<float>(mWindowExtent.width),
 						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
 					.add_scissor({{0, 0}, mWindowExtent})
-					.build_layout(mDevice);
-			material.pipeline = builder.build_pipeline(mDevice, mRenderPass);
-			Mesh lost_empire{};
-			lost_empire.load_from_obj("assets/models/lost_empire.obj");
-			upload_mesh(lost_empire);
-			add_material_to_mesh(material, lost_empire);
+					.build_layout(mDevice.logical_device());
+			material.pipeline =
+				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
+			/* Mesh lost_empire{}; */
+			/* lost_empire.load_from_obj("assets/models/lost_empire.obj"); */
+			/* upload_mesh(lost_empire); */
+			/* add_material_to_mesh(material, lost_empire); */
 		}
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
@@ -579,8 +578,8 @@ namespace render {
 			10,
 			static_cast<u32>(std::size(sizes)),
 			&sizes[0]};
-		VK_CHECK(vkCreateDescriptorPool(mDevice, &pool_ci, nullptr,
-										&mDescriptorPool));
+		VK_CHECK(vkCreateDescriptorPool(mDevice.logical_device(), &pool_ci,
+										nullptr, &mDescriptorPool));
 		VkDescriptorSetLayoutBinding cam_buffer_binding =
 			vkbuild::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
@@ -608,12 +607,14 @@ namespace render {
 		VkDescriptorSetLayoutCreateInfo sampler_descriptor_set{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
 			&texture_sampler_binding};
-		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &scene_set_ci, nullptr,
+		VK_CHECK(vkCreateDescriptorSetLayout(mDevice.logical_device(),
+											 &scene_set_ci, nullptr,
 											 &mGlobalDescriptorSetLayout));
-		VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &object_set_ci, nullptr,
+		VK_CHECK(vkCreateDescriptorSetLayout(mDevice.logical_device(),
+											 &object_set_ci, nullptr,
 											 &mObjectsDescriptorSetLayout));
 		VK_CHECK(vkCreateDescriptorSetLayout(
-			mDevice, &sampler_descriptor_set, nullptr,
+			mDevice.logical_device(), &sampler_descriptor_set, nullptr,
 			&mTextureSamplerDescriptorSetLayout));
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 			mFrames[i].camera_buffer = {mAllocator, sizeof(CameraData),
@@ -626,16 +627,17 @@ namespace render {
 			VkDescriptorSetAllocateInfo scene_buffer_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mGlobalDescriptorSetLayout};
-			VK_CHECK(vkAllocateDescriptorSets(mDevice, &scene_buffer_alloc_info,
+			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
+											  &scene_buffer_alloc_info,
 											  &mFrames[i].global_descriptor));
 			VkDescriptorSetAllocateInfo objects_buffer_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mObjectsDescriptorSetLayout};
-			VK_CHECK(vkAllocateDescriptorSets(mDevice,
+			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
 											  &objects_buffer_alloc_info,
 											  &mFrames[i].object_descriptor));
 
-			VK_CHECK(vkAllocateDescriptorSets(mDevice,
+			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
 											  &objects_buffer_alloc_info,
 											  &mFrames[i].object_descriptor));
 			VkDescriptorBufferInfo camera_buffer_info{
@@ -657,7 +659,8 @@ namespace render {
 					mFrames[i].object_descriptor, &object_buffer_info, 0);
 			VkWriteDescriptorSet set_writes[]{camera_write, scene_write,
 											  objects_write};
-			vkUpdateDescriptorSets(mDevice, 3, set_writes, 0, nullptr);
+			vkUpdateDescriptorSets(mDevice.logical_device(), 3, set_writes, 0,
+								   nullptr);
 		}
 	}
 
@@ -672,8 +675,8 @@ namespace render {
 
 	size_t VulkanRenderer::pad_uniform_buffer(size_t original_size) {
 		// Calculate required alignment based on minimum device offset alignment
-		size_t minUboAlignment =
-			mPhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+		size_t minUboAlignment = mDevice.physical_device_properties()
+									 .limits.minUniformBufferOffsetAlignment;
 		size_t alignedSize = original_size;
 		if (minUboAlignment > 0) {
 			alignedSize =
@@ -701,7 +704,8 @@ namespace render {
 		staging.destroy();
 	}
 
-	void VulkanRenderer::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& fn) {
+	void VulkanRenderer::immediate_submit(
+		std::function<void(VkCommandBuffer cmd)>&& fn) {
 		VkCommandBuffer cmd = mUploadContext.command_buffer;
 		VkCommandBufferBeginInfo begin_info{vkbuild::command_buffer_begin_info(
 			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)};
@@ -709,11 +713,13 @@ namespace render {
 		fn(cmd);
 		VK_CHECK(vkEndCommandBuffer(cmd));
 		VkSubmitInfo submit{vkbuild::submit_info(&cmd)};
-		VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit,
+		VK_CHECK(vkQueueSubmit(mDevice.graphics_queue(), 1, &submit,
 							   mUploadContext.upload_fence));
-		vkWaitForFences(mDevice, 1, &mUploadContext.upload_fence, true,
-						1000000000);
-		vkResetFences(mDevice, 1, &mUploadContext.upload_fence);
-		vkResetCommandPool(mDevice, mUploadContext.command_pool, 0);
+		vkWaitForFences(mDevice.logical_device(), 1,
+						&mUploadContext.upload_fence, true, 1000000000);
+		vkResetFences(mDevice.logical_device(), 1,
+					  &mUploadContext.upload_fence);
+		vkResetCommandPool(mDevice.logical_device(),
+						   mUploadContext.command_pool, 0);
 	}
-} // namespace render
+} // namespace render::vulkan

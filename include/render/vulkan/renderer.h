@@ -3,6 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
+#include "render/vulkan/device.h"
 #include "scene.h"
 #include "vulkan_image.h"
 #include "vulkan_mesh.h"
@@ -10,7 +11,7 @@
 
 struct SDL_Window;
 
-namespace render {
+namespace render::vulkan {
 
 	constexpr u32 MAXIMUM_FRAMES_IN_FLIGHT = 2;
 	constexpr u32 MAX_OBJECTS = 1000;
@@ -26,12 +27,8 @@ namespace render {
 		SDL_Window* mpWindow{nullptr};
 		VkInstance mInstance{};
 		VkDebugUtilsMessengerEXT fpDebugMsger{};
-		VkPhysicalDevice mPhysicalDevice{};
-		VkPhysicalDeviceProperties mPhysicalDeviceProperties{};
-		VkDevice mDevice{};
+        Device mDevice;
 		VkSurfaceKHR mSurface{};
-		VkQueue mGraphicsQueue{};
-		u32 mGraphicsQueueFamily{};
 		VkFormat mSwapchainImageFormat{};
 		VkSwapchainKHR mSwapchain{};
 		ArrayList<VkImage> mSwapchainImages{};
@@ -71,7 +68,8 @@ namespace render {
 
 		// function template instead of std::function because c++20...
 		// @TODO: figure out lambdas as param and passing this fn as pointer
-		void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+		void
+		immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 		inline FrameData& get_current_frame() {
 			return mFrames[mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT];
@@ -80,4 +78,4 @@ namespace render {
 		void draw();
 		void run();
 	};
-} // namespace render
+} // namespace render::vulkan

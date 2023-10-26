@@ -11,6 +11,7 @@ add_executable(Guccigedon
     src/render/vulkan/vulkan_mesh.cpp
     src/render/vulkan/vulkan_types.cpp
     src/render/vulkan/vulkan_image.cpp
+    src/render/vulkan/device.cpp
     src/render/vulkan/scene.cpp
     )
 
