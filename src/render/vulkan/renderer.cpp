@@ -1,4 +1,4 @@
-#include "renderer.h"
+#include "render/vulkan/renderer.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_error.h>
 #include <SDL2/SDL_events.h>
@@ -9,9 +9,9 @@
 #include <iterator>
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
-#include "../core/logger.h"
-#include "vulkan_builders.h"
-#include "vulkan_types.h"
+#include "core/logger.h"
+#include "render/vulkan/vulkan_builders.h"
+#include "render/vulkan/vulkan_types.h"
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"

@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include "../core/core.h"
+#include "core/core.h"
 #include "scene.h"
 #include "vulkan_image.h"
 #include "vulkan_mesh.h"

@@ -3,13 +3,13 @@
 #include "vulkan/vulkan_core.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "vulkan_image.h"
-#include "vulkan_builders.h"
-#include "renderer.h"
+#include "render/vulkan/vulkan_image.h"
+#include "render/vulkan/vulkan_builders.h"
+#include "render/vulkan/renderer.h"
 
 namespace render {
 
-	
+
 	Image::Image(VmaAllocator alloc, VkDevice device,
 				 const VkImageCreateInfo& image_ci,
 				 const VmaAllocationCreateInfo& alloc_info) :

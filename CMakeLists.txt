@@ -6,12 +6,12 @@ project(Guccigedon VERSION 0.1)
 
 add_executable(Guccigedon
     src/main.cpp
-    src/render/renderer.cpp
-    src/render/vulkan_builders.cpp
-    src/render/vulkan_mesh.cpp
-    src/render/vulkan_types.cpp
-    src/render/vulkan_image.cpp
-    src/render/scene.cpp
+    src/render/vulkan/renderer.cpp
+    src/render/vulkan/vulkan_builders.cpp
+    src/render/vulkan/vulkan_mesh.cpp
+    src/render/vulkan/vulkan_types.cpp
+    src/render/vulkan/vulkan_image.cpp
+    src/render/vulkan/scene.cpp
     )
 
 find_package(Vulkan REQUIRED)
@@ -78,7 +78,7 @@ include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS}
     ${TINYOBJLOADER_INCLUDE_DIR}
     ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src vendor/stb)
 
-target_include_directories(Guccigedon PUBLIC)
+target_include_directories(Guccigedon PUBLIC include)
 
 target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
     ${Vulkan_LIBRARY} ${GLM_LIBRARY}
