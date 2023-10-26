@@ -33,7 +33,7 @@ namespace render::vulkan {
 		VmaAllocatorCreateInfo allocator_ci = {};
 		allocator_ci.physicalDevice = mDevice.physical_device();
 		allocator_ci.device = mDevice.logical_device();
-		allocator_ci.instance = mInstance;
+		allocator_ci.instance = mInstance.instance();
 		vmaCreateAllocator(&allocator_ci, &mAllocator);
 		init_swapchain();
 		init_default_renderpass();
@@ -104,6 +104,9 @@ namespace render::vulkan {
 				mesh.deinit(mAllocator);
 			}
 		}
+		if (mSurface) {
+			vkDestroySurfaceKHR(mInstance.instance(), mSurface, nullptr);
+		}
 		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
 									 mGlobalDescriptorSetLayout, nullptr);
 		mScene.destroy();
@@ -112,15 +115,6 @@ namespace render::vulkan {
 		vkDestroyDescriptorPool(mDevice.logical_device(), mDescriptorPool,
 								nullptr);
 		vmaDestroyAllocator(mAllocator);
-		if (mInstance) {
-			if (mSurface) {
-				vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
-			}
-			if (fpDebugMsger) {
-				vkb::destroy_debug_utils_messenger(mInstance, fpDebugMsger);
-			}
-			vkDestroyInstance(mInstance, nullptr);
-		}
 		if (mpWindow) {
 			SDL_DestroyWindow(mpWindow);
 		}
@@ -268,8 +262,6 @@ namespace render::vulkan {
 	}
 
 	void VulkanRenderer::init_instance() {
-		// all this vkb stuff is nice and all but eventually we will make
-		// something more robust manually. There's a ton of unsafe stuff here.
 		vkb::InstanceBuilder builder;
 		vkb::Instance vkb_inst = builder.set_app_name("Guccigedon")
 									 .request_validation_layers(true)
@@ -277,9 +269,8 @@ namespace render::vulkan {
 									 .require_api_version(1, 1, 0)
 									 .build()
 									 .value();
-		mInstance = vkb_inst.instance;
-		fpDebugMsger = vkb_inst.debug_messenger;
-		SDL_Vulkan_CreateSurface(mpWindow, mInstance, &mSurface);
+		mInstance = {vkb_inst};
+		SDL_Vulkan_CreateSurface(mpWindow, mInstance.instance(), &mSurface);
 		mDevice = {vkb_inst, mSurface};
 	}
 

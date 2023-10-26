@@ -19,9 +19,9 @@ namespace render::vulkan {
 		Device() = default;
 		Device(vkb::Instance, VkSurfaceKHR);
 		Device(Device& other);
-		Device(Device&& device);
+		Device(Device&& device) noexcept;
 		Device& operator=(Device& other);
-		Device& operator=(Device&& other);
+		Device& operator=(Device&& other) noexcept;
 		~Device();
 
 		inline void wait_idle() { vkDeviceWaitIdle(mDevice); }
@@ -30,14 +30,16 @@ namespace render::vulkan {
 			return mPhysicalDevice;
 		}
 
-        inline VkPhysicalDeviceProperties physical_device_properties() const {
-            return mPhysicalDeviceProperties;
-        }
+		inline VkPhysicalDeviceProperties physical_device_properties() const {
+			return mPhysicalDeviceProperties;
+		}
 
 		inline VkDevice logical_device() const { return mDevice; }
 
 		inline VkQueue graphics_queue() const { return mGraphicsQueue; }
 
-		inline u32 graphics_queue_family() const { return mGraphicsQueueFamily; }
+		inline u32 graphics_queue_family() const {
+			return mGraphicsQueueFamily;
+		}
 	};
 } // namespace render::vulkan

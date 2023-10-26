@@ -1,0 +1,28 @@
+#pragma once
+
+#include "VkBootstrap.h"
+#include "render/vulkan/vulkan_types.h"
+#include "vulkan/vulkan_core.h"
+namespace render::vulkan {
+
+	class Instance {
+	private:
+		VkInstance mInstance{};
+		VkDebugUtilsMessengerEXT fpDebugMsger{};
+		ObjectLifetime mLifetime{ObjectLifetime::TEMP};
+
+	public:
+		Instance() = default;
+		Instance(ObjectLifetime mLifetime);
+		Instance(vkb::Instance&);
+		Instance(Instance& instance);
+		Instance(Instance&& instance) noexcept;
+		Instance& operator=(Instance& instance);
+		Instance& operator=(Instance&& instance) noexcept;
+        ~Instance();
+		inline VkInstance instance() const { return mInstance; }
+		inline bool operator==(Instance& inst) const {
+			return mInstance == inst.mInstance;
+		}
+	};
+} // namespace render::vulkan

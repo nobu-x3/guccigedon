@@ -34,7 +34,7 @@ namespace render::vulkan {
 		other.mLifetime = ObjectLifetime::TEMP;
 	}
 
-	Device::Device(Device&& device) {
+	Device::Device(Device&& device) noexcept {
 		mDevice = device.mDevice;
 		mPhysicalDevice = device.mPhysicalDevice;
 		mPhysicalDeviceProperties = device.mPhysicalDeviceProperties;
@@ -55,7 +55,7 @@ namespace render::vulkan {
 		return *this;
 	}
 
-	Device& Device::operator=(Device&& other) {
+	Device& Device::operator=(Device&& other) noexcept {
 		mDevice = other.mDevice;
 		mPhysicalDevice = other.mPhysicalDevice;
 		mPhysicalDeviceProperties = other.mPhysicalDeviceProperties;
