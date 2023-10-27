@@ -10,10 +10,10 @@ namespace render::vulkan {
 	class Swapchain {
 	public:
 		Swapchain() = default;
-        // This allocates framebuffers
+		// This allocates framebuffers
 		Swapchain(VmaAllocator allocator, Device& device, Surface& surface,
 				  VkExtent2D window_extent, VkRenderPass renderpass);
-        // This does not allocate framebuffers
+		// This does not allocate framebuffers
 		Swapchain(VmaAllocator allocator, Device& device, Surface& surface,
 				  VkExtent2D window_extent);
 		Swapchain(Swapchain& swapchain);
@@ -22,9 +22,12 @@ namespace render::vulkan {
 		Swapchain& operator=(Swapchain&& swapchain) noexcept;
 		~Swapchain();
 
-		void init_framebuffers(VkRenderPass renderpass, VkExtent2D* extent = nullptr);
+		void init_framebuffers(VkRenderPass renderpass,
+							   VkExtent2D* extent = nullptr);
 
 		inline VkSwapchainKHR& handle() { return mSwapchain; }
+
+		inline ObjectLifetime lifetime() { return mLifetime; }
 
 		inline const ArrayList<VkImage>& images() const {
 			return mSwapchainImages;

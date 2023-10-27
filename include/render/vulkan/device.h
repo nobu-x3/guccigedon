@@ -11,6 +11,7 @@ namespace render::vulkan {
 		VkPhysicalDevice mPhysicalDevice{};
 		VkPhysicalDeviceProperties mPhysicalDeviceProperties{};
 		VkDevice mDevice{};
+		VmaAllocator mAllocator{};
 		ObjectLifetime mLifetime{ObjectLifetime::TEMP};
 		VkQueue mGraphicsQueue{};
 		u32 mGraphicsQueueFamily{};
@@ -41,5 +42,7 @@ namespace render::vulkan {
 		inline u32 graphics_queue_family() const {
 			return mGraphicsQueueFamily;
 		}
+
+		inline VmaAllocator allocator() { return mAllocator; }
 	};
 } // namespace render::vulkan

@@ -22,6 +22,12 @@ namespace render::vulkan {
 		mGraphicsQueue = vkb_dev.get_queue(vkb::QueueType::graphics).value();
 		mGraphicsQueueFamily =
 			vkb_dev.get_queue_index(vkb::QueueType::graphics).value();
+		// initialize the memory allocator
+		VmaAllocatorCreateInfo allocator_ci = {};
+		allocator_ci.physicalDevice = mPhysicalDevice;
+		allocator_ci.device = mDevice;
+		allocator_ci.instance = vkb_inst.instance;
+		vmaCreateAllocator(&allocator_ci, &mAllocator);
 	}
 
 	Device::Device(Device& other) {
@@ -31,6 +37,7 @@ namespace render::vulkan {
 		mGraphicsQueue = other.mGraphicsQueue;
 		mGraphicsQueueFamily = other.mGraphicsQueueFamily;
 		mLifetime = ObjectLifetime::OWNED;
+		mAllocator = other.mAllocator;
 		other.mLifetime = ObjectLifetime::TEMP;
 	}
 
@@ -40,6 +47,7 @@ namespace render::vulkan {
 		mPhysicalDeviceProperties = device.mPhysicalDeviceProperties;
 		mGraphicsQueue = device.mGraphicsQueue;
 		mGraphicsQueueFamily = device.mGraphicsQueueFamily;
+		mAllocator = device.mAllocator;
 		mLifetime = ObjectLifetime::OWNED;
 		device.mLifetime = ObjectLifetime::TEMP;
 	}
@@ -51,6 +59,7 @@ namespace render::vulkan {
 		mGraphicsQueue = other.mGraphicsQueue;
 		mGraphicsQueueFamily = other.mGraphicsQueueFamily;
 		mLifetime = ObjectLifetime::OWNED;
+		mAllocator = other.mAllocator;
 		other.mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
@@ -62,6 +71,7 @@ namespace render::vulkan {
 		mGraphicsQueue = other.mGraphicsQueue;
 		mGraphicsQueueFamily = other.mGraphicsQueueFamily;
 		mLifetime = ObjectLifetime::OWNED;
+		mAllocator = other.mAllocator;
 		other.mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
@@ -69,6 +79,9 @@ namespace render::vulkan {
 	Device::~Device() {
 		if (mLifetime == ObjectLifetime::TEMP)
 			return;
+		if (mAllocator) {
+			vmaDestroyAllocator(mAllocator);
+		}
 		if (mDevice) {
 			vkDestroyDevice(mDevice, nullptr);
 		}

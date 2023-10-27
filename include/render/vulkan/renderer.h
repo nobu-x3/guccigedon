@@ -25,7 +25,6 @@ namespace render::vulkan {
 		// This is temporary, I'll refactor once I get it running.
 
 	private:
-		u32 mCurrFrame{0};
 		VkExtent2D mWindowExtent{800, 600};
 		SDL_Window* mpWindow{nullptr};
 		Instance mInstance{};
@@ -33,7 +32,6 @@ namespace render::vulkan {
         Surface mSurface{};
         Swapchain mSwapchain{};
 		VkRenderPass mRenderPass{};
-		VmaAllocator mAllocator{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
 		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
@@ -42,6 +40,7 @@ namespace render::vulkan {
 		VkDescriptorPool mDescriptorPool{};
 		Scene mScene{};
 		UploadContext mUploadContext{};
+		u32 mCurrFrame{0};
 
 	private:
 		void init_instance();

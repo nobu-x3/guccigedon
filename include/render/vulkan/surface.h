@@ -9,7 +9,7 @@ namespace render::vulkan {
 	class Surface {
 	public:
 		Surface() = default;
-		Surface(SDL_Window* window, Instance& instance);
+		Surface(SDL_Window* window, VkInstance instance);
 		Surface(Surface& surface);
 		Surface(Surface&& surface) noexcept;
 		Surface& operator=(Surface& surface);
@@ -21,6 +21,6 @@ namespace render::vulkan {
 	private:
 		VkSurfaceKHR mSurface{};
 		ObjectLifetime mLifetime{ObjectLifetime::TEMP};
-        Instance mInstance;
+        VkInstance mInstance{};
 	};
 } // namespace render::vulkan

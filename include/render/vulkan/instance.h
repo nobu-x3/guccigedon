@@ -13,16 +13,16 @@ namespace render::vulkan {
 
 	public:
 		Instance() = default;
-		Instance(ObjectLifetime mLifetime);
 		Instance(vkb::Instance&);
 		Instance(Instance& instance);
 		Instance(Instance&& instance) noexcept;
 		Instance& operator=(Instance& instance);
 		Instance& operator=(Instance&& instance) noexcept;
-        ~Instance();
-		inline VkInstance instance() const { return mInstance; }
+		~Instance();
+		inline VkInstance handle() const { return mInstance; }
 		inline bool operator==(Instance& inst) const {
 			return mInstance == inst.mInstance;
 		}
+		inline ObjectLifetime lifetime() const { return mLifetime; }
 	};
 } // namespace render::vulkan

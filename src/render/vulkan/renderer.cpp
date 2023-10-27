@@ -29,12 +29,6 @@ namespace render::vulkan {
 			exit(-1);
 		}
 		init_instance();
-		// initialize the memory allocator
-		VmaAllocatorCreateInfo allocator_ci = {};
-		allocator_ci.physicalDevice = mDevice.physical_device();
-		allocator_ci.device = mDevice.logical_device();
-		allocator_ci.instance = mInstance.instance();
-		vmaCreateAllocator(&allocator_ci, &mAllocator);
 		init_swapchain();
 		init_default_renderpass();
 		init_framebuffers();
@@ -89,7 +83,7 @@ namespace render::vulkan {
 			vkDestroyPipeline(mDevice.logical_device(), entry.first.pipeline,
 							  nullptr);
 			for (Mesh& mesh : entry.second) {
-				mesh.deinit(mAllocator);
+				mesh.deinit(mDevice.allocator());
 			}
 		}
 		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
@@ -99,7 +93,6 @@ namespace render::vulkan {
 									 mObjectsDescriptorSetLayout, nullptr);
 		vkDestroyDescriptorPool(mDevice.logical_device(), mDescriptorPool,
 								nullptr);
-		vmaDestroyAllocator(mAllocator);
 		if (mpWindow) {
 			SDL_DestroyWindow(mpWindow);
 		}
@@ -165,11 +158,11 @@ namespace render::vulkan {
 		cam_data.view = view;
 		cam_data.view_proj = projection * view;
 		void* data; // classic approach
-		vmaMapMemory(mAllocator, frame_data.camera_buffer.memory, &data);
+		vmaMapMemory(mDevice.allocator(), frame_data.camera_buffer.memory, &data);
 		memcpy(data, &cam_data, sizeof(CameraData));
-		vmaUnmapMemory(mAllocator, frame_data.camera_buffer.memory);
+		vmaUnmapMemory(mDevice.allocator(), frame_data.camera_buffer.memory);
 		void* object_data; // lil trick
-		vmaMapMemory(mAllocator, frame_data.object_buffer.memory, &object_data);
+		vmaMapMemory(mDevice.allocator(), frame_data.object_buffer.memory, &object_data);
 		ObjectData* object_ssbo = static_cast<ObjectData*>(object_data);
 		int ssbo_index{0};
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
@@ -179,7 +172,7 @@ namespace render::vulkan {
 				ssbo_index++;
 			}
 		}
-		vmaUnmapMemory(mAllocator, frame_data.object_buffer.memory);
+		vmaUnmapMemory(mDevice.allocator(), frame_data.object_buffer.memory);
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
@@ -255,12 +248,12 @@ namespace render::vulkan {
 									 .build()
 									 .value();
 		mInstance = {vkb_inst};
-        mSurface = {mpWindow, mInstance};
+        mSurface = {mpWindow, mInstance.handle()};
 		mDevice = {vkb_inst, mSurface.surface()};
 	}
 
 	void VulkanRenderer::init_swapchain() {
-        mSwapchain = {mAllocator, mDevice, mSurface, mWindowExtent};
+        mSwapchain = {mDevice.allocator(), mDevice, mSurface, mWindowExtent};
 	}
 
 	void VulkanRenderer::init_commands() {
@@ -450,7 +443,7 @@ namespace render::vulkan {
 			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
 											  &texture_alloc_info,
 											  &material.textureSet));
-			Image texture{"assets/textures/lost_empire-RGBA.png", mAllocator,
+			Image texture{"assets/textures/lost_empire-RGBA.png", mDevice.allocator(),
 						  mDevice.logical_device(), *this};
 			VkDescriptorImageInfo image_buf_info{
 				sampler, texture.view,
@@ -507,7 +500,7 @@ namespace render::vulkan {
 	void VulkanRenderer::init_descriptors() {
 		const size_t scene_param_buffer_size =
 			MAXIMUM_FRAMES_IN_FLIGHT * pad_uniform_buffer(sizeof(SceneData));
-		mScene = {mAllocator, scene_param_buffer_size, {}};
+		mScene = {mDevice.allocator(), scene_param_buffer_size, {}};
 		VkDescriptorPoolSize sizes[]{
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10},
@@ -559,10 +552,10 @@ namespace render::vulkan {
 			mDevice.logical_device(), &sampler_descriptor_set, nullptr,
 			&mTextureSamplerDescriptorSetLayout));
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
-			mFrames[i].camera_buffer = {mAllocator, sizeof(CameraData),
+			mFrames[i].camera_buffer = {mDevice.allocator(), sizeof(CameraData),
 										VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 										VMA_MEMORY_USAGE_CPU_TO_GPU};
-			mFrames[i].object_buffer = {mAllocator,
+			mFrames[i].object_buffer = {mDevice.allocator(),
 										sizeof(ObjectData) * MAX_OBJECTS,
 										VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 										VMA_MEMORY_USAGE_CPU_TO_GPU};
@@ -629,13 +622,13 @@ namespace render::vulkan {
 
 	void VulkanRenderer::upload_mesh(Mesh& mesh) {
 		const size_t buf_size = mesh.vertices.size() * sizeof(Vertex);
-		Buffer staging{mAllocator, buf_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		Buffer staging{mDevice.allocator(), buf_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 					   VMA_MEMORY_USAGE_CPU_ONLY};
 		void* data;
-		vmaMapMemory(mAllocator, staging.memory, &data);
+		vmaMapMemory(mDevice.allocator(), staging.memory, &data);
 		memcpy(data, mesh.vertices.data(), buf_size);
-		vmaUnmapMemory(mAllocator, staging.memory);
-		mesh.buffer = {mAllocator, buf_size,
+		vmaUnmapMemory(mDevice.allocator(), staging.memory);
+		mesh.buffer = {mDevice.allocator(), buf_size,
 					   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
 						   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 					   VMA_MEMORY_USAGE_GPU_ONLY};

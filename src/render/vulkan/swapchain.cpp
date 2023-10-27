@@ -1,5 +1,6 @@
 #include "render/vulkan/swapchain.h"
 #include "VkBootstrap.h"
+#include "core/logger.h"
 #include "render/vulkan/vulkan_builders.h"
 #include "render/vulkan/vulkan_types.h"
 
@@ -9,7 +10,7 @@ namespace render::vulkan {
 						 Surface& surface, VkExtent2D window_extent,
 						 VkRenderPass renderpass) :
 		mDevice(device.logical_device()),
-		mWindowExtent(window_extent) {
+		mWindowExtent(window_extent), mLifetime(ObjectLifetime::OWNED) {
 		vkb::SwapchainBuilder swap_buider{device.physical_device(),
 										  device.logical_device(),
 										  surface.surface()};
@@ -52,7 +53,7 @@ namespace render::vulkan {
 	Swapchain::Swapchain(VmaAllocator allocator, Device& device,
 						 Surface& surface, VkExtent2D window_extent) :
 		mDevice(device.logical_device()),
-		mWindowExtent(window_extent) {
+		mWindowExtent(window_extent), mLifetime(ObjectLifetime::OWNED) {
 		vkb::SwapchainBuilder swap_buider{device.physical_device(),
 										  device.logical_device(),
 										  surface.surface()};
@@ -116,6 +117,7 @@ namespace render::vulkan {
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
 		mFramebuffers = swapchain.mFramebuffers;
 		mDevice = swapchain.mDevice;
+        mLifetime = ObjectLifetime::OWNED;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
@@ -130,6 +132,7 @@ namespace render::vulkan {
 		std::swap(mFramebuffers, swapchain.mFramebuffers);
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
+        mLifetime = ObjectLifetime::OWNED;
 		mDevice = swapchain.mDevice;
 		return *this;
 	}
