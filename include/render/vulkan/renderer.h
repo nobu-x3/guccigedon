@@ -5,6 +5,7 @@
 #include "core/core.h"
 #include "render/vulkan/device.h"
 #include "render/vulkan/instance.h"
+#include "render/vulkan/surface.h"
 #include "scene.h"
 #include "vulkan_image.h"
 #include "vulkan_mesh.h"
@@ -27,8 +28,8 @@ namespace render::vulkan {
 		VkExtent2D mWindowExtent{800, 600};
 		SDL_Window* mpWindow{nullptr};
 		Instance mInstance{};
-        Device mDevice;
-		VkSurfaceKHR mSurface{};
+        Device mDevice{};
+        Surface mSurface{};
 		VkFormat mSwapchainImageFormat{};
 		VkSwapchainKHR mSwapchain{};
 		ArrayList<VkImage> mSwapchainImages{};

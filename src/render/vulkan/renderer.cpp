@@ -104,9 +104,6 @@ namespace render::vulkan {
 				mesh.deinit(mAllocator);
 			}
 		}
-		if (mSurface) {
-			vkDestroySurfaceKHR(mInstance.instance(), mSurface, nullptr);
-		}
 		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
 									 mGlobalDescriptorSetLayout, nullptr);
 		mScene.destroy();
@@ -270,13 +267,13 @@ namespace render::vulkan {
 									 .build()
 									 .value();
 		mInstance = {vkb_inst};
-		SDL_Vulkan_CreateSurface(mpWindow, mInstance.instance(), &mSurface);
-		mDevice = {vkb_inst, mSurface};
+        mSurface = {mpWindow, mInstance};
+		mDevice = {vkb_inst, mSurface.surface()};
 	}
 
 	void VulkanRenderer::init_swapchain() {
 		vkb::SwapchainBuilder swap_buider{mDevice.physical_device(),
-										  mDevice.logical_device(), mSurface};
+										  mDevice.logical_device(), mSurface.surface()};
 		vkb::Swapchain vkb_swap =
 			swap_buider.use_default_format_selection()
 				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)

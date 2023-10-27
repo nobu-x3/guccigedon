@@ -25,8 +25,7 @@ namespace render::vulkan {
 	Instance::Instance(Instance& instance) {
 		mInstance = instance.mInstance;
 		fpDebugMsger = instance.fpDebugMsger;
-		mLifetime = ObjectLifetime::OWNED;
-		instance.mLifetime = ObjectLifetime::TEMP;
+		mLifetime = ObjectLifetime::TEMP;
 	}
 
 	Instance::Instance(Instance&& instance) noexcept {
@@ -39,8 +38,7 @@ namespace render::vulkan {
 	Instance& Instance::operator=(Instance& instance) {
 		mInstance = instance.mInstance;
 		fpDebugMsger = instance.fpDebugMsger;
-		mLifetime = ObjectLifetime::OWNED;
-		instance.mLifetime = ObjectLifetime::TEMP;
+		mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
 
