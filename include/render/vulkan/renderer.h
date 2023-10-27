@@ -6,6 +6,7 @@
 #include "render/vulkan/device.h"
 #include "render/vulkan/instance.h"
 #include "render/vulkan/surface.h"
+#include "render/vulkan/swapchain.h"
 #include "scene.h"
 #include "vulkan_image.h"
 #include "vulkan_mesh.h"
@@ -30,15 +31,9 @@ namespace render::vulkan {
 		Instance mInstance{};
         Device mDevice{};
         Surface mSurface{};
-		VkFormat mSwapchainImageFormat{};
-		VkSwapchainKHR mSwapchain{};
-		ArrayList<VkImage> mSwapchainImages{};
-		ArrayList<VkImageView> mSwapchainImageViews{};
-		ArrayList<VkFramebuffer> mFramebuffers{};
+        Swapchain mSwapchain{};
 		VkRenderPass mRenderPass{};
 		VmaAllocator mAllocator{};
-		VkFormat mDepthFormat{VK_FORMAT_D32_SFLOAT};
-		Image mDepthAttachment{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
 		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};

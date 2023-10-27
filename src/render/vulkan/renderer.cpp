@@ -80,20 +80,8 @@ namespace render::vulkan {
 			vkDestroyCommandPool(mDevice.logical_device(),
 								 mUploadContext.command_pool, nullptr);
 		}
-		if (mSwapchain) {
-			vkDestroySwapchainKHR(mDevice.logical_device(), mSwapchain,
-								  nullptr);
-		}
 		if (mRenderPass) {
 			vkDestroyRenderPass(mDevice.logical_device(), mRenderPass, nullptr);
-		}
-		for (int i = 0; i < mFramebuffers.size(); ++i) {
-			if (mFramebuffers[i])
-				vkDestroyFramebuffer(mDevice.logical_device(), mFramebuffers[i],
-									 nullptr);
-			if (mSwapchainImageViews[i])
-				vkDestroyImageView(mDevice.logical_device(),
-								   mSwapchainImageViews[i], nullptr);
 		}
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
 			vkDestroyPipelineLayout(mDevice.logical_device(),
@@ -132,7 +120,7 @@ namespace render::vulkan {
 		// now can reset command buffer safely
 		VK_CHECK(vkResetCommandBuffer(frame_data.command_buffer, 0));
 		u32 image_index{};
-		VK_CHECK(vkAcquireNextImageKHR(mDevice.logical_device(), mSwapchain,
+		VK_CHECK(vkAcquireNextImageKHR(mDevice.logical_device(), mSwapchain.handle(),
 									   1000000000, frame_data.present_semaphore,
 									   nullptr, &image_index));
 		VkCommandBuffer buf = frame_data.command_buffer;
@@ -145,7 +133,7 @@ namespace render::vulkan {
 		depth_clear.depthStencil.depth = 1.f;
 
 		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
-			mRenderPass, mWindowExtent, mFramebuffers[image_index]);
+			mRenderPass, mWindowExtent, mSwapchain.framebuffers()[image_index]);
 		float flash = abs(sin(mCurrFrame / 120.f));
 		color_clear.color = {{0.f, 0.f, flash, 1.f}};
 		VkClearValue clear_values[]{color_clear, depth_clear};
@@ -238,7 +226,7 @@ namespace render::vulkan {
 		// waiting on rendering to finish, then presenting
 		VkPresentInfoKHR present_info = vkbuild::present_info();
 		present_info.swapchainCount = 1;
-		present_info.pSwapchains = &mSwapchain;
+		present_info.pSwapchains = &mSwapchain.handle();
 		present_info.waitSemaphoreCount = 1;
 		present_info.pWaitSemaphores = &frame_data.render_semaphore;
 		present_info.pImageIndices = &image_index;
@@ -272,30 +260,7 @@ namespace render::vulkan {
 	}
 
 	void VulkanRenderer::init_swapchain() {
-		vkb::SwapchainBuilder swap_buider{mDevice.physical_device(),
-										  mDevice.logical_device(), mSurface.surface()};
-		vkb::Swapchain vkb_swap =
-			swap_buider.use_default_format_selection()
-				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-				.set_desired_extent(mWindowExtent.width, mWindowExtent.height)
-				.build()
-				.value();
-		mSwapchain = vkb_swap.swapchain;
-		mSwapchainImages = vkb_swap.get_images().value();
-		mSwapchainImageViews = vkb_swap.get_image_views().value();
-		mSwapchainImageFormat = vkb_swap.image_format;
-		VkExtent3D depthImageExtent = {mWindowExtent.width,
-									   mWindowExtent.height, 1};
-		VmaAllocationCreateInfo imgAllocCi{};
-		imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-		imgAllocCi.requiredFlags =
-			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		mDepthAttachment = {
-			mAllocator, mDevice.logical_device(),
-			vkbuild::image_ci(mDepthFormat,
-							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-							  depthImageExtent),
-			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
+        mSwapchain = {mAllocator, mDevice, mSurface, mWindowExtent};
 	}
 
 	void VulkanRenderer::init_commands() {
@@ -325,24 +290,13 @@ namespace render::vulkan {
 	}
 
 	void VulkanRenderer::init_framebuffers() {
-		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(mRenderPass, mWindowExtent);
-		const u32 image_count = mSwapchainImages.size();
-		mFramebuffers = std::vector<VkFramebuffer>(image_count);
-		for (int i = 0; i < image_count; ++i) {
-			VkImageView attachments[2]{mSwapchainImageViews[i],
-									   mDepthAttachment.view};
-			fb_ci.pAttachments = &attachments[0];
-			fb_ci.attachmentCount = 2;
-			VK_CHECK(vkCreateFramebuffer(mDevice.logical_device(), &fb_ci,
-										 nullptr, &mFramebuffers[i]));
-		}
+        mSwapchain.init_framebuffers(mRenderPass, &mWindowExtent);
 	}
 
 	void VulkanRenderer::init_default_renderpass() {
 
 		VkAttachmentDescription color_attachment{};
-		color_attachment.format = mSwapchainImageFormat;
+		color_attachment.format = mSwapchain.image_format();
 		color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -356,7 +310,7 @@ namespace render::vulkan {
 		// we are going to create 1 subpass, which is the minimum you can do
 
 		VkAttachmentDescription depth_attachment{};
-		depth_attachment.format = mDepthFormat;
+		depth_attachment.format = mSwapchain.depth_format();
 		depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
