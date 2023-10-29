@@ -24,13 +24,16 @@ find_package(VulkanMemoryAllocator CONFIG)
 find_package(glm)
 find_package(tinygltf) # I eventually want to just have gltf support
 find_package(tinyobjloader) # but for now obj is fine. I need to get some meshes up.
-
+find_package(vk-bootstrap)
+find_package(stb)
 
 if(NOT SDL2_FOUND)
     message("Cannot find SDL2, using bundled version")
-    execute_process(COMMAND git submodule update --init -- vendor/SDL
+    execute_process(COMMAND git submodule update --init -- vendor/SDL2
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    add_subdirectory(vendor/SDL)
+    add_subdirectory(vendor/SDL2)
+    set(SDL2_INCLUDE_DIRS vendor/SDL2/include)
+    set(SDL2_LIBRARIES SDL2)
 endif()
 
 if (NOT VulkanMemoryAllocator_DIR)
@@ -69,18 +72,33 @@ if(NOT tinyobjloader_FOUND)
 endif()
 
 
-
+if(NOT vk-bootstrap_FOUND)
+    message("Cannot find vk-bootstrap, using bundled version")
+    execute_process(COMMAND git submodule update --init -- vendor/vk-bootstrap
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 # this stuff is temp, just wanna speed things up a little
-add_subdirectory(vendor/vk-bootstrap)
+    add_subdirectory(vendor/vk-bootstrap)
+    set(VK_BOOTSTRAP_INCLUDE_DIR vendor/vk-bootstrap/src)
+    set(VK_BOOTSTRAP_LIBRARY vk-bootstrap::vk-bootstrap)
+endif()
 
+if(NOT stb_FOUND)
+    message("Cannot find stb, using bundled version")
 # stb_image stuff
-execute_process(COMMAND git submodule update --init -- vendor/stb
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND git submodule update --init -- vendor/stb
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(STB_INCLUDE_DIR vendor/stb)
+endif()
 
-include_directories(${Vulkan_INCLUDE_DIR} ${SDL2_INCLUDE_DIRS}
-    ${GLM_INCLUDE_DIR} ${TINYGLTF_INCLUDE_DIR}
+include_directories(${Vulkan_INCLUDE_DIR}
+    ${SDL2_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIR}
+    ${TINYGLTF_INCLUDE_DIR}
     ${TINYOBJLOADER_INCLUDE_DIR}
-    ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR} vendor/vk-bootstrap/src vendor/stb)
+    ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR}
+    ${VK_BOOTSTRAP_INCLUDE_DIR}
+    ${STB_INCLUDE_DIR}
+    )
 
 target_include_directories(Guccigedon PUBLIC include)
 
@@ -88,7 +106,8 @@ target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
     ${Vulkan_LIBRARY} ${GLM_LIBRARY}
     ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}
     ${TINYOBJLOADER_LIBRARY}
-    vk-bootstrap::vk-bootstrap)
+    ${VK_BOOTSTRAP_LIBRARY}
+    )
 
 find_program(GLSL_VALIDATOR glslangValidator)
 

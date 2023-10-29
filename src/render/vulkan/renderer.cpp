@@ -1,9 +1,9 @@
 #include "render/vulkan/renderer.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_error.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_video.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL.h>
+#include <SDL_error.h>
+#include <SDL_events.h>
+#include <SDL_video.h>
+#include <SDL_vulkan.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <iterator>
