@@ -1,6 +1,6 @@
-#!/usr/bin/zsh
+#!/bin/sh
 
-set echo on
+set echo off
 mkdir -p build
 mkdir -p bin
 cp -rf assets build/
