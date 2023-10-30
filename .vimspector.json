@@ -1,0 +1,13 @@
+{
+  "configurations": {
+    "launch": {
+      "adapter": "CodeLLDB",
+      "filetypes": [ "cpp" ],
+      "configuration": {
+        "request": "launch",
+        "program": "${workspaceRoot}/build/Guccigedon",
+        "cwd": "${workspaceRoot}/build"
+      }
+    }
+  }
+}
