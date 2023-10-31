@@ -1,7 +1,7 @@
 #include "render/vulkan/instance.h"
 #include "VkBootstrap.h"
 #include "core/logger.h"
-#include "render/vulkan/vulkan_types.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 

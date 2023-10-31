@@ -7,10 +7,10 @@
 #include "render/vulkan/instance.h"
 #include "render/vulkan/surface.h"
 #include "render/vulkan/swapchain.h"
-#include "scene.h"
-#include "vulkan_image.h"
-#include "vulkan_mesh.h"
-#include "vulkan_types.h"
+#include "render/vulkan/scene.h"
+#include "render/vulkan/image.h"
+#include "render/vulkan/mesh.h"
+#include "render/vulkan/types.h"
 
 struct SDL_Window;
 

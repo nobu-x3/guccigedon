@@ -1,5 +1,5 @@
 #include "render/vulkan/scene.h"
-#include "render/vulkan/vulkan_types.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 

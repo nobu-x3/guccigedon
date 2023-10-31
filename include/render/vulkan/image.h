@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
-#include "vulkan/vulkan_core.h"
-#include "vulkan_types.h"
+#include <vulkan/vulkan_core.h>
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 	class VulkanRenderer;

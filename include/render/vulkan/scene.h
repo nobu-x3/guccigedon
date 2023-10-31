@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan_types.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 

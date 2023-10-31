@@ -2,8 +2,8 @@
 
 #include <SDL_vulkan.h>
 #include "render/vulkan/instance.h"
-#include "render/vulkan/vulkan_types.h"
-#include "vulkan/vulkan_core.h"
+#include "render/vulkan/types.h"
+#include <vulkan/vulkan_core.h>
 namespace render::vulkan {
 
 	class Surface {

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
-#include "vulkan_types.h"
+#include "render/vulkan/types.h"
 
 namespace vkbuild {
 	VkCommandPoolCreateInfo command_pool_ci(uint32_t q_fam_index,

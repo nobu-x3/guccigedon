@@ -1,7 +1,7 @@
 #pragma once
 #include "vk_mem_alloc.h"
-#include "vulkan_builders.h"
-#include "vulkan_types.h"
+#include "render/vulkan/builders.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 

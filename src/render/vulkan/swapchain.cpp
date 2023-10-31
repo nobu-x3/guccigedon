@@ -1,8 +1,8 @@
 #include "render/vulkan/swapchain.h"
-#include "VkBootstrap.h"
+#include <VkBootstrap.h>
 #include "core/logger.h"
-#include "render/vulkan/vulkan_builders.h"
-#include "render/vulkan/vulkan_types.h"
+#include "render/vulkan/builders.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 

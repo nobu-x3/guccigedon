@@ -1,12 +1,12 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <vk_mem_alloc.h>
-#include "render/vulkan/vulkan_types.h"
-#include "vulkan/vulkan_core.h"
+#include "render/vulkan/types.h"
+#include <vulkan/vulkan_core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "render/vulkan/renderer.h"
-#include "render/vulkan/vulkan_builders.h"
-#include "render/vulkan/vulkan_image.h"
+#include "render/vulkan/builders.h"
+#include "render/vulkan/image.h"
 
 namespace render::vulkan {
 

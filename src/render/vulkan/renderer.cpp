@@ -10,11 +10,11 @@
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
 #include "core/logger.h"
-#include "render/vulkan/vulkan_builders.h"
-#include "render/vulkan/vulkan_types.h"
+#include "render/vulkan/builders.h"
+#include "render/vulkan/types.h"
 
 #define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
+#include <vk_mem_alloc.h>
 
 namespace render::vulkan {
 	VulkanRenderer::VulkanRenderer() {

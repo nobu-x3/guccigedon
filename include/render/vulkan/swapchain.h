@@ -2,9 +2,9 @@
 
 #include "render/vulkan/device.h"
 #include "render/vulkan/surface.h"
-#include "render/vulkan/vulkan_image.h"
-#include "render/vulkan/vulkan_types.h"
-#include "vulkan/vulkan_core.h"
+#include "render/vulkan/image.h"
+#include "render/vulkan/types.h"
+#include <vulkan/vulkan_core.h>
 namespace render::vulkan {
 
 	class Swapchain {

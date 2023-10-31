@@ -1,6 +1,6 @@
 #include "render/vulkan/device.h"
-#include "render/vulkan/vulkan_types.h"
-#include "vulkan/vulkan_core.h"
+#include "render/vulkan/types.h"
+#include <vulkan/vulkan_core.h>
 
 namespace render::vulkan {
 	Device::Device(vkb::Instance vkb_inst, VkSurfaceKHR surface) :
