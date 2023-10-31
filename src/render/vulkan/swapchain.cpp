@@ -64,8 +64,7 @@ namespace render::vulkan {
 										  surface.surface()};
 		vkb::Swapchain vkb_swap =
 			swap_buider.use_default_format_selection()
-				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-				.set_desired_extent(window_extent.width, window_extent.height)
+				.use_default_present_mode_selection()
 				.build()
 				.value();
 		mSwapchain = vkb_swap.swapchain;
@@ -192,8 +191,7 @@ namespace render::vulkan {
 		vkb::SwapchainBuilder swap_buider{mPhysicalDevice, mDevice, mSurface};
 		vkb::Swapchain vkb_swap =
 			swap_buider.use_default_format_selection()
-				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-				.set_desired_extent(width, height)
+				.use_default_present_mode_selection()
 				.build()
 				.value();
 		mSwapchain = vkb_swap.swapchain;
