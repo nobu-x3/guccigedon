@@ -267,6 +267,7 @@ namespace render::vulkan {
 					quit = true;
 				else if (e.type == SDL_WINDOWEVENT_RESIZED ||
 						 e.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                    core::Logger::Trace("Resizing set");
 					mShouldResize = true;
 				}
 			}
