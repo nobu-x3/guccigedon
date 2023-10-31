@@ -1,10 +1,11 @@
 #pragma once
 
-#include "render/vulkan/device.h"
-#include "render/vulkan/surface.h"
-#include "render/vulkan/image.h"
-#include "render/vulkan/types.h"
 #include <vulkan/vulkan_core.h>
+#include "render/vulkan/device.h"
+#include "render/vulkan/image.h"
+#include "render/vulkan/surface.h"
+#include "render/vulkan/types.h"
+
 namespace render::vulkan {
 
 	class Swapchain {
@@ -21,6 +22,8 @@ namespace render::vulkan {
 		Swapchain& operator=(Swapchain& swapchain);
 		Swapchain& operator=(Swapchain&& swapchain) noexcept;
 		~Swapchain();
+
+		void rebuild(u32 width, u32 height, VkRenderPass renderpass);
 
 		void init_framebuffers(VkRenderPass renderpass,
 							   VkExtent2D* extent = nullptr);
@@ -54,7 +57,10 @@ namespace render::vulkan {
 		ArrayList<VkFramebuffer> mFramebuffers{};
 		VkFormat mDepthFormat{VK_FORMAT_D32_SFLOAT};
 		Image mDepthAttachment{};
-		VkDevice mDevice{};
-		VkExtent2D mWindowExtent{};
+		VkDevice mDevice{}; // non-owner
+		VkPhysicalDevice mPhysicalDevice{}; // non-owner
+		VkExtent2D mWindowExtent{}; // non-owner
+		VkSurfaceKHR mSurface{}; // non-owner
+		VmaAllocator mAllocator{};
 	};
 } // namespace render::vulkan

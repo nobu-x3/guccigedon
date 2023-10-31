@@ -19,10 +19,10 @@
 namespace render::vulkan {
 	VulkanRenderer::VulkanRenderer() {
 		SDL_Init(SDL_INIT_VIDEO);
-		mpWindow = SDL_CreateWindow("Guccigedon", SDL_WINDOWPOS_CENTERED,
-									SDL_WINDOWPOS_CENTERED, mWindowExtent.width,
-									mWindowExtent.height,
-									(SDL_WindowFlags)(SDL_WINDOW_VULKAN));
+		mpWindow = SDL_CreateWindow(
+			"Guccigedon", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			mWindowExtent.width, mWindowExtent.height,
+			(SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE));
 		if (!mpWindow) {
 			core::Logger::Fatal("Failed to create a window. %s",
 								SDL_GetError());
@@ -111,14 +111,30 @@ namespace render::vulkan {
 		u32 frame_index = mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT;
 		VK_CHECK(vkWaitForFences(mDevice.logical_device(), 1,
 								 &frame_data.render_fence, true, 1000000000));
+		if (mShouldResize) {
+			int w, h;
+			SDL_GetWindowSize(mpWindow, &w, &h);
+			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
+			mWindowExtent = {static_cast<uint32_t>(w),
+							 static_cast<uint32_t>(h)};
+			mSwapchain.rebuild(w, h, mRenderPass);
+			mShouldResize = false;
+		}
 		VK_CHECK(vkResetFences(mDevice.logical_device(), 1,
 							   &frame_data.render_fence));
 		// now can reset command buffer safely
 		VK_CHECK(vkResetCommandBuffer(frame_data.command_buffer, 0));
 		u32 image_index{};
-		VK_CHECK(vkAcquireNextImageKHR(
+		auto res = vkAcquireNextImageKHR(
 			mDevice.logical_device(), mSwapchain.handle(), 1000000000,
-			frame_data.present_semaphore, nullptr, &image_index));
+			frame_data.present_semaphore, nullptr, &image_index);
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+			mShouldResize = true;
+			return;
+		} else if(res != VK_SUCCESS){
+			core::Logger::Error("Cannot acquire next image. %d", res);
+			return;
+		}
 		VkCommandBuffer buf = frame_data.command_buffer;
 		VkCommandBufferBeginInfo buf_begin_info =
 			vkbuild::command_buffer_begin_info(
@@ -220,7 +236,6 @@ namespace render::vulkan {
 		// render fence blocks until commands finish executing
 		VK_CHECK(vkQueueSubmit(mDevice.graphics_queue(), 1, &submit,
 							   frame_data.render_fence));
-
 		// waiting on rendering to finish, then presenting
 		VkPresentInfoKHR present_info = vkbuild::present_info();
 		present_info.swapchainCount = 1;
@@ -228,7 +243,18 @@ namespace render::vulkan {
 		present_info.waitSemaphoreCount = 1;
 		present_info.pWaitSemaphores = &frame_data.render_semaphore;
 		present_info.pImageIndices = &image_index;
-		VK_CHECK(vkQueuePresentKHR(mDevice.graphics_queue(), &present_info));
+		res = vkQueuePresentKHR(mDevice.graphics_queue(), &present_info);
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+			int w, h;
+			SDL_GetWindowSize(mpWindow, &w, &h);
+			core::Logger::Warning("Resizing in queue: %d, %d", w, h);
+			mWindowExtent = {static_cast<uint32_t>(w),
+							 static_cast<uint32_t>(h)};
+			mSwapchain.rebuild(w, h, mRenderPass);
+			mShouldResize = false;
+		} else if(res != VK_SUCCESS){
+			core::Logger::Error("Cannot present queue. %d", res);
+		}
 		++mCurrFrame;
 	}
 
@@ -239,6 +265,10 @@ namespace render::vulkan {
 			while (SDL_PollEvent(&e) != 0) {
 				if (e.type == SDL_QUIT)
 					quit = true;
+				else if (e.type == SDL_WINDOWEVENT_RESIZED ||
+						 e.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
+					mShouldResize = true;
+				}
 			}
 			draw();
 		}

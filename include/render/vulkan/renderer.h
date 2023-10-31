@@ -4,13 +4,14 @@
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
 #include "render/vulkan/device.h"
+#include "render/vulkan/image.h"
 #include "render/vulkan/instance.h"
+#include "render/vulkan/mesh.h"
+#include "render/vulkan/scene.h"
 #include "render/vulkan/surface.h"
 #include "render/vulkan/swapchain.h"
-#include "render/vulkan/scene.h"
-#include "render/vulkan/image.h"
-#include "render/vulkan/mesh.h"
 #include "render/vulkan/types.h"
+
 
 struct SDL_Window;
 
@@ -28,9 +29,9 @@ namespace render::vulkan {
 		VkExtent2D mWindowExtent{800, 600};
 		SDL_Window* mpWindow{nullptr};
 		Instance mInstance{};
-        Device mDevice{};
-        Surface mSurface{};
-        Swapchain mSwapchain{};
+		Device mDevice{};
+		Surface mSurface{};
+		Swapchain mSwapchain{};
 		VkRenderPass mRenderPass{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
@@ -41,6 +42,7 @@ namespace render::vulkan {
 		Scene mScene{};
 		UploadContext mUploadContext{};
 		u32 mCurrFrame{0};
+		bool mShouldResize{false};
 
 	private:
 		void init_instance();
