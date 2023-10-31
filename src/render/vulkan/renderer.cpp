@@ -129,7 +129,12 @@ namespace render::vulkan {
 			mDevice.logical_device(), mSwapchain.handle(), 1000000000,
 			frame_data.present_semaphore, nullptr, &image_index);
 		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
-			mShouldResize = true;
+			int w, h;
+			SDL_GetWindowSize(mpWindow, &w, &h);
+			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
+			mWindowExtent = {static_cast<uint32_t>(w),
+							 static_cast<uint32_t>(h)};
+			mSwapchain.rebuild(w, h, mRenderPass);
 			return;
 		} else if(res != VK_SUCCESS){
 			core::Logger::Error("Cannot acquire next image. %d", res);
