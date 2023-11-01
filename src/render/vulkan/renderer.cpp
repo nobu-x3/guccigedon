@@ -106,58 +106,11 @@ namespace render::vulkan {
 		if (SDL_GetWindowFlags(mpWindow) & SDL_WINDOW_MINIMIZED) {
 			return;
 		}
-		// wait until last frame is rendered, timeout 1s
 		FrameData& frame_data = get_current_frame();
 		u32 frame_index = mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT;
-		VK_CHECK(vkWaitForFences(mDevice.logical_device(), 1,
-								 &frame_data.render_fence, true, 1000000000));
-		if (mShouldResize) {
-			int w, h;
-			SDL_GetWindowSize(mpWindow, &w, &h);
-			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
-			mWindowExtent = {static_cast<uint32_t>(w),
-							 static_cast<uint32_t>(h)};
-			mSwapchain.rebuild(w, h, mRenderPass);
-			mShouldResize = false;
-		}
-		VK_CHECK(vkResetFences(mDevice.logical_device(), 1,
-							   &frame_data.render_fence));
-		// now can reset command buffer safely
-		VK_CHECK(vkResetCommandBuffer(frame_data.command_buffer, 0));
 		u32 image_index{};
-		auto res = vkAcquireNextImageKHR(
-			mDevice.logical_device(), mSwapchain.handle(), 1000000000,
-			frame_data.present_semaphore, nullptr, &image_index);
-		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
-			int w, h;
-			SDL_GetWindowSize(mpWindow, &w, &h);
-			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
-			mWindowExtent = {static_cast<uint32_t>(w),
-							 static_cast<uint32_t>(h)};
-			mSwapchain.rebuild(w, h, mRenderPass);
-			return;
-		} else if(res != VK_SUCCESS){
-			core::Logger::Error("Cannot acquire next image. %d", res);
-			return;
-		}
-		VkCommandBuffer buf = frame_data.command_buffer;
-		VkCommandBufferBeginInfo buf_begin_info =
-			vkbuild::command_buffer_begin_info(
-				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-		VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
-		VkClearValue color_clear{};
-		VkClearValue depth_clear{};
-		depth_clear.depthStencil.depth = 1.f;
-
-		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
-			mRenderPass, mWindowExtent, mSwapchain.framebuffers()[image_index]);
-		float flash = abs(sin(mCurrFrame / 120.f));
-		color_clear.color = {{0.f, 0.f, flash, 1.f}};
-		VkClearValue clear_values[]{color_clear, depth_clear};
-		renderpass_info.clearValueCount = 2;
-		renderpass_info.pClearValues = &clear_values[0];
-		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-
+		begin_renderpass(frame_data, image_index);
+		VkCommandBuffer& buf = frame_data.command_buffer;
 		// insert actual commands
 		VkDeviceSize offset{0};
 		// make a model view matrix for rendering the object
@@ -225,42 +178,79 @@ namespace render::vulkan {
 				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
 			}
 		}
+		end_renderpass(buf);
+		mDevice.submit_queue(buf, frame_data.present_semaphore,
+							 frame_data.render_semaphore,
+							 frame_data.render_fence,
+							 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+		mDevice.present(mSwapchain.handle(), frame_data.render_semaphore,
+						image_index, std::bind(&VulkanRenderer::resize, this));
+		++mCurrFrame;
+	}
 
+	void VulkanRenderer::resize() {
+		int w, h;
+		SDL_GetWindowSize(mpWindow, &w, &h);
+		core::Logger::Warning("Resizing: %d, %d", w, h);
+		mWindowExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
+		mSwapchain.rebuild(w, h, mRenderPass);
+		mShouldResize = false;
+	}
+
+	void VulkanRenderer::end_renderpass(VkCommandBuffer buf) {
 		vkCmdEndRenderPass(buf);
 		VK_CHECK(vkEndCommandBuffer(buf));
-		// waiting on present_semaphore which is signaled when swapchain is
-		// ready. signal render_semaphore when finished rendering.
-		VkSubmitInfo submit = vkbuild::submit_info(&buf);
-		VkPipelineStageFlags wait_stage =
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		submit.pWaitDstStageMask = &wait_stage;
-		submit.waitSemaphoreCount = 1;
-		submit.pWaitSemaphores = &frame_data.present_semaphore;
-		submit.signalSemaphoreCount = 1;
-		submit.pSignalSemaphores = &frame_data.render_semaphore;
-		// render fence blocks until commands finish executing
-		VK_CHECK(vkQueueSubmit(mDevice.graphics_queue(), 1, &submit,
-							   frame_data.render_fence));
-		// waiting on rendering to finish, then presenting
-		VkPresentInfoKHR present_info = vkbuild::present_info();
-		present_info.swapchainCount = 1;
-		present_info.pSwapchains = &mSwapchain.handle();
-		present_info.waitSemaphoreCount = 1;
-		present_info.pWaitSemaphores = &frame_data.render_semaphore;
-		present_info.pImageIndices = &image_index;
-		res = vkQueuePresentKHR(mDevice.graphics_queue(), &present_info);
-		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+	}
+
+	void VulkanRenderer::begin_renderpass(FrameData& frame_data,
+										  u32& image_index) {
+		// wait until last frame is rendered, timeout 1s
+		VK_CHECK(vkWaitForFences(mDevice.logical_device(), 1,
+								 &frame_data.render_fence, true, 1000000000));
+		if (mShouldResize) {
 			int w, h;
 			SDL_GetWindowSize(mpWindow, &w, &h);
-			core::Logger::Warning("Resizing in queue: %d, %d", w, h);
+			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
 			mWindowExtent = {static_cast<uint32_t>(w),
 							 static_cast<uint32_t>(h)};
 			mSwapchain.rebuild(w, h, mRenderPass);
 			mShouldResize = false;
-		} else if(res != VK_SUCCESS){
-			core::Logger::Error("Cannot present queue. %d", res);
 		}
-		++mCurrFrame;
+		VK_CHECK(vkResetFences(mDevice.logical_device(), 1,
+							   &frame_data.render_fence));
+		// now can reset command buffer safely
+		VK_CHECK(vkResetCommandBuffer(frame_data.command_buffer, 0));
+		auto res = vkAcquireNextImageKHR(
+			mDevice.logical_device(), mSwapchain.handle(), 1000000000,
+			frame_data.present_semaphore, nullptr, &image_index);
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+			int w, h;
+			SDL_GetWindowSize(mpWindow, &w, &h);
+			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
+			mWindowExtent = {static_cast<uint32_t>(w),
+							 static_cast<uint32_t>(h)};
+			mSwapchain.rebuild(w, h, mRenderPass);
+			return;
+		} else if (res != VK_SUCCESS) {
+			core::Logger::Error("Cannot acquire next image. %d", res);
+			return;
+		}
+		VkCommandBuffer buf = frame_data.command_buffer;
+		VkCommandBufferBeginInfo buf_begin_info =
+			vkbuild::command_buffer_begin_info(
+				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
+		VkClearValue color_clear{};
+		VkClearValue depth_clear{};
+		depth_clear.depthStencil.depth = 1.f;
+		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
+			mRenderPass, mWindowExtent, mSwapchain.framebuffers()[image_index]);
+		float flash = abs(sin(mCurrFrame / 120.f));
+		color_clear.color = {{0.f, 0.f, flash, 1.f}};
+		VkClearValue clear_values[]{color_clear, depth_clear};
+		renderpass_info.clearValueCount = 2;
+		renderpass_info.pClearValues = &clear_values[0];
+		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
 	void VulkanRenderer::run() {
@@ -272,7 +262,7 @@ namespace render::vulkan {
 					quit = true;
 				else if (e.type == SDL_WINDOWEVENT_RESIZED ||
 						 e.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                    core::Logger::Trace("Resizing set");
+					core::Logger::Trace("Resizing set");
 					mShouldResize = true;
 				}
 			}
