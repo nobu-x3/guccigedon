@@ -6,6 +6,8 @@
 #include <SDL_vulkan.h>
 #include <algorithm>
 #include <bits/ranges_algo.h>
+#include <chrono>
+#include <ctime>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <iterator>
@@ -157,30 +159,8 @@ namespace render::vulkan {
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
-		std::ranges::for_each(mMaterialMap, [&](auto& entry) {
-			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-							  entry.first.pipeline);
-			vkCmdBindDescriptorSets(
-				buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
-				&frame_data.global_descriptor, 1, &uniform_offset);
-			vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-									entry.first.layout, 1, 1,
-									&frame_data.object_descriptor, 0, nullptr);
-			if (entry.first.textureSet != VK_NULL_HANDLE) {
-				vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-										entry.first.layout, 2, 1,
-										&entry.first.textureSet, 0, nullptr);
-			}
-			std::ranges::for_each(entry.second, [&](Mesh& mesh) {
-				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
-				// upload the matrix to the GPU via push constants
-				vkCmdPushConstants(buf, entry.first.layout,
-								   VK_SHADER_STAGE_VERTEX_BIT, 0,
-								   sizeof(MeshPushConstant), &constants);
-				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
-			});
-		});
-		/* for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) { */
+        /* std::chrono::time_point<std::chrono::high_resolution_clock> start_time {std::chrono::high_resolution_clock::now()}; */
+		/* std::ranges::for_each(mMaterialMap, [&](auto& entry) { */
 		/* 	vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 					  entry.first.pipeline); */
 		/* 	vkCmdBindDescriptorSets( */
@@ -194,15 +174,40 @@ namespace render::vulkan {
 		/* 								entry.first.layout, 2, 1, */
 		/* 								&entry.first.textureSet, 0, nullptr); */
 		/* 	} */
-		/* 	for (Mesh& mesh : entry.second) { */
+		/* 	std::ranges::for_each(entry.second, [&](Mesh& mesh) { */
 		/* 		vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset); */
 		/* 		// upload the matrix to the GPU via push constants */
 		/* 		vkCmdPushConstants(buf, entry.first.layout, */
 		/* 						   VK_SHADER_STAGE_VERTEX_BIT, 0, */
 		/* 						   sizeof(MeshPushConstant), &constants); */
 		/* 		vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0); */
-		/* 	} */
-		/* } */
+		/* 	}); */
+		/* }); */
+		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+							  entry.first.pipeline);
+			vkCmdBindDescriptorSets(
+				buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
+				&frame_data.global_descriptor, 1, &uniform_offset);
+			vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+									entry.first.layout, 1, 1,
+									&frame_data.object_descriptor, 0, nullptr);
+			if (entry.first.textureSet != VK_NULL_HANDLE) {
+				vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+										entry.first.layout, 2, 1,
+										&entry.first.textureSet, 0, nullptr);
+			}
+			for (Mesh& mesh : entry.second) {
+				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
+				// upload the matrix to the GPU via push constants
+				vkCmdPushConstants(buf, entry.first.layout,
+								   VK_SHADER_STAGE_VERTEX_BIT, 0,
+								   sizeof(MeshPushConstant), &constants);
+				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
+			}
+		}
+        /* std::chrono::duration<f64> delta {std::chrono::high_resolution_clock::now() - start_time}; */
+        /* core::Logger::Trace("For_each time: %f", delta.count()); */
 		end_renderpass(buf);
 		mDevice.submit_queue(buf, frame_data.present_semaphore,
 							 frame_data.render_semaphore,
