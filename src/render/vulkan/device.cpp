@@ -1,6 +1,7 @@
 #include "render/vulkan/device.h"
-#include "render/vulkan/types.h"
 #include <vulkan/vulkan_core.h>
+#include "render/vulkan/builders.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 	Device::Device(vkb::Instance vkb_inst, VkSurfaceKHR surface) :
@@ -84,6 +85,38 @@ namespace render::vulkan {
 		}
 		if (mDevice) {
 			vkDestroyDevice(mDevice, nullptr);
+		}
+	}
+	void Device::submit_queue(VkCommandBuffer buf, VkSemaphore wait_semaphore,
+							  VkSemaphore signal_semaphore, VkFence fence,
+							  VkPipelineStageFlags wait_flags) {
+
+		// waiting on present_semaphore which is signaled when swapchain is
+		// ready. signal render_semaphore when finished rendering.
+		VkSubmitInfo submit = vkbuild::submit_info(&buf);
+		submit.pWaitDstStageMask = &wait_flags;
+		submit.waitSemaphoreCount = 1;
+		submit.pWaitSemaphores = &wait_semaphore;
+		submit.signalSemaphoreCount = 1;
+		submit.pSignalSemaphores = &signal_semaphore;
+		// render fence blocks until commands finish executing
+		VK_CHECK(vkQueueSubmit(mGraphicsQueue, 1, &submit, fence));
+	}
+
+	void Device::present(VkSwapchainKHR swapchain, VkSemaphore wait_semaphore,
+						 u32 image_index, std::function<void(void)> resized_callback) {
+		// waiting on rendering to finish, then presenting
+		VkPresentInfoKHR present_info = vkbuild::present_info();
+		present_info.swapchainCount = 1;
+		present_info.pSwapchains = &swapchain;
+		present_info.waitSemaphoreCount = 1;
+		present_info.pWaitSemaphores = &wait_semaphore;
+		present_info.pImageIndices = &image_index;
+		VkResult res = vkQueuePresentKHR(mGraphicsQueue, &present_info);
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+			resized_callback();
+		} else if (res != VK_SUCCESS) {
+			core::Logger::Error("Cannot present queue. %d", res);
 		}
 	}
 } // namespace render::vulkan

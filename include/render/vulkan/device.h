@@ -1,10 +1,12 @@
 #pragma once
 
+#include <functional>
+#include <vulkan/vulkan_core.h>
 #include "VkBootstrap.h"
 #include "render/vulkan/types.h"
-#include <vulkan/vulkan_core.h>
 
 namespace render::vulkan {
+
 
 	class Device {
 	private:
@@ -24,6 +26,13 @@ namespace render::vulkan {
 		Device& operator=(Device& other);
 		Device& operator=(Device&& other) noexcept;
 		~Device();
+
+		void submit_queue(VkCommandBuffer buf, VkSemaphore wait_semaphore,
+						  VkSemaphore signal_semaphore, VkFence fence,
+						  VkPipelineStageFlags wait_flags);
+
+		void present(VkSwapchainKHR swapchain, VkSemaphore wait_semaphore,
+					 u32 image_index, std::function<void(void)> resized_callback);
 
 		inline void wait_idle() { vkDeviceWaitIdle(mDevice); }
 
