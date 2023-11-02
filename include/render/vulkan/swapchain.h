@@ -14,6 +14,10 @@ namespace render::vulkan {
 		
 		SwapchainDescription() = default;
 		SwapchainDescription(VkSurfaceKHR surface, VkPhysicalDevice device);
+		SwapchainDescription(const SwapchainDescription&);
+		SwapchainDescription& operator=(const SwapchainDescription&);
+		SwapchainDescription(SwapchainDescription&&) noexcept;
+		SwapchainDescription& operator=(const SwapchainDescription&&) noexcept;
 	};
 
 	class Swapchain {

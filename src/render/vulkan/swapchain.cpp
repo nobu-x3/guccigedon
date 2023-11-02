@@ -14,20 +14,53 @@ namespace render::vulkan {
 		mDevice(device.logical_device()),
 		mPhysicalDevice(device.physical_device()), mWindowExtent(window_extent),
 		mSurface(surface.surface()), mAllocator(allocator),
-		mLifetime(ObjectLifetime::OWNED) {
-		vkb::SwapchainBuilder swap_buider{device.physical_device(),
-										  device.logical_device(),
-										  surface.surface()};
-		vkb::Swapchain vkb_swap =
-			swap_buider.use_default_format_selection()
-				.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-				.set_desired_extent(window_extent.width, window_extent.height)
-				.build()
-				.value();
-		mSwapchain = vkb_swap.swapchain;
-		mSwapchainImages = vkb_swap.get_images().value();
-		mSwapchainImageViews = vkb_swap.get_image_views().value();
-		mSwapchainImageFormat = vkb_swap.image_format;
+		mLifetime(ObjectLifetime::OWNED), mSwapchainDescription(surface.surface(), device.physical_device()) {
+		u32 img_count{};
+		img_count = mSwapchainDescription.capabilities.minImageCount + 1;
+		if (mSwapchainDescription.capabilities.maxImageCount > 0 &&
+			img_count > mSwapchainDescription.capabilities.maxImageCount) {
+			img_count = mSwapchainDescription.capabilities.maxImageCount;
+		}
+		if (img_count > MAXIMUM_FRAMES_IN_FLIGHT) {
+			img_count = MAXIMUM_FRAMES_IN_FLIGHT;
+		}
+		VkSwapchainCreateInfoKHR swapchain_ci{
+			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, nullptr};
+		// swapchain_ci.imageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+		swapchain_ci.surface = surface.surface();
+		swapchain_ci.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
+		swapchain_ci.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+		swapchain_ci.minImageCount = img_count;
+		swapchain_ci.imageExtent = window_extent;
+		swapchain_ci.imageArrayLayers = 1;
+		swapchain_ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapchain_ci.preTransform =
+			mSwapchainDescription.capabilities.currentTransform;
+		swapchain_ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapchain_ci.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+		swapchain_ci.clipped = 1;
+		swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		swapchain_ci.queueFamilyIndexCount = 0;
+		swapchain_ci.pQueueFamilyIndices = nullptr;
+		VK_CHECK(
+			vkCreateSwapchainKHR(mDevice, &swapchain_ci, nullptr, &mSwapchain));
+		img_count = 0;
+		VK_CHECK(
+			vkGetSwapchainImagesKHR(mDevice, mSwapchain, &img_count, nullptr));
+		mSwapchainImages.resize(img_count);
+		VK_CHECK(vkGetSwapchainImagesKHR(mDevice, mSwapchain, &img_count,
+										 mSwapchainImages.data()));
+		mSwapchainImageViews.resize(img_count);
+		for (int i = 0; i < img_count; ++i) {
+			VkImageViewCreateInfo view_ci{
+				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, nullptr};
+			view_ci.image = mSwapchainImages[i];
+			view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			view_ci.format = VK_FORMAT_B8G8R8A8_SRGB;
+			view_ci.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+			VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr,
+									   &mSwapchainImageViews[i]));
+		}
 		VkExtent3D depthImageExtent = {window_extent.width,
 									   window_extent.height, 1};
 		VmaAllocationCreateInfo imgAllocCi{};
@@ -104,12 +137,9 @@ namespace render::vulkan {
 			view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			view_ci.format = VK_FORMAT_B8G8R8A8_SRGB;
 			view_ci.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-			VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr, &mSwapchainImageViews[i]));
+			VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr,
+									   &mSwapchainImageViews[i]));
 		}
-		// mSwapchainImages = vkb_swap.get_images().value();
-		// mSwapchainImageViews = vkb_swap.get_image_views().value();
-		// core::Logger::Trace("Image format: %d", vkb_swap.image_format);
-		// mSwapchainImageFormat = vkb_swap.image_format;
 		mSwapchainImageFormat = VK_FORMAT_B8G8R8A8_SRGB;
 		VkExtent3D depthImageExtent = {window_extent.width,
 									   window_extent.height, 1};
@@ -228,15 +258,53 @@ namespace render::vulkan {
 			vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
 		}
 		mWindowExtent = {width, height};
-		vkb::SwapchainBuilder swap_buider{mPhysicalDevice, mDevice, mSurface};
-		vkb::Swapchain vkb_swap = swap_buider.use_default_format_selection()
-									  .use_default_present_mode_selection()
-									  .build()
-									  .value();
-		mSwapchain = vkb_swap.swapchain;
-		mSwapchainImages = vkb_swap.get_images().value();
-		mSwapchainImageViews = vkb_swap.get_image_views().value();
-		mSwapchainImageFormat = vkb_swap.image_format;
+		mSwapchainDescription = {mSurface, mPhysicalDevice};
+		u32 img_count{};
+		img_count = mSwapchainDescription.capabilities.minImageCount + 1;
+		if (mSwapchainDescription.capabilities.maxImageCount > 0 &&
+			img_count > mSwapchainDescription.capabilities.maxImageCount) {
+			img_count = mSwapchainDescription.capabilities.maxImageCount;
+		}
+		if (img_count > MAXIMUM_FRAMES_IN_FLIGHT) {
+			img_count = MAXIMUM_FRAMES_IN_FLIGHT;
+		}
+		VkSwapchainCreateInfoKHR swapchain_ci{
+			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, nullptr};
+		// swapchain_ci.imageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+		swapchain_ci.surface = mSurface;
+		swapchain_ci.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
+		swapchain_ci.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+		swapchain_ci.minImageCount = img_count;
+		swapchain_ci.imageExtent = mWindowExtent;
+		swapchain_ci.imageArrayLayers = 1;
+		swapchain_ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapchain_ci.preTransform =
+			mSwapchainDescription.capabilities.currentTransform;
+		swapchain_ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapchain_ci.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+		swapchain_ci.clipped = 1;
+		swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		swapchain_ci.queueFamilyIndexCount = 0;
+		swapchain_ci.pQueueFamilyIndices = nullptr;
+		VK_CHECK(
+			vkCreateSwapchainKHR(mDevice, &swapchain_ci, nullptr, &mSwapchain));
+		img_count = 0;
+		VK_CHECK(
+			vkGetSwapchainImagesKHR(mDevice, mSwapchain, &img_count, nullptr));
+		mSwapchainImages.resize(img_count);
+		VK_CHECK(vkGetSwapchainImagesKHR(mDevice, mSwapchain, &img_count,
+										 mSwapchainImages.data()));
+		mSwapchainImageViews.resize(img_count);
+		for (int i = 0; i < img_count; ++i) {
+			VkImageViewCreateInfo view_ci{
+				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, nullptr};
+			view_ci.image = mSwapchainImages[i];
+			view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			view_ci.format = VK_FORMAT_B8G8R8A8_SRGB;
+			view_ci.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+			VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr,
+									   &mSwapchainImageViews[i]));
+		}
 		VkExtent3D depthImageExtent = {width, height, 1};
 		VmaAllocationCreateInfo imgAllocCi{};
 		imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -266,5 +334,27 @@ namespace render::vulkan {
 											   VkPhysicalDevice device) {
 		VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface,
 														   &capabilities));
+	}
+
+	SwapchainDescription::SwapchainDescription(
+		const SwapchainDescription& other) {
+		capabilities = other.capabilities;
+	}
+
+	SwapchainDescription&
+	SwapchainDescription::operator=(const SwapchainDescription& other) {
+		capabilities = other.capabilities;
+		return *this;
+	}
+
+	SwapchainDescription::SwapchainDescription(
+		SwapchainDescription&& other) noexcept {
+		capabilities = other.capabilities;
+	}
+
+	SwapchainDescription& SwapchainDescription::operator=(
+		const SwapchainDescription&& other) noexcept {
+		capabilities = other.capabilities;
+		return *this;
 	}
 } // namespace render::vulkan
