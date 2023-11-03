@@ -129,7 +129,7 @@ namespace render::vulkan {
 		projection[1][1] *= -1;
 		// model rotation
 		glm::mat4 model =
-			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.4f),
+			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.01f),
 						glm::vec3(0, 1, 0));
 		// calculate final mesh matrix
 		MeshPushConstant constants;
