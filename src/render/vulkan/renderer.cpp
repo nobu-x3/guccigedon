@@ -5,7 +5,6 @@
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
 #include <algorithm>
-#include <bits/ranges_algo.h>
 #include <chrono>
 #include <ctime>
 #include <glm/ext/matrix_clip_space.hpp>

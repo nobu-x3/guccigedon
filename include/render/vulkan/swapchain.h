@@ -4,9 +4,21 @@
 #include "render/vulkan/device.h"
 #include "render/vulkan/image.h"
 #include "render/vulkan/surface.h"
+#include "render/vulkan/swapchain.h"
 #include "render/vulkan/types.h"
 
 namespace render::vulkan {
+
+	struct SwapchainDescription {
+		VkSurfaceCapabilitiesKHR capabilities;
+		
+		SwapchainDescription() = default;
+		SwapchainDescription(VkSurfaceKHR surface, VkPhysicalDevice device);
+		SwapchainDescription(const SwapchainDescription&);
+		SwapchainDescription& operator=(const SwapchainDescription&);
+		SwapchainDescription(SwapchainDescription&&) noexcept;
+		SwapchainDescription& operator=(const SwapchainDescription&&) noexcept;
+	};
 
 	class Swapchain {
 	public:
@@ -62,5 +74,7 @@ namespace render::vulkan {
 		VkExtent2D mWindowExtent{}; // non-owner
 		VkSurfaceKHR mSurface{}; // non-owner
 		VmaAllocator mAllocator{};
+		SwapchainDescription mSwapchainDescription{};
 	};
+
 } // namespace render::vulkan
