@@ -257,7 +257,7 @@ namespace vkbuild {
 		VkResult res =
 			vkCreateShaderModule(device, &createInfo, nullptr, &shader.module);
 		if (res != VK_SUCCESS) {
-			core::Logger::Trace("Failed to create shader module. %d", res);
+			core::Logger::Trace("Failed to create shader module. {}", (int)res);
 			return *this;
 		}
 		mShaders.push_back(shader);

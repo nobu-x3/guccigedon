@@ -1,15 +1,25 @@
 #pragma once
 
 #include <cstdio>
+#include <format>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string_view>
+
 namespace core {
 	class Logger {
-
 	public:
+        Logger(const Logger&) = delete;
+        Logger& operator=(const Logger&) noexcept = delete;
+        Logger(Logger&&) = delete;
+        Logger& operator=(Logger&&) noexcept = delete;
+
 		template <typename... Args>
-		static void Trace(const char* message, Args... args) {
-			printf("[TRACE]\t");
-			printf(message, args...);
-			printf("\n");
+		static void Trace(std::string_view message, Args... args) {
+			instance().mStream << "[TRACE]\t"
+					<< std::vformat(message, std::make_format_args(args...))
+					<< std::endl;
 		}
 
 		template <typename... Args>
@@ -32,5 +42,16 @@ namespace core {
 			printf(message, args...);
 			printf("\n");
 		}
+
+	private:
+		std::stringstream mStream;
+
+    private:
+        Logger() = default;
+        static Logger& instance(){
+            static Logger instance;
+            return instance;
+        }
 	};
+
 } // namespace core
