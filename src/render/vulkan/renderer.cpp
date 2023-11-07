@@ -27,7 +27,7 @@ namespace render::vulkan {
 			mWindowExtent.width, mWindowExtent.height,
 			(SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE));
 		if (!mpWindow) {
-			core::Logger::Fatal("Failed to create a window. %s",
+			core::Logger::Fatal("Failed to create a window. {}",
 								SDL_GetError());
 			exit(-1);
 		}
@@ -220,7 +220,7 @@ namespace render::vulkan {
 	void VulkanRenderer::resize() {
 		int w, h;
 		SDL_GetWindowSize(mpWindow, &w, &h);
-		core::Logger::Warning("Resizing: %d, %d", w, h);
+		core::Logger::Warning("Resizing: {}, {}", w, h);
 		mWindowExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
 		mSwapchain.rebuild(w, h, mRenderPass);
 		mShouldResize = false;
@@ -239,7 +239,7 @@ namespace render::vulkan {
 		if (mShouldResize) {
 			int w, h;
 			SDL_GetWindowSize(mpWindow, &w, &h);
-			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
+			core::Logger::Warning("Resizing in get next imag {}, {}", w, h);
 			mWindowExtent = {static_cast<uint32_t>(w),
 							 static_cast<uint32_t>(h)};
 			mSwapchain.rebuild(w, h, mRenderPass);
@@ -255,13 +255,13 @@ namespace render::vulkan {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
 			int w, h;
 			SDL_GetWindowSize(mpWindow, &w, &h);
-			core::Logger::Warning("Resizing in get next image: %d, %d", w, h);
+			core::Logger::Warning("Resizing in get next image: {}, {}", w, h);
 			mWindowExtent = {static_cast<uint32_t>(w),
 							 static_cast<uint32_t>(h)};
 			mSwapchain.rebuild(w, h, mRenderPass);
 			return;
 		} else if (res != VK_SUCCESS) {
-			core::Logger::Error("Cannot acquire next image. %d", res);
+			core::Logger::Error("Cannot acquire next image. {}", static_cast<u32>(res));
 			return;
 		}
 		VkCommandBuffer buf = frame_data.command_buffer;

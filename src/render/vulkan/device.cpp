@@ -116,7 +116,7 @@ namespace render::vulkan {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
 			resized_callback();
 		} else if (res != VK_SUCCESS) {
-			core::Logger::Error("Cannot present queue. %d", res);
+			core::Logger::Error("Cannot present queue. {}", static_cast<u32>(res));
 		}
 	}
 } // namespace render::vulkan

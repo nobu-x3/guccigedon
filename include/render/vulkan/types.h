@@ -14,8 +14,8 @@ namespace render::vulkan {
 	do {                                                                       \
 		VkResult err = x;                                                      \
 		if (err) {                                                             \
-			core::Logger::Error("Detected Vulkan error: %d in %s at %d", err,  \
-								__FILE__, __LINE__);                           \
+			core::Logger::Error("Detected Vulkan error: {} in {} at {}",       \
+								(u32)err, __FILE__, __LINE__);                 \
 			std::abort();                                                      \
 		}                                                                      \
 	} while (0)
