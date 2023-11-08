@@ -18,6 +18,7 @@ namespace core {
 		Logger& operator=(const Logger&) noexcept = delete;
 		Logger(Logger&&) = delete;
 		Logger& operator=(Logger&&) noexcept = delete;
+		~Logger() { std::cout.flush(); }
 
 		template <typename... Args>
 		static void Trace(std::string_view message, Args... args) {
@@ -32,8 +33,8 @@ namespace core {
 			std::string_view view{str, static_cast<size_t>(len)};
 			// This will spawn a new thread. Some compilers reuse it.
 			// It's done so that Logger had it's own thread where it does the
-			// actual logging without blocking other threads. This needs testing,
-            // might be a-ok with context switch.
+			// actual logging without blocking other threads. This needs
+			// testing, might be a-ok with context switch.
 			auto f = std::async(std::launch::async, serialize, str);
 		}
 
@@ -85,13 +86,12 @@ namespace core {
 		}
 
 		static void serialize(std::string_view formatted_message) {
-            // Same stuff since we only have mutex
+			// Same stuff since we only have mutex
 			/* std::lock_guard<std::mutex> lock(instance().mLogMutex); */
 			std::scoped_lock lock(instance().mLogMutex);
 			instance().mStream << formatted_message;
-			instance().mStream.sync();
 			std::cout << instance().mStream.str();
-			instance().mStream.flush();
+			std::cout.flush();
 			instance().mStream.clear();
 		}
 	};
