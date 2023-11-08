@@ -18,6 +18,7 @@ add_executable(Guccigedon
     src/render/vulkan/scene.cpp
     )
 
+add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)
 find_package(SDL2)
 find_package(VulkanMemoryAllocator CONFIG)
