@@ -221,6 +221,17 @@ namespace vkbuild {
 		return ci;
 	}
 
+	VkPipelineLayoutCreateInfo pipeline_layout_ci() {
+		VkPipelineLayoutCreateInfo info{
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr};
+		info.flags = 0;
+		info.setLayoutCount = 0;
+		info.pSetLayouts = nullptr;
+		info.pushConstantRangeCount = 0;
+		info.pPushConstantRanges = nullptr;
+		return info;
+	}
+
 	PipelineBuilder& PipelineBuilder::add_shader(VkDevice device,
 												 const char* path,
 												 ShaderType type) {
