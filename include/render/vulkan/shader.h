@@ -56,12 +56,12 @@ namespace render::vulkan {
 
 	class ShaderSet {
 	public:
-        ~ShaderSet(){
-            for(auto& set : mSetLayouts){
-                vkDestroyDescriptorSetLayout(mDevice, set, nullptr);
-            }
-            vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
-        }
+		/* ~ShaderSet(){ */
+		/*     for(auto& set : mSetLayouts){ */
+		/*         vkDestroyDescriptorSetLayout(mDevice, set, nullptr); */
+		/*     } */
+		/*     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr); */
+		/* } */
 
 		inline ShaderSet& add_stage(ShaderStage stage) {
 			mStages.push_back(stage);
@@ -79,15 +79,15 @@ namespace render::vulkan {
 
 		ArrayList<VkPipelineShaderStageCreateInfo> pipeline_stages();
 
-		void reflect_layout(VkDevice device,
-							std::span<ReflectionOverride> overrides);
+
+		void reflect_layout(VkDevice device, std::span<ReflectionOverride> overrides);
 
 	private:
 		VkPipelineLayout mPipelineLayout{};
 		HashMap<std::string, ReflectedBinding> mBindings{};
 		std::array<VkDescriptorSetLayout, 4> mSetLayouts{};
 		ArrayList<ShaderStage> mStages;
-        VkDevice mDevice{};
+		VkDevice mDevice{};
 	};
 
 	class ShaderCache {

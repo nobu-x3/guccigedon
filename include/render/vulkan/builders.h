@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
-#include "render/vulkan/types.h"
+#include "render/vulkan/shader.h"
 
 namespace vkbuild {
 	VkCommandPoolCreateInfo command_pool_ci(uint32_t q_fam_index,
@@ -75,6 +75,60 @@ namespace vkbuild {
 	};
 
 	class PipelineBuilder {
+	public:
+		PipelineBuilder& add_shader(VkDevice device, const char* path,
+									ShaderType type);
+
+		PipelineBuilder& add_vertex_binding(u32 stride,
+											VkVertexInputRate input_rate);
+
+		PipelineBuilder& add_vertex_attribute(u32 binding, u32 location,
+											  VkFormat format, u32 offset);
+
+		PipelineBuilder&
+		set_vertex_input_description(VertexInputDescription&& desc);
+
+		PipelineBuilder& set_input_assembly(VkPrimitiveTopology topology,
+											bool primitive_restart_enable);
+
+		PipelineBuilder& set_cull_mode(VkCullModeFlags cull_mode,
+									   VkFrontFace front_face);
+
+		PipelineBuilder& set_polygon_mode(VkPolygonMode mode);
+
+		PipelineBuilder& add_default_color_blend_attachment();
+
+		PipelineBuilder& set_multisampling_enabled(
+			bool val, VkSampleCountFlagBits count = VK_SAMPLE_COUNT_1_BIT);
+
+		PipelineBuilder&
+		set_depth_testing(bool testEnabled, bool depthWrite,
+						  VkCompareOp compare_op = VK_COMPARE_OP_LESS_OR_EQUAL);
+
+		PipelineBuilder&
+		set_color_blending_enabled(bool enabled,
+								   VkLogicOp op = VK_LOGIC_OP_COPY);
+
+		PipelineBuilder& add_dynamic_state(VkDynamicState dynamic_state);
+
+		PipelineBuilder& add_viewport(VkViewport viewport);
+
+		PipelineBuilder& add_scissor(VkRect2D scissor);
+
+		PipelineBuilder& add_push_constant(u32 size,
+										   VkPipelineStageFlags stages);
+
+		PipelineBuilder&
+		add_descriptor_set_layout(VkDescriptorSetLayout layout);
+
+		VkPipelineLayout build_layout(VkDevice device);
+
+		VkPipeline build_pipeline(VkDevice device, VkRenderPass pass);
+
+		PipelineBuilder& set_shaders(render::vulkan::ShaderSet* set);
+
+		inline VkPipelineLayout layout() const { return mPipelineLayout; }
+
 	private:
 		// @TODO: perhaps give them all reasonable reserve
 		ArrayList<Shader> mShaders{};
@@ -168,55 +222,5 @@ namespace vkbuild {
 			nullptr};
 
 		VkPipelineLayout mPipelineLayout{};
-
-	public:
-		PipelineBuilder& add_shader(VkDevice device, const char* path,
-									ShaderType type);
-
-		PipelineBuilder& add_vertex_binding(u32 stride,
-											VkVertexInputRate input_rate);
-
-		PipelineBuilder& add_vertex_attribute(u32 binding, u32 location,
-											  VkFormat format, u32 offset);
-
-		PipelineBuilder&
-		set_vertex_input_description(VertexInputDescription&& desc);
-
-		PipelineBuilder& set_input_assembly(VkPrimitiveTopology topology,
-											bool primitive_restart_enable);
-
-		PipelineBuilder& set_cull_mode(VkCullModeFlags cull_mode,
-									   VkFrontFace front_face);
-
-		PipelineBuilder& set_polygon_mode(VkPolygonMode mode);
-
-		PipelineBuilder& add_default_color_blend_attachment();
-
-		PipelineBuilder& set_multisampling_enabled(
-			bool val, VkSampleCountFlagBits count = VK_SAMPLE_COUNT_1_BIT);
-
-		PipelineBuilder&
-		set_depth_testing(bool testEnabled, bool depthWrite,
-						  VkCompareOp compare_op = VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		PipelineBuilder&
-		set_color_blending_enabled(bool enabled,
-								   VkLogicOp op = VK_LOGIC_OP_COPY);
-
-		PipelineBuilder& add_dynamic_state(VkDynamicState dynamic_state);
-
-		PipelineBuilder& add_viewport(VkViewport viewport);
-
-		PipelineBuilder& add_scissor(VkRect2D scissor);
-
-		PipelineBuilder& add_push_constant(u32 size,
-										   VkPipelineStageFlags stages);
-
-		PipelineBuilder&
-		add_descriptor_set_layout(VkDescriptorSetLayout layout);
-
-		VkPipelineLayout build_layout(VkDevice device);
-
-		VkPipeline build_pipeline(VkDevice device, VkRenderPass pass);
 	};
 } // namespace vkbuild

@@ -293,6 +293,14 @@ namespace vkbuild {
 		return *this;
 	}
 
+
+        PipelineBuilder& PipelineBuilder::set_shaders(render::vulkan::ShaderSet* set){
+            mShaderStages.clear();
+            mShaderStages = set->pipeline_stages();
+            mPipelineLayout = set->pipeline_layout();
+            return *this;
+        }
+
 	PipelineBuilder&
 	PipelineBuilder::add_vertex_binding(u32 stride,
 										VkVertexInputRate input_rate) {

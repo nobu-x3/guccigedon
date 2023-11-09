@@ -471,12 +471,6 @@ namespace render::vulkan {
 			vkbuild::PipelineBuilder builder;
 			material.layout =
 				builder
-					.add_shader(mDevice.logical_device(),
-								"assets/shaders/default_shader.vert.glsl.spv",
-								vkbuild::ShaderType::VERTEX)
-					.add_shader(mDevice.logical_device(),
-								"assets/shaders/default_shader.frag.glsl.spv",
-								vkbuild::ShaderType::FRAGMENT)
 					.set_vertex_input_description(Vertex::get_description())
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
@@ -487,10 +481,6 @@ namespace render::vulkan {
 					.set_multisampling_enabled(false)
 					.add_default_color_blend_attachment()
 					.set_color_blending_enabled(false)
-					.add_push_constant(sizeof(MeshPushConstant),
-									   VK_SHADER_STAGE_VERTEX_BIT)
-					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
-					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
 					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
 					/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
 					/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
@@ -499,7 +489,8 @@ namespace render::vulkan {
 						{0, 0, static_cast<float>(mWindowExtent.width),
 						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
 					.add_scissor({{0, 0}, mWindowExtent})
-					.build_layout(mDevice.logical_device());
+                    .set_shaders(&default_shader_set)
+                    .layout();
 			material.pipeline =
 				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
 			Mesh monkeyMesh{};
