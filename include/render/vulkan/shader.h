@@ -12,8 +12,8 @@ namespace render::vulkan {
 		ShaderModule(VkDevice device, std::string_view filepath);
 		ShaderModule(Device& device, std::string_view filepath);
 		~ShaderModule();
-		ShaderModule(const ShaderModule&) = delete;
-		ShaderModule& operator=(const ShaderModule&) = delete;
+		ShaderModule(const ShaderModule&);
+		ShaderModule& operator=(const ShaderModule&);
 		ShaderModule(ShaderModule&&) noexcept;
 		ShaderModule& operator=(ShaderModule&&) noexcept;
 
@@ -24,6 +24,7 @@ namespace render::vulkan {
 		VkDevice mDevice{};
 		VkShaderModule mHandle{};
 		ArrayList<u32> mCode;
+		ObjectLifetime mLifetime{ObjectLifetime::TEMP};
 	};
 
 	class ShaderStage {
@@ -55,6 +56,13 @@ namespace render::vulkan {
 
 	class ShaderSet {
 	public:
+        ~ShaderSet(){
+            for(auto& set : mSetLayouts){
+                vkDestroyDescriptorSetLayout(mDevice, set, nullptr);
+            }
+            vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+        }
+
 		inline ShaderSet& add_stage(ShaderStage stage) {
 			mStages.push_back(stage);
 			return *this;
@@ -63,6 +71,10 @@ namespace render::vulkan {
 		inline ShaderSet& add_stage(ShaderModule* mod,
 									VkShaderStageFlagBits stage) {
 			return add_stage({mod, stage});
+		}
+
+		inline const VkPipelineLayout& pipeline_layout() const {
+			return mPipelineLayout;
 		}
 
 		ArrayList<VkPipelineShaderStageCreateInfo> pipeline_stages();
@@ -75,17 +87,19 @@ namespace render::vulkan {
 		HashMap<std::string, ReflectedBinding> mBindings{};
 		std::array<VkDescriptorSetLayout, 4> mSetLayouts{};
 		ArrayList<ShaderStage> mStages;
+        VkDevice mDevice{};
 	};
 
 	class ShaderCache {
 	public:
+		ShaderCache() = default;
 		ShaderCache(Device& device) : mDevice(device.logical_device()) {}
 		~ShaderCache() = default;
 		ShaderModule* get_shader(const std::string& path);
 
 	private:
 		HashMap<std::string, ShaderModule> mCache;
-		VkDevice mDevice;
+		VkDevice mDevice{};
 	};
 
 } // namespace render::vulkan

@@ -2,10 +2,11 @@
 #include <fstream>
 #include <spirv_reflect.h>
 #include "render/vulkan/builders.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 	ShaderModule::ShaderModule(VkDevice device, std::string_view filepath) :
-		mDevice(device) {
+		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
 		// open the file. With cursor at the end
 		std::ifstream file(filepath.data(), std::ios::ate | std::ios::binary);
 		if (!file.is_open()) {
@@ -39,19 +40,36 @@ namespace render::vulkan {
 			core::Logger::Error("Failed to create shader module. {}", (int)res);
 			throw std::exception();
 		}
+		mCode = std::move(buffer);
 	}
 
 	ShaderModule::ShaderModule(Device& device, std::string_view filepath) :
 		ShaderModule(device.logical_device(), filepath) {}
 
+	ShaderModule::ShaderModule(const ShaderModule& other) :
+		mDevice(other.mDevice), mHandle(other.mHandle),
+		mLifetime(ObjectLifetime::TEMP), mCode(other.mCode) {
+	}
+
+	ShaderModule& ShaderModule::operator=(const ShaderModule& other) {
+		mHandle = other.mHandle;
+		mDevice = other.mDevice;
+		mLifetime = ObjectLifetime::TEMP;
+		mCode = std::move(other.mCode);
+		return *this;
+	}
+
 	ShaderModule::~ShaderModule() {
+        if(mLifetime == ObjectLifetime::TEMP) return;
 		if (mDevice && mHandle) {
 			vkDestroyShaderModule(mDevice, mHandle, nullptr);
 		}
 	}
 
 	ShaderModule::ShaderModule(ShaderModule&& other) noexcept :
-		mDevice(other.mDevice), mHandle(other.mHandle) {
+		mDevice(other.mDevice), mHandle(other.mHandle),
+		mLifetime(ObjectLifetime::OWNED), mCode(std::move(other.mCode)) {
+		other.mLifetime = ObjectLifetime::TEMP;
 		other.mDevice = nullptr;
 		other.mHandle = nullptr;
 	}
@@ -59,8 +77,11 @@ namespace render::vulkan {
 	ShaderModule& ShaderModule::operator=(ShaderModule&& other) noexcept {
 		mHandle = other.mHandle;
 		mDevice = other.mDevice;
+		mLifetime = ObjectLifetime::OWNED;
+		mCode = std::move(other.mCode);
 		other.mDevice = nullptr;
 		other.mHandle = nullptr;
+		other.mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
 
@@ -88,8 +109,9 @@ namespace render::vulkan {
 
 	void ShaderSet::reflect_layout(VkDevice device,
 								   std::span<ReflectionOverride> overrides) {
-		ArrayList<DescriptorSetLayoutData> set_layouts(4);
-		ArrayList<VkPushConstantRange> constant_ranges(4);
+        mDevice = device;
+		ArrayList<DescriptorSetLayoutData> set_layouts{};
+		ArrayList<VkPushConstantRange> constant_ranges{};
 		for (auto& s : mStages) {
 			SpvReflectShaderModule spv_module;
 			SpvReflectResult result = spvReflectCreateShaderModule(
@@ -166,7 +188,6 @@ namespace render::vulkan {
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			HashMap<int, VkDescriptorSetLayoutBinding> bindings;
 			for (auto& s : set_layouts) {
-
 				if (s.set_number == i) {
 					for (auto& b : s.bindings) {
 						if (bindings.contains(b.binding)) {

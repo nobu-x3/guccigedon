@@ -8,6 +8,7 @@
 #include "render/vulkan/instance.h"
 #include "render/vulkan/mesh.h"
 #include "render/vulkan/scene.h"
+#include "render/vulkan/shader.h"
 #include "render/vulkan/surface.h"
 #include "render/vulkan/swapchain.h"
 #include "render/vulkan/types.h"
@@ -31,9 +32,9 @@ namespace render::vulkan {
 		void init_descriptors();
 		void init_scene();
 		size_t pad_uniform_buffer(size_t original_size);
-        void begin_renderpass(FrameData& frame_data, u32& image_index);
-        void end_renderpass(VkCommandBuffer buf);
-        void resize();
+		void begin_renderpass(FrameData& frame_data, u32& image_index);
+		void end_renderpass(VkCommandBuffer buf);
+		void resize();
 
 	public:
 		VulkanRenderer();
@@ -76,5 +77,6 @@ namespace render::vulkan {
 		UploadContext mUploadContext{};
 		u32 mCurrFrame{0};
 		bool mShouldResize{false};
+		ShaderCache mShaderCache{};
 	};
 } // namespace render::vulkan

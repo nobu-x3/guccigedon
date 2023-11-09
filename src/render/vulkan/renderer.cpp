@@ -158,23 +158,27 @@ namespace render::vulkan {
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
-        /* std::chrono::time_point<std::chrono::high_resolution_clock> start_time {std::chrono::high_resolution_clock::now()}; */
+		/* std::chrono::time_point<std::chrono::high_resolution_clock>
+		 * start_time {std::chrono::high_resolution_clock::now()}; */
 		/* std::ranges::for_each(mMaterialMap, [&](auto& entry) { */
 		/* 	vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 					  entry.first.pipeline); */
 		/* 	vkCmdBindDescriptorSets( */
-		/* 		buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1, */
+		/* 		buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
+		 */
 		/* 		&frame_data.global_descriptor, 1, &uniform_offset); */
 		/* 	vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 							entry.first.layout, 1, 1, */
-		/* 							&frame_data.object_descriptor, 0, nullptr); */
+		/* 							&frame_data.object_descriptor, 0, nullptr);
+		 */
 		/* 	if (entry.first.textureSet != VK_NULL_HANDLE) { */
 		/* 		vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 								entry.first.layout, 2, 1, */
 		/* 								&entry.first.textureSet, 0, nullptr); */
 		/* 	} */
 		/* 	std::ranges::for_each(entry.second, [&](Mesh& mesh) { */
-		/* 		vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset); */
+		/* 		vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
+		 */
 		/* 		// upload the matrix to the GPU via push constants */
 		/* 		vkCmdPushConstants(buf, entry.first.layout, */
 		/* 						   VK_SHADER_STAGE_VERTEX_BIT, 0, */
@@ -205,8 +209,9 @@ namespace render::vulkan {
 				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
 			}
 		}
-        /* std::chrono::duration<f64> delta {std::chrono::high_resolution_clock::now() - start_time}; */
-        /* core::Logger::Trace("For_each time: %f", delta.count()); */
+		/* std::chrono::duration<f64> delta
+		 * {std::chrono::high_resolution_clock::now() - start_time}; */
+		/* core::Logger::Trace("For_each time: %f", delta.count()); */
 		end_renderpass(buf);
 		mDevice.submit_queue(buf, frame_data.present_semaphore,
 							 frame_data.render_semaphore,
@@ -261,7 +266,8 @@ namespace render::vulkan {
 			mSwapchain.rebuild(w, h, mRenderPass);
 			return;
 		} else if (res != VK_SUCCESS) {
-			core::Logger::Error("Cannot acquire next image. {}", static_cast<u32>(res));
+			core::Logger::Error("Cannot acquire next image. {}",
+								static_cast<u32>(res));
 			return;
 		}
 		VkCommandBuffer buf = frame_data.command_buffer;
@@ -450,6 +456,17 @@ namespace render::vulkan {
 
 	void VulkanRenderer::init_scene() {
 		{
+			mShaderCache = {mDevice};
+			ShaderSet default_shader_set;
+			default_shader_set
+				.add_stage(mShaderCache.get_shader(
+							   "assets/shaders/default_shader.vert.glsl.spv"),
+						   VK_SHADER_STAGE_VERTEX_BIT)
+				.add_stage(mShaderCache.get_shader(
+							   "assets/shaders/default_shader.frag.glsl.spv"),
+						   VK_SHADER_STAGE_FRAGMENT_BIT)
+				.reflect_layout(mDevice.logical_device(),
+								std::span<ReflectionOverride, 0>{});
 			Material material{};
 			vkbuild::PipelineBuilder builder;
 			material.layout =
