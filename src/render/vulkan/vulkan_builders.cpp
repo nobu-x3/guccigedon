@@ -210,6 +210,17 @@ namespace vkbuild {
 		return write;
 	}
 
+	VkPipelineShaderStageCreateInfo
+	pipeline_shader_stage_ci(VkShaderModule module,
+							 VkShaderStageFlagBits flags) {
+		VkPipelineShaderStageCreateInfo ci{
+			VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr};
+		ci.stage = flags;
+		ci.module = module;
+		ci.pName = "main";
+		return ci;
+	}
+
 	PipelineBuilder& PipelineBuilder::add_shader(VkDevice device,
 												 const char* path,
 												 ShaderType type) {

@@ -45,13 +45,23 @@ namespace vkbuild {
 							VkDescriptorBufferInfo* bufferInfo,
 							uint32_t binding);
 
-	VkSamplerCreateInfo sampler_create_info(VkFilter filters, VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	VkSamplerCreateInfo
+	sampler_create_info(VkFilter filters,
+						VkSamplerAddressMode samplerAddressMode =
+							VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
-	VkWriteDescriptorSet write_descriptor_image(VkDescriptorType type, VkDescriptorSet dstSet, VkDescriptorImageInfo* imageInfo, uint32_t binding);
+	VkWriteDescriptorSet
+	write_descriptor_image(VkDescriptorType type, VkDescriptorSet dstSet,
+						   VkDescriptorImageInfo* imageInfo, uint32_t binding);
 
 	enum class ShaderType : u64 { VERTEX = 0x00000001, FRAGMENT = 0x00000010 };
 
+	VkPipelineShaderStageCreateInfo
+	pipeline_shader_stage_ci(VkShaderModule module,
+							VkShaderStageFlagBits flags);
+
 	struct Shader {
+
 		VkShaderModule module;
 		ShaderType type;
 	};
