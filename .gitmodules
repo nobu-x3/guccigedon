@@ -20,3 +20,6 @@
 	path = vendor/SDL2
 	url = https://github.com/libsdl-org/SDL.git
 	branch = release-2.28.x
+[submodule "vendor/SPIRV-Reflect"]
+	path = vendor/SPIRV-Reflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
