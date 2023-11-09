@@ -58,7 +58,7 @@ namespace vkbuild {
 
 	VkPipelineShaderStageCreateInfo
 	pipeline_shader_stage_ci(VkShaderModule module,
-							VkShaderStageFlagBits flags);
+							 VkShaderStageFlagBits flags);
 
 	VkPipelineLayoutCreateInfo pipeline_layout_ci();
 

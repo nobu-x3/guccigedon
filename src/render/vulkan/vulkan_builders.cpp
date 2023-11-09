@@ -1,7 +1,7 @@
-#include "render/vulkan/builders.h"
 #include <algorithm>
 #include <fstream>
 #include <vulkan/vulkan_core.h>
+#include "render/vulkan/builders.h"
 #include "render/vulkan/types.h"
 
 namespace vkbuild {
@@ -177,10 +177,9 @@ namespace vkbuild {
 		return write;
 	}
 
-	VkSamplerCreateInfo sampler_create_info(
-		VkFilter filters,
-		VkSamplerAddressMode
-			samplerAddressMode) {
+	VkSamplerCreateInfo
+	sampler_create_info(VkFilter filters,
+						VkSamplerAddressMode samplerAddressMode) {
 		VkSamplerCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		info.pNext = nullptr;
