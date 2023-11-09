@@ -11,7 +11,7 @@ namespace render::vulkan {
 		if (!file.is_open()) {
 			core::Logger::Error("Failed to open shader code at path %s",
 								filepath);
-			throw std::exception("File not found");
+			throw std::exception();
 		}
 		// find what the size of the file is by looking up the location of
 		// the cursor because the cursor is at the end, it gives the size
@@ -37,7 +37,7 @@ namespace render::vulkan {
 			vkCreateShaderModule(mDevice, &createInfo, nullptr, &mHandle);
 		if (res != VK_SUCCESS) {
 			core::Logger::Error("Failed to create shader module. {}", (int)res);
-			throw std::exception("Faled to create shader module");
+			throw std::exception();
 		}
 	}
 
