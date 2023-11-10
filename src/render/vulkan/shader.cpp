@@ -109,33 +109,27 @@ namespace render::vulkan {
 	};
 
 	void ShaderSet::reflect_layout(VkDevice device, std::span<ReflectionOverride> overrides) {
+
+
+
 		std::vector<DescriptorSetLayoutData> set_layouts;
-
 		std::vector<VkPushConstantRange> constant_ranges;
-
 		for (auto& s : mStages) {
-
 			SpvReflectShaderModule spvmodule;
 			SpvReflectResult result = spvReflectCreateShaderModule(
 				s.module()->code().size() * sizeof(uint32_t),
 				s.module()->code().data(), &spvmodule);
-
 			uint32_t count = 0;
 			result =
 				spvReflectEnumerateDescriptorSets(&spvmodule, &count, NULL);
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
 			std::vector<SpvReflectDescriptorSet*> sets(count);
 			result = spvReflectEnumerateDescriptorSets(&spvmodule, &count,
 													   sets.data());
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
 			for (size_t i_set = 0; i_set < sets.size(); ++i_set) {
-
 				const SpvReflectDescriptorSet& refl_set = *(sets[i_set]);
-
 				DescriptorSetLayoutData layout = {};
-
 				layout.bindings.resize(refl_set.binding_count);
 				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count;
 					 ++i_binding) {
@@ -147,7 +141,6 @@ namespace render::vulkan {
 					layout_binding.descriptorType =
 						static_cast<VkDescriptorType>(
 							refl_binding.descriptor_type);
-
 					for (int ov = 0; ov < overrides.size(); ov++) {
 						if (strcmp(refl_binding.name,
 								   overrides[ov].name.data()) == 0) {
@@ -155,7 +148,6 @@ namespace render::vulkan {
 								overrides[ov].override;
 						}
 					}
-
 					layout_binding.descriptorCount = 1;
 					for (uint32_t i_dim = 0;
 						 i_dim < refl_binding.array.dims_count; ++i_dim) {
@@ -165,12 +157,10 @@ namespace render::vulkan {
 					layout_binding.stageFlags =
 						static_cast<VkShaderStageFlagBits>(
 							spvmodule.shader_stage);
-
 					ReflectedBinding reflected;
 					reflected.binding = layout_binding.binding;
 					reflected.set = refl_set.set;
 					reflected.type = layout_binding.descriptorType;
-
 					mBindings[refl_binding.name] = reflected;
 				}
 				layout.set_number = refl_set.set;
@@ -178,41 +168,29 @@ namespace render::vulkan {
 					VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 				layout.ci.bindingCount = refl_set.binding_count;
 				layout.ci.pBindings = layout.bindings.data();
-
 				set_layouts.push_back(layout);
 			}
-
 			// pushconstants
-
 			result =
 				spvReflectEnumeratePushConstantBlocks(&spvmodule, &count, NULL);
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
 			std::vector<SpvReflectBlockVariable*> pconstants(count);
 			result = spvReflectEnumeratePushConstantBlocks(&spvmodule, &count,
 														   pconstants.data());
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
 			if (count > 0) {
 				VkPushConstantRange pcs{};
 				pcs.offset = pconstants[0]->offset;
 				pcs.size = pconstants[0]->size;
 				pcs.stageFlags = s.stage_flags();
-
 				constant_ranges.push_back(pcs);
 			}
 		}
-
 		std::array<DescriptorSetLayoutData, 4> merged_layouts;
-
 		for (int i = 0; i < 4; i++) {
-
 			DescriptorSetLayoutData& ly = merged_layouts[i];
-
 			ly.set_number = i;
-
 			ly.ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-
 			std::unordered_map<int, VkDescriptorSetLayoutBinding> binds;
 			for (auto& s : set_layouts) {
 				if (s.set_number == i) {
@@ -237,12 +215,10 @@ namespace render::vulkan {
 						 VkDescriptorSetLayoutBinding& b) {
 						  return a.binding < b.binding;
 					  });
-
 			ly.ci.bindingCount = (uint32_t)ly.bindings.size();
 			ly.ci.pBindings = ly.bindings.data();
 			ly.ci.flags = 0;
 			ly.ci.pNext = 0;
-
 			if (ly.ci.bindingCount > 0) {
 				vkCreateDescriptorSetLayout(device, &ly.ci, nullptr,
 											&mSetLayouts[i]);
@@ -250,15 +226,12 @@ namespace render::vulkan {
 				mSetLayouts[i] = VK_NULL_HANDLE;
 			}
 		}
-
 		// we start from just the default empty pipeline layout info
 		VkPipelineLayoutCreateInfo mesh_pipeline_layout_info =
 			vkbuild::pipeline_layout_ci();
-
 		mesh_pipeline_layout_info.pPushConstantRanges = constant_ranges.data();
 		mesh_pipeline_layout_info.pushConstantRangeCount =
 			(uint32_t)constant_ranges.size();
-
 		std::array<VkDescriptorSetLayout, 4> compactedLayouts;
 		int s = 0;
 		for (int i = 0; i < 4; i++) {
@@ -267,10 +240,8 @@ namespace render::vulkan {
 				s++;
 			}
 		}
-
 		mesh_pipeline_layout_info.setLayoutCount = s;
 		mesh_pipeline_layout_info.pSetLayouts = compactedLayouts.data();
-
 		vkCreatePipelineLayout(device, &mesh_pipeline_layout_info, nullptr,
 							   &mPipelineLayout);
 	}
