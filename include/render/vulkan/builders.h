@@ -76,6 +76,8 @@ namespace vkbuild {
 
 	class PipelineBuilder {
 	public:
+        PipelineBuilder& add_shader_module(render::vulkan::ShaderModule*,ShaderType type);
+
 		PipelineBuilder& add_shader(VkDevice device, const char* path,
 									ShaderType type);
 
@@ -132,6 +134,8 @@ namespace vkbuild {
 	private:
 		// @TODO: perhaps give them all reasonable reserve
 		ArrayList<Shader> mShaders{};
+
+        ArrayList<render::vulkan::ShaderModule*> mShaderModules{};
 
 		ArrayList<VkPipelineShaderStageCreateInfo> mShaderStages{};
 

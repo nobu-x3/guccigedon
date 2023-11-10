@@ -231,6 +231,19 @@ namespace vkbuild {
 		return info;
 	}
 
+	PipelineBuilder&
+	PipelineBuilder::add_shader_module(render::vulkan::ShaderModule* module, ShaderType type) {
+		VkPipelineShaderStageCreateInfo stage_ci{
+			VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<VkShaderStageFlagBits>(type),
+			module->handle(),
+			"main"};
+		mShaderStages.push_back(stage_ci);
+        return *this;
+    }
+
 	PipelineBuilder& PipelineBuilder::add_shader(VkDevice device,
 												 const char* path,
 												 ShaderType type) {
@@ -293,13 +306,13 @@ namespace vkbuild {
 		return *this;
 	}
 
-
-        PipelineBuilder& PipelineBuilder::set_shaders(render::vulkan::ShaderSet* set){
-            mShaderStages.clear();
-            mShaderStages = set->pipeline_stages();
-            mPipelineLayout = set->pipeline_layout();
-            return *this;
-        }
+	PipelineBuilder&
+	PipelineBuilder::set_shaders(render::vulkan::ShaderSet* set) {
+		mShaderStages.clear();
+		mShaderStages = set->pipeline_stages();
+		mPipelineLayout = set->pipeline_layout();
+		return *this;
+	}
 
 	PipelineBuilder&
 	PipelineBuilder::add_vertex_binding(u32 stride,
