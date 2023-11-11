@@ -14,6 +14,7 @@
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
 #include "core/logger.h"
 #include "render/vulkan/builders.h"
+#include "render/vulkan/pipeline.h"
 #include "render/vulkan/types.h"
 
 #define VMA_IMPLEMENTATION
@@ -461,8 +462,8 @@ namespace render::vulkan {
 			builder::PipelineBuilder builder;
 			material.layout =
 				builder
-                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.vert.glsl.spv"), builder::ShaderType::VERTEX)
-                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.frag.glsl.spv"), builder::ShaderType::FRAGMENT)
+                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.vert.glsl.spv"), ShaderType::VERTEX)
+                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.frag.glsl.spv"), ShaderType::FRAGMENT)
 					.set_vertex_input_description(Vertex::get_description())
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)

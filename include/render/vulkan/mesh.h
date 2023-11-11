@@ -11,7 +11,7 @@ namespace render::vulkan {
 		glm::vec3 normal;
 		glm::vec2 uv;
 
-		static builder::VertexInputDescription get_description();
+		static VertexInputDescription get_description();
 	};
 
 	class Mesh {
