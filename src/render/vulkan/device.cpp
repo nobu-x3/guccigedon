@@ -93,7 +93,7 @@ namespace render::vulkan {
 
 		// waiting on present_semaphore which is signaled when swapchain is
 		// ready. signal render_semaphore when finished rendering.
-		VkSubmitInfo submit = vkbuild::submit_info(&buf);
+		VkSubmitInfo submit = builder::submit_info(&buf);
 		submit.pWaitDstStageMask = &wait_flags;
 		submit.waitSemaphoreCount = 1;
 		submit.pWaitSemaphores = &wait_semaphore;
@@ -106,7 +106,7 @@ namespace render::vulkan {
 	void Device::present(VkSwapchainKHR swapchain, VkSemaphore wait_semaphore,
 						 u32 image_index, std::function<void(void)> resized_callback) {
 		// waiting on rendering to finish, then presenting
-		VkPresentInfoKHR present_info = vkbuild::present_info();
+		VkPresentInfoKHR present_info = builder::present_info();
 		present_info.swapchainCount = 1;
 		present_info.pSwapchains = &swapchain;
 		present_info.waitSemaphoreCount = 1;

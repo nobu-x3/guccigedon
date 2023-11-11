@@ -18,7 +18,7 @@ namespace render::vulkan {
 		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
 		VK_CHECK(vmaCreateImage(alloc, &image_ci, &alloc_info, &handle, &memory,
 								nullptr));
-        VkImageViewCreateInfo view_ci = vkbuild::imageview_ci(image_ci.format, handle, aspect_flags);
+        VkImageViewCreateInfo view_ci = builder::imageview_ci(image_ci.format, handle, aspect_flags);
 		VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr, &view));
 	}
 
@@ -47,7 +47,7 @@ namespace render::vulkan {
 		stbi_image_free(pixels);
 		VkExtent3D img_extent{static_cast<u32>(texWidth),
 							  static_cast<u32>(texHeight), 1};
-		VkImageCreateInfo image_ci = vkbuild::image_ci(
+		VkImageCreateInfo image_ci = builder::image_ci(
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			img_extent);
@@ -96,7 +96,7 @@ namespace render::vulkan {
 								 &img_barrier_shader_readable);
 		});
 		staging_buffer.destroy();
-		VkImageViewCreateInfo view_ci = vkbuild::imageview_ci(
+		VkImageViewCreateInfo view_ci = builder::imageview_ci(
 			VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
 		vkCreateImageView(device, &view_ci, nullptr, &view);
 	}

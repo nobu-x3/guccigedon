@@ -272,13 +272,13 @@ namespace render::vulkan {
 		}
 		VkCommandBuffer buf = frame_data.command_buffer;
 		VkCommandBufferBeginInfo buf_begin_info =
-			vkbuild::command_buffer_begin_info(
+			builder::command_buffer_begin_info(
 				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		VK_CHECK(vkBeginCommandBuffer(buf, &buf_begin_info));
 		VkClearValue color_clear{};
 		VkClearValue depth_clear{};
 		depth_clear.depthStencil.depth = 1.f;
-		VkRenderPassBeginInfo renderpass_info = vkbuild::renderpass_begin_info(
+		VkRenderPassBeginInfo renderpass_info = builder::renderpass_begin_info(
 			mRenderPass, mWindowExtent, mSwapchain.framebuffers()[image_index]);
 		float flash = abs(sin(mCurrFrame / 120.f));
 		color_clear.color = {{0.f, 0.f, flash, 1.f}};
@@ -324,25 +324,25 @@ namespace render::vulkan {
 
 	void VulkanRenderer::init_commands() {
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
-			VkCommandPoolCreateInfo command_pool_ci = vkbuild::command_pool_ci(
+			VkCommandPoolCreateInfo command_pool_ci = builder::command_pool_ci(
 				mDevice.graphics_queue_family(),
 				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 			VK_CHECK(vkCreateCommandPool(mDevice.logical_device(),
 										 &command_pool_ci, nullptr,
 										 &mFrames[i].command_pool));
 			VkCommandBufferAllocateInfo alloc_info =
-				vkbuild::command_buffer_ai(mFrames[i].command_pool, 1);
+				builder::command_buffer_ai(mFrames[i].command_pool, 1);
 			VK_CHECK(vkAllocateCommandBuffers(mDevice.logical_device(),
 											  &alloc_info,
 											  &mFrames[i].command_buffer));
 		}
 		VkCommandPoolCreateInfo upload_ctx_cmd_pool_ci{
-			vkbuild::command_pool_ci(mDevice.graphics_queue_family())};
+			builder::command_pool_ci(mDevice.graphics_queue_family())};
 		VK_CHECK(vkCreateCommandPool(mDevice.logical_device(),
 									 &upload_ctx_cmd_pool_ci, nullptr,
 									 &mUploadContext.command_pool));
 		VkCommandBufferAllocateInfo upload_ctx_cmd_ai{
-			vkbuild::command_buffer_ai(mUploadContext.command_pool)};
+			builder::command_buffer_ai(mUploadContext.command_pool)};
 		VK_CHECK(vkAllocateCommandBuffers(mDevice.logical_device(),
 										  &upload_ctx_cmd_ai,
 										  &mUploadContext.command_buffer));
@@ -437,10 +437,10 @@ namespace render::vulkan {
 		// first frame
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 			VkFenceCreateInfo fenceCreateInfo =
-				vkbuild::fence_ci(VK_FENCE_CREATE_SIGNALED_BIT);
+				builder::fence_ci(VK_FENCE_CREATE_SIGNALED_BIT);
 			VK_CHECK(vkCreateFence(mDevice.logical_device(), &fenceCreateInfo,
 								   nullptr, &mFrames[i].render_fence));
-			VkSemaphoreCreateInfo semaphoreCreateInfo = vkbuild::semaphore_ci();
+			VkSemaphoreCreateInfo semaphoreCreateInfo = builder::semaphore_ci();
 			VK_CHECK(vkCreateSemaphore(mDevice.logical_device(),
 									   &semaphoreCreateInfo, nullptr,
 									   &mFrames[i].present_semaphore));
@@ -449,7 +449,7 @@ namespace render::vulkan {
 									   &mFrames[i].render_semaphore));
 		}
 		// no signaled bit because we don't have to wait
-		VkFenceCreateInfo upload_fence_ci{vkbuild::fence_ci()};
+		VkFenceCreateInfo upload_fence_ci{builder::fence_ci()};
 		VK_CHECK(vkCreateFence(mDevice.logical_device(), &upload_fence_ci,
 							   nullptr, &mUploadContext.upload_fence));
 	}
@@ -458,11 +458,11 @@ namespace render::vulkan {
 		{
 			mShaderCache = {mDevice};
 			Material material{};
-			vkbuild::PipelineBuilder builder;
+			builder::PipelineBuilder builder;
 			material.layout =
 				builder
-                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.vert.glsl.spv"), vkbuild::ShaderType::VERTEX)
-                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.frag.glsl.spv"), vkbuild::ShaderType::FRAGMENT)
+                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.vert.glsl.spv"), builder::ShaderType::VERTEX)
+                .add_shader_module(mShaderCache.get_shader("assets/shaders/default_shader.frag.glsl.spv"), builder::ShaderType::FRAGMENT)
 					.set_vertex_input_description(Vertex::get_description())
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
@@ -495,7 +495,7 @@ namespace render::vulkan {
 		/* { */
 		/* 	Material material{}; */
 		/* 	VkSamplerCreateInfo sampler_info = */
-		/* 		vkbuild::sampler_create_info(VK_FILTER_NEAREST); */
+		/* 		builder::sampler_create_info(VK_FILTER_NEAREST); */
 		/* 	VkSampler sampler; */
 		/* 	vkCreateSampler(mDevice.logical_device(), &sampler_info, nullptr, */
 		/* 					&sampler); */
@@ -511,22 +511,22 @@ namespace render::vulkan {
 		/* 	VkDescriptorImageInfo image_buf_info{ */
 		/* 		sampler, texture.view, */
 		/* 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}; */
-		/* 	VkWriteDescriptorSet tex_write = vkbuild::write_descriptor_image( */
+		/* 	VkWriteDescriptorSet tex_write = builder::write_descriptor_image( */
 		/* 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet,
 		 */
 		/* 		&image_buf_info, 0); */
 		/* 	vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write, 0,
 		 */
 		/* 						   nullptr); */
-		/* 	vkbuild::PipelineBuilder builder; */
+		/* 	builder::PipelineBuilder builder; */
 		/* 	material.layout = */
 		/* 		builder */
 		/* 			.add_shader(mDevice.logical_device(), */
 		/* 						"assets/shaders/textured_mesh.vert.glsl.spv", */
-		/* 						vkbuild::ShaderType::VERTEX) */
+		/* 						builder::ShaderType::VERTEX) */
 		/* 			.add_shader(mDevice.logical_device(), */
 		/* 						"assets/shaders/textured_mesh.frag.glsl.spv", */
-		/* 						vkbuild::ShaderType::FRAGMENT) */
+		/* 						builder::ShaderType::FRAGMENT) */
 		/* 			.set_vertex_input_description(Vertex::get_description()) */
 		/* 			.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, */
 		/* 								false) */
@@ -583,21 +583,21 @@ namespace render::vulkan {
 		VK_CHECK(vkCreateDescriptorPool(mDevice.logical_device(), &pool_ci,
 										nullptr, &mDescriptorPool));
 		VkDescriptorSetLayoutBinding cam_buffer_binding =
-			vkbuild::descriptorset_layout_binding(
+			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
 				0);
 		VkDescriptorSetLayoutBinding scene_buffer_binding =
-			vkbuild::descriptorset_layout_binding(
+			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 		VkDescriptorSetLayoutBinding bindings[]{cam_buffer_binding,
 												scene_buffer_binding};
 		VkDescriptorSetLayoutBinding object_buffer_binding =
-			vkbuild::descriptorset_layout_binding(
+			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
 				0);
 		VkDescriptorSetLayoutBinding texture_sampler_binding =
-			vkbuild::descriptorset_layout_binding(
+			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 		VkDescriptorSetLayoutCreateInfo scene_set_ci{
@@ -648,14 +648,14 @@ namespace render::vulkan {
 				mFrames[i].object_buffer.handle, 0,
 				sizeof(ObjectData) * MAX_OBJECTS};
 			VkWriteDescriptorSet camera_write =
-				vkbuild::write_descriptor_buffer(
+				builder::write_descriptor_buffer(
 					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					mFrames[i].global_descriptor, &camera_buffer_info, 0);
-			VkWriteDescriptorSet scene_write = vkbuild::write_descriptor_buffer(
+			VkWriteDescriptorSet scene_write = builder::write_descriptor_buffer(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				mFrames[i].global_descriptor, &scene_buffer_info, 1);
 			VkWriteDescriptorSet objects_write =
-				vkbuild::write_descriptor_buffer(
+				builder::write_descriptor_buffer(
 					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 					mFrames[i].object_descriptor, &object_buffer_info, 0);
 			VkWriteDescriptorSet set_writes[]{camera_write, scene_write,
@@ -709,12 +709,12 @@ namespace render::vulkan {
 	void VulkanRenderer::immediate_submit(
 		std::function<void(VkCommandBuffer cmd)>&& fn) {
 		VkCommandBuffer cmd = mUploadContext.command_buffer;
-		VkCommandBufferBeginInfo begin_info{vkbuild::command_buffer_begin_info(
+		VkCommandBufferBeginInfo begin_info{builder::command_buffer_begin_info(
 			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)};
 		VK_CHECK(vkBeginCommandBuffer(cmd, &begin_info));
 		fn(cmd);
 		VK_CHECK(vkEndCommandBuffer(cmd));
-		VkSubmitInfo submit{vkbuild::submit_info(&cmd)};
+		VkSubmitInfo submit{builder::submit_info(&cmd)};
 		VK_CHECK(vkQueueSubmit(mDevice.graphics_queue(), 1, &submit,
 							   mUploadContext.upload_fence));
 		vkWaitForFences(mDevice.logical_device(), 1,

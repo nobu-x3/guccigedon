@@ -96,7 +96,7 @@ namespace render::vulkan {
 		ArrayList<VkPipelineShaderStageCreateInfo> stages;
 		stages.reserve(2);
 		for (auto& s : mStages) {
-			stages.push_back(vkbuild::pipeline_shader_stage_ci(
+			stages.push_back(builder::pipeline_shader_stage_ci(
 				s.module()->handle(), s.stage_flags()));
 		}
 		return stages;
@@ -225,7 +225,7 @@ namespace render::vulkan {
 		}
 		// we start from just the default empty pipeline layout info
 		VkPipelineLayoutCreateInfo mesh_pipeline_layout_info =
-			vkbuild::pipeline_layout_ci();
+			builder::pipeline_layout_ci();
 		mesh_pipeline_layout_info.pPushConstantRanges = constant_ranges.data();
 		mesh_pipeline_layout_info.pushConstantRangeCount =
 			(uint32_t)constant_ranges.size();

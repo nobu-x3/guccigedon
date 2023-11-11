@@ -5,7 +5,7 @@
 #include "core/core.h"
 #include "render/vulkan/shader.h"
 
-namespace vkbuild {
+namespace render::vulkan::builder {
 	VkCommandPoolCreateInfo command_pool_ci(uint32_t q_fam_index,
 											VkCommandPoolCreateFlags flags = 0);
 
@@ -227,4 +227,4 @@ namespace vkbuild {
 
 		VkPipelineLayout mPipelineLayout{};
 	};
-} // namespace vkbuild
+} // namespace builder

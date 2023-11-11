@@ -4,7 +4,7 @@
 #include "render/vulkan/builders.h"
 #include "render/vulkan/types.h"
 
-namespace vkbuild {
+namespace render::vulkan::builder {
 
 	VkCommandPoolCreateInfo
 	command_pool_ci(uint32_t queueFamilyIndex,
@@ -502,4 +502,4 @@ namespace vkbuild {
 		}
 		return pipeline;
 	}
-} // namespace vkbuild
+} // namespace builder
