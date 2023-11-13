@@ -14,8 +14,9 @@ namespace render::vulkan {
 	public:
 		friend DescriptorAllocatorPool;
 		DescriptorAllocator() = default;
-		DescriptorAllocator(DescriptorAllocatorPool* owner, u8 id, VkDescriptorPool handle);
-		
+		DescriptorAllocator(DescriptorAllocatorPool* owner, u8 id,
+							VkDescriptorPool handle);
+
 		DescriptorAllocator(const DescriptorAllocator&) = delete;
 		DescriptorAllocator& operator=(const DescriptorAllocator&) = delete;
 		DescriptorAllocator(DescriptorAllocator&&) noexcept;
@@ -27,9 +28,12 @@ namespace render::vulkan {
 		inline u8 id() const { return mID; }
 
 	private:
+		//DescriptorAllocator(DescriptorAllocatorPool* owner, u8 id,
+		//					VkDescriptorPool handle, bool should_destroy);
 		DescriptorAllocatorPool* mOwner{nullptr};
 		VkDescriptorPool mHandle{};
 		u8 mID{};
+		bool mShouldReturn{true};
 	};
 
 	struct PoolSize {
@@ -52,14 +56,14 @@ namespace render::vulkan {
 			{VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1.f}};
 	};
 
+	class Device;
+
 	class DescriptorAllocatorPool {
 	public:
-		DescriptorAllocatorPool() = delete;
-		DescriptorAllocatorPool(VkDevice device,
-								u32 max_frames = 3);
-		DescriptorAllocatorPool(
-			VkDevice device,
-			std::span<PoolSize> pool_sizes,
+		DescriptorAllocatorPool() = default;
+		DescriptorAllocatorPool(const Device& device, u32 max_frames = 3);
+		DescriptorAllocatorPool(const Device& device,
+								std::span<PoolSize> pool_sizes,
 								u32 max_frames = 3);
 		~DescriptorAllocatorPool();
 		DescriptorAllocatorPool(const DescriptorAllocatorPool&) = delete;

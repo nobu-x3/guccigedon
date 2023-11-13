@@ -16,6 +16,7 @@ namespace render::vulkan {
 
 	class DescriptorLayoutCache {
 	public:
+		DescriptorLayoutCache() = default;
 		DescriptorLayoutCache(const Device& device);
 		DescriptorLayoutCache(const DescriptorLayoutCache&) = delete;
 		DescriptorLayoutCache& operator=(const DescriptorLayoutCache&) = delete;
@@ -33,13 +34,14 @@ namespace render::vulkan {
 
 		HashMap<DescriptorLayoutInfo, VkDescriptorSetLayout,
 				DescriptorLayoutHash>
-			mCache;
-		VkDevice mDevice;
+			mCache{};
+		VkDevice mDevice{};
 	};
 
 	class DescriptorAllocator;
 	namespace builder {
 		class DescriptorSetBuilder {
+		public:
 			DescriptorSetBuilder(const Device& device,
 								 DescriptorLayoutCache* cache,
 								 DescriptorAllocator* allocator);
@@ -60,11 +62,13 @@ namespace render::vulkan {
 											 VkShaderStageFlags stage_flags);
 
 			std::optional<VkDescriptorSet> build();
+			inline VkDescriptorSetLayout layout() const { return mLayout; }
 
 		private:
 			VkDevice mDevice;
 			DescriptorLayoutCache* mCache;
 			DescriptorAllocator* mAllocator;
+			VkDescriptorSetLayout mLayout{};
 			ArrayList<VkWriteDescriptorSet> mWrites;
 			ArrayList<VkDescriptorSetLayoutBinding> mBindings;
 		};

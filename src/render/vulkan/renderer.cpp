@@ -573,9 +573,39 @@ namespace render::vulkan {
 	}
 
 	void VulkanRenderer::init_descriptors() {
+		mDescriptorAllocatorPool = {mDevice};
+		mDescriptorLayoutCache = {mDevice};
+		mMainDescriptorAllocator = mDescriptorAllocatorPool.get_allocator();
 		const size_t scene_param_buffer_size =
 			MAXIMUM_FRAMES_IN_FLIGHT * pad_uniform_buffer(sizeof(SceneData));
 		mScene = {mDevice.allocator(), scene_param_buffer_size, {}};
+		{
+			for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+				mFrames[i].camera_buffer = {mDevice.allocator(),
+											sizeof(CameraData),
+											VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+											VMA_MEMORY_USAGE_CPU_TO_GPU};
+				builder::DescriptorSetBuilder builder{
+					mDevice, &mDescriptorLayoutCache,
+					&mMainDescriptorAllocator};
+				VkDescriptorBufferInfo camera_buffer_info{
+					mFrames[i].camera_buffer.handle, 0, sizeof(CameraData)};
+				VkDescriptorBufferInfo scene_buffer_info =
+					mScene.buffer_info(0);
+				mFrames[i].global_descriptor =
+					builder
+						.add_buffer(0, &camera_buffer_info,
+									VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+									VK_SHADER_STAGE_VERTEX_BIT)
+						.add_buffer(1, &scene_buffer_info,
+									VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+									VK_SHADER_STAGE_VERTEX_BIT |
+										VK_SHADER_STAGE_FRAGMENT_BIT)
+						.build()
+						.value();
+				mGlobalDescriptorSetLayout = builder.layout();
+			}
+		}
 		VkDescriptorPoolSize sizes[]{
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10},
@@ -598,8 +628,6 @@ namespace render::vulkan {
 			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-		VkDescriptorSetLayoutBinding bindings[]{cam_buffer_binding,
-												scene_buffer_binding};
 		VkDescriptorSetLayoutBinding object_buffer_binding =
 			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
@@ -608,9 +636,6 @@ namespace render::vulkan {
 			builder::descriptorset_layout_binding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT, 0);
-		VkDescriptorSetLayoutCreateInfo scene_set_ci{
-			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			std::size(bindings), bindings};
 		VkDescriptorSetLayoutCreateInfo object_set_ci{
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
 			&object_buffer_binding};
@@ -618,57 +643,31 @@ namespace render::vulkan {
 			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
 			&texture_sampler_binding};
 		VK_CHECK(vkCreateDescriptorSetLayout(mDevice.logical_device(),
-											 &scene_set_ci, nullptr,
-											 &mGlobalDescriptorSetLayout));
-		VK_CHECK(vkCreateDescriptorSetLayout(mDevice.logical_device(),
 											 &object_set_ci, nullptr,
 											 &mObjectsDescriptorSetLayout));
 		VK_CHECK(vkCreateDescriptorSetLayout(
 			mDevice.logical_device(), &sampler_descriptor_set, nullptr,
 			&mTextureSamplerDescriptorSetLayout));
 		for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
-			mFrames[i].camera_buffer = {mDevice.allocator(), sizeof(CameraData),
-										VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-										VMA_MEMORY_USAGE_CPU_TO_GPU};
 			mFrames[i].object_buffer = {mDevice.allocator(),
 										sizeof(ObjectData) * MAX_OBJECTS,
 										VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 										VMA_MEMORY_USAGE_CPU_TO_GPU};
-			VkDescriptorSetAllocateInfo scene_buffer_alloc_info{
-				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-				mDescriptorPool, 1, &mGlobalDescriptorSetLayout};
-			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
-											  &scene_buffer_alloc_info,
-											  &mFrames[i].global_descriptor));
 			VkDescriptorSetAllocateInfo objects_buffer_alloc_info{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
 				mDescriptorPool, 1, &mObjectsDescriptorSetLayout};
 			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
 											  &objects_buffer_alloc_info,
 											  &mFrames[i].object_descriptor));
-			VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
-											  &objects_buffer_alloc_info,
-											  &mFrames[i].object_descriptor));
-			VkDescriptorBufferInfo camera_buffer_info{
-				mFrames[i].camera_buffer.handle, 0, sizeof(CameraData)};
-			VkDescriptorBufferInfo scene_buffer_info = mScene.buffer_info(0);
 			VkDescriptorBufferInfo object_buffer_info{
 				mFrames[i].object_buffer.handle, 0,
 				sizeof(ObjectData) * MAX_OBJECTS};
-			VkWriteDescriptorSet camera_write =
-				builder::write_descriptor_buffer(
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-					mFrames[i].global_descriptor, &camera_buffer_info, 0);
-			VkWriteDescriptorSet scene_write = builder::write_descriptor_buffer(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-				mFrames[i].global_descriptor, &scene_buffer_info, 1);
 			VkWriteDescriptorSet objects_write =
 				builder::write_descriptor_buffer(
 					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 					mFrames[i].object_descriptor, &object_buffer_info, 0);
-			VkWriteDescriptorSet set_writes[]{camera_write, scene_write,
-											  objects_write};
-			vkUpdateDescriptorSets(mDevice.logical_device(), 3, set_writes, 0,
+			VkWriteDescriptorSet set_writes[]{objects_write};
+			vkUpdateDescriptorSets(mDevice.logical_device(), 1, set_writes, 0,
 								   nullptr);
 		}
 	}

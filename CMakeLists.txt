@@ -22,7 +22,7 @@ add_executable(Guccigedon
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)
-find_package(spirv-reflect)
+#find_package(spirv-reflect)
 find_package(SDL2)
 find_package(VulkanMemoryAllocator CONFIG)
 find_package(glm)
@@ -31,16 +31,16 @@ find_package(tinyobjloader) # but for now obj is fine. I need to get some meshes
 find_package(vk-bootstrap)
 find_package(stb)
 
-if(NOT spirv-reflect_FOUND)
-    message("Cannot find SPIRV-Reflect, using bundled version")
-    execute_process(COMMAND git submodule update --init -- vendor/SPIRV-Reflect
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-                    set(SPIRV_REFLECT_EXECUTABLE OFF)
-                    set(SPIRV_REFLECT_STATIC_LIB ON)
-    add_subdirectory(vendor/SPIRV-Reflect)
-    set(SPIRV_REFLECT_INCLUDE_DIR vendor/SPIRV-Reflect)
-    set(SPIRV_REFLECT_LIBRARY spirv-reflect-static)
-endif()
+#if(NOT spirv-reflect_FOUND)
+#    message("Cannot find SPIRV-Reflect, using bundled version")
+#    execute_process(COMMAND git submodule update --init -- vendor/SPIRV-Reflect
+#                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+#                    set(SPIRV_REFLECT_EXECUTABLE OFF)
+#                    set(SPIRV_REFLECT_STATIC_LIB ON)
+#    add_subdirectory(vendor/SPIRV-Reflect)
+#    set(SPIRV_REFLECT_INCLUDE_DIR vendor/SPIRV-Reflect)
+#    set(SPIRV_REFLECT_LIBRARY spirv-reflect-static)
+#endif()
 
 if(NOT SDL2_FOUND)
     message("Cannot find SDL2, using bundled version")

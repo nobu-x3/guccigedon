@@ -3,6 +3,8 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
+#include "render/vulkan/descriptor_allocator.h"
+#include "render/vulkan/descriptor_set_builder.h"
 #include "render/vulkan/device.h"
 #include "render/vulkan/instance.h"
 #include "render/vulkan/mesh.h"
@@ -68,6 +70,9 @@ namespace render::vulkan {
 		VkRenderPass mRenderPass{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
+		DescriptorAllocatorPool mDescriptorAllocatorPool{};
+		DescriptorLayoutCache mDescriptorLayoutCache{};
+		DescriptorAllocator mMainDescriptorAllocator{};
 		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
 		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
 		VkDescriptorSetLayout mTextureSamplerDescriptorSetLayout{};

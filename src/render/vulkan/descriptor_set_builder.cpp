@@ -162,8 +162,8 @@ namespace render::vulkan {
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr};
 			ci.bindingCount = static_cast<u32>(mBindings.size());
 			ci.pBindings = mBindings.data();
-			VkDescriptorSetLayout layout = mCache->get_layout(ci);
-			std::optional<VkDescriptorSet> set = mAllocator->allocate(layout);
+			mLayout = mCache->get_layout(ci);
+			std::optional<VkDescriptorSet> set = mAllocator->allocate(mLayout);
 			if (!set)
 				return {};
 			for (VkWriteDescriptorSet& write : mWrites) {

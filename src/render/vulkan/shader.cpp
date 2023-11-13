@@ -1,6 +1,9 @@
 #include "render/vulkan/shader.h"
 #include <fstream>
+#undef SF_SPV_REFLECT
+#ifdef SF_SPV_REFLECT
 #include <spirv_reflect.h>
+#endif
 #include "render/vulkan/builders.h"
 #include "render/vulkan/types.h"
 
@@ -108,6 +111,7 @@ namespace render::vulkan {
 		ArrayList<VkDescriptorSetLayoutBinding> bindings;
 	};
 
+	#ifdef SF_SPV_REFLECT
 	void ShaderSet::reflect_layout(VkDevice device, std::span<ReflectionOverride> overrides) {
 		std::vector<DescriptorSetLayoutData> set_layouts;
 		std::vector<VkPushConstantRange> constant_ranges;
@@ -242,4 +246,5 @@ namespace render::vulkan {
 		vkCreatePipelineLayout(device, &mesh_pipeline_layout_info, nullptr,
 							   &mPipelineLayout);
 	}
+	#endif
 } // namespace render::vulkan
