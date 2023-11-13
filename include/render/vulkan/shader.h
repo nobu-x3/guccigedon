@@ -6,6 +6,14 @@
 #include "device.h"
 
 namespace render::vulkan {
+	enum class ShaderType : u64 { VERTEX = 0x00000001, FRAGMENT = 0x00000010 };
+
+	struct Shader {
+
+		VkShaderModule module;
+		ShaderType type;
+	};
+
 	class ShaderModule {
 	public:
 		ShaderModule() = default;

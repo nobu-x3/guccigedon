@@ -4,7 +4,6 @@
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
 #include "render/vulkan/device.h"
-#include "render/vulkan/image.h"
 #include "render/vulkan/instance.h"
 #include "render/vulkan/mesh.h"
 #include "render/vulkan/scene.h"

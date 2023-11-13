@@ -69,12 +69,12 @@ namespace render::vulkan {
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		mDepthAttachment = {
 			allocator, device.logical_device(),
-			vkbuild::image_ci(mDepthFormat,
+			builder::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
 			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(renderpass, mWindowExtent);
+			builder::framebuffer_ci(renderpass, mWindowExtent);
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
@@ -149,7 +149,7 @@ namespace render::vulkan {
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		mDepthAttachment = {
 			allocator, device.logical_device(),
-			vkbuild::image_ci(mDepthFormat,
+			builder::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
 			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
@@ -233,7 +233,7 @@ namespace render::vulkan {
 			mWindowExtent = *extent;
 
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(renderpass, mWindowExtent);
+			builder::framebuffer_ci(renderpass, mWindowExtent);
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
@@ -312,12 +312,12 @@ namespace render::vulkan {
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		mDepthAttachment = {
 			mAllocator, mDevice,
-			vkbuild::image_ci(mDepthFormat,
+			builder::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
 			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(renderpass, mWindowExtent);
+			builder::framebuffer_ci(renderpass, mWindowExtent);
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {

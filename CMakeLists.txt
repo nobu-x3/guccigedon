@@ -7,16 +7,18 @@ project(Guccigedon VERSION 0.1)
 add_executable(Guccigedon
     src/main.cpp
     src/render/vulkan/renderer.cpp
-    src/render/vulkan/vulkan_builders.cpp
-    src/render/vulkan/vulkan_mesh.cpp
-    src/render/vulkan/vulkan_types.cpp
-    src/render/vulkan/vulkan_image.cpp
+    src/render/vulkan/builders.cpp
+    src/render/vulkan/mesh.cpp
+    src/render/vulkan/types.cpp
+    src/render/vulkan/image.cpp
     src/render/vulkan/device.cpp
     src/render/vulkan/instance.cpp
     src/render/vulkan/surface.cpp
     src/render/vulkan/swapchain.cpp
     src/render/vulkan/scene.cpp
-     "src/render/vulkan/shader.cpp")
+    src/render/vulkan/pipeline.cpp
+    src/render/vulkan/descriptor_allocator.cpp
+    src/render/vulkan/shader.cpp "src/render/vulkan/descriptor_set_builder.cpp")
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)

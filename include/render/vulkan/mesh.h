@@ -1,6 +1,5 @@
 #pragma once
 #include "vk_mem_alloc.h"
-#include "render/vulkan/builders.h"
 #include "render/vulkan/types.h"
 
 namespace render::vulkan {
@@ -11,7 +10,7 @@ namespace render::vulkan {
 		glm::vec3 normal;
 		glm::vec2 uv;
 
-		static vkbuild::VertexInputDescription get_description();
+		static VertexInputDescription get_description();
 	};
 
 	class Mesh {

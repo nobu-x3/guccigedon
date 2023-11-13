@@ -4,8 +4,8 @@
 
 namespace render::vulkan {
 
-	vkbuild::VertexInputDescription Vertex::get_description() {
-		vkbuild::VertexInputDescription description;
+	VertexInputDescription Vertex::get_description() {
+		VertexInputDescription description;
 		// we will have just 1 vertex buffer binding, with a per-vertex rate
 		VkVertexInputBindingDescription main_binding = {};
 		main_binding.binding = 0;
