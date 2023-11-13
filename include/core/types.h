@@ -28,8 +28,8 @@ using f64 = double;
 template <typename T>
 using ArrayList = std::vector<T>;
 
-template <typename T, typename K>
-using HashMap = std::unordered_map<T, K>;
+template <typename T, typename K, typename... Args>
+using HashMap = std::unordered_map<T, K, Args...>;
 
 struct Error {
 	std::error_code type;
