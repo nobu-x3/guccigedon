@@ -1,4 +1,4 @@
-
+#pragma once
 #include <cassert>
 #include <system_error>
 #include <unordered_map>

@@ -7,12 +7,15 @@
 #include "vulkan/vulkan_core.h"
 
 namespace render::vulkan {
+
 	class DescriptorAllocatorPool;
 
 	class DescriptorAllocator {
 	public:
 		friend DescriptorAllocatorPool;
 		DescriptorAllocator() = default;
+		DescriptorAllocator(DescriptorAllocatorPool* owner, u8 id, VkDescriptorPool handle);
+		
 		DescriptorAllocator(const DescriptorAllocator&) = delete;
 		DescriptorAllocator& operator=(const DescriptorAllocator&) = delete;
 		DescriptorAllocator(DescriptorAllocator&&) noexcept;
@@ -31,7 +34,7 @@ namespace render::vulkan {
 
 	struct PoolSize {
 		VkDescriptorType type;
-		float multiplier;
+		f32 multiplier;
 	};
 
 	struct PoolSizes {
@@ -52,25 +55,28 @@ namespace render::vulkan {
 	class DescriptorAllocatorPool {
 	public:
 		DescriptorAllocatorPool() = delete;
-		DescriptorAllocatorPool(VkDevice device, u32 frame_index,
-								u32 max_frames);
-		DescriptorAllocatorPool(VkDevice device, u32 frame_index,
-								u32 max_frames, std::span<PoolSize> pool_sizes);
+		DescriptorAllocatorPool(VkDevice device,
+								u32 max_frames = 3);
+		DescriptorAllocatorPool(
+			VkDevice device,
+			std::span<PoolSize> pool_sizes,
+								u32 max_frames = 3);
 		~DescriptorAllocatorPool();
 		DescriptorAllocatorPool(const DescriptorAllocatorPool&) = delete;
 		DescriptorAllocatorPool&
 		operator=(const DescriptorAllocatorPool&) = delete;
-		DescriptorAllocatorPool(DescriptorAllocatorPool&&);
-		DescriptorAllocatorPool& operator=(DescriptorAllocatorPool&&);
+		DescriptorAllocatorPool(DescriptorAllocatorPool&&) noexcept;
+		DescriptorAllocatorPool& operator=(DescriptorAllocatorPool&&) noexcept;
 		DescriptorAllocator&& get_allocator();
 		void return_allocator(DescriptorAllocator& allocator, bool isFull);
 		VkDescriptorPool create_pool(int count, VkDescriptorPoolCreateFlags);
+		void set_pool_size_multiplier(VkDescriptorType, f32);
 		inline VkDevice device() const { return mDevice; }
 
 	private:
 		struct PoolStorage {
-			std::vector<DescriptorAllocator> _usableAllocators;
-			std::vector<DescriptorAllocator> _fullAllocators;
+			std::vector<VkDescriptorPool> usableAllocators;
+			std::vector<VkDescriptorPool> fullAllocators;
 		};
 
 		VkDevice mDevice{};
@@ -79,6 +85,6 @@ namespace render::vulkan {
 		u32 mMaxFrames{};
 		std::mutex mPoolMutex{};
 		ArrayList<PoolStorage> mDescriptorPools{};
-		ArrayList<DescriptorAllocator> mClearedAllocators{};
+		ArrayList<VkDescriptorPool> mClearedAllocators{};
 	};
 } // namespace render::vulkan

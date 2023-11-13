@@ -17,7 +17,8 @@ add_executable(Guccigedon
     src/render/vulkan/swapchain.cpp
     src/render/vulkan/scene.cpp
     src/render/vulkan/pipeline.cpp
-     "src/render/vulkan/shader.cpp")
+    src/render/vulkan/descriptor_allocator.cpp
+    src/render/vulkan/shader.cpp)
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)
