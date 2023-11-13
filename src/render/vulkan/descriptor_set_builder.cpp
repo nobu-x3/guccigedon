@@ -1,4 +1,5 @@
 #include "render/vulkan/descriptor_set_builder.h"
+#include "render/vulkan/descriptor_allocator.h"
 
 namespace render::vulkan {
 	DescriptorLayoutCache::DescriptorLayoutCache(const Device& device) :
@@ -107,5 +108,72 @@ namespace render::vulkan {
 
 		return result;
 	}
+
+	namespace builder {
+		DescriptorSetBuilder::DescriptorSetBuilder(
+			const Device& device,
+			DescriptorLayoutCache* cache, DescriptorAllocator* allocator) :
+			mDevice(device.logical_device()),
+			mCache(cache),
+			mAllocator(allocator) {}
+
+		DescriptorSetBuilder& DescriptorSetBuilder::add_buffer(
+			u32 binding, VkDescriptorBufferInfo* buffer_info,
+			VkDescriptorType type, VkShaderStageFlags stage_flags) {
+			VkDescriptorSetLayoutBinding new_binding{};
+			new_binding.descriptorType = type;
+			new_binding.descriptorCount = 1;
+			new_binding.pImmutableSamplers = nullptr;
+			new_binding.binding = binding;
+			new_binding.stageFlags = stage_flags;
+			mBindings.push_back(new_binding);
+			VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+									   nullptr};
+			write.descriptorType = type;
+			write.descriptorCount = 1;
+			write.pBufferInfo = buffer_info;
+			write.dstBinding = binding;
+			mWrites.push_back(write);
+			return *this;
+		}
+
+		DescriptorSetBuilder& DescriptorSetBuilder::add_image(
+			u32 binding, VkDescriptorImageInfo* image_info,
+			VkDescriptorType type, VkShaderStageFlags stage_flags) {
+			VkDescriptorSetLayoutBinding new_binding{};
+			new_binding.descriptorCount = 1;
+			new_binding.descriptorType = type;
+			new_binding.pImmutableSamplers = nullptr;
+			new_binding.stageFlags = stage_flags;
+			new_binding.binding = binding;
+			VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+									   nullptr};
+			write.descriptorType = type;
+			write.descriptorCount = 1;
+			write.pImageInfo = image_info;
+			write.dstBinding = binding;
+			mBindings.push_back(new_binding);
+			return *this;
+		}
+
+		std::optional<VkDescriptorSet>
+		DescriptorSetBuilder::build() {
+			VkDescriptorSetLayoutCreateInfo ci{
+				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr};
+			ci.bindingCount = static_cast<u32>(mBindings.size());
+			ci.pBindings = mBindings.data();
+			VkDescriptorSetLayout layout = mCache->get_layout(ci);
+			std::optional<VkDescriptorSet> set = mAllocator->allocate(layout);
+			if (!set)
+				return {};
+			for (VkWriteDescriptorSet& write : mWrites) {
+				write.dstSet = set.value();
+			}
+			vkUpdateDescriptorSets(mDevice, static_cast<u32>(mWrites.size()),
+								   mWrites.data(), 0, nullptr);
+			return set;
+		}
+
+	} // namespace builder
 
 } // namespace render::vulkan

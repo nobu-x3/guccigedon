@@ -1,12 +1,12 @@
 #pragma once
 
+#include <optional>
 #include "core/types.h"
 #include "device.h"
 
 namespace render::vulkan {
 
 	struct DescriptorLayoutInfo {
-		// good idea to turn this into a inlined mCache
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 
 		bool operator==(const DescriptorLayoutInfo& other) const;
@@ -36,4 +36,37 @@ namespace render::vulkan {
 			mCache;
 		VkDevice mDevice;
 	};
+
+	class DescriptorAllocator;
+	namespace builder {
+		class DescriptorSetBuilder {
+			DescriptorSetBuilder(const Device& device,
+								 DescriptorLayoutCache* cache,
+								 DescriptorAllocator* allocator);
+			~DescriptorSetBuilder() = default;
+			DescriptorSetBuilder(const DescriptorSetBuilder&) = delete;
+			DescriptorSetBuilder(DescriptorSetBuilder&&) noexcept = delete;
+			DescriptorSetBuilder&
+			operator=(const DescriptorSetBuilder&) = delete;
+			DescriptorSetBuilder& operator=(DescriptorSetBuilder&&) = delete;
+
+			DescriptorSetBuilder&
+			add_buffer(u32 binding, VkDescriptorBufferInfo* buffer_info,
+						VkDescriptorType type, VkShaderStageFlags stage_flags);
+
+			DescriptorSetBuilder& add_image(u32 binding,
+											 VkDescriptorImageInfo* image_info,
+											 VkDescriptorType type,
+											 VkShaderStageFlags stage_flags);
+
+			std::optional<VkDescriptorSet> build();
+
+		private:
+			VkDevice mDevice;
+			DescriptorLayoutCache* mCache;
+			DescriptorAllocator* mAllocator;
+			ArrayList<VkWriteDescriptorSet> mWrites;
+			ArrayList<VkDescriptorSetLayoutBinding> mBindings;
+		};
+	} // namespace builder
 } // namespace render::vulkan
