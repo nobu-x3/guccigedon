@@ -90,16 +90,7 @@ namespace render::vulkan {
 				mesh.deinit(mDevice.allocator());
 			}
 		}
-		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
-									 mGlobalDescriptorSetLayout, nullptr);
 		mScene.destroy();
-		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
-									 mObjectsDescriptorSetLayout, nullptr);
-		vkDestroyDescriptorSetLayout(mDevice.logical_device(),
-									 mTextureSamplerDescriptorSetLayout,
-									 nullptr);
-		vkDestroyDescriptorPool(mDevice.logical_device(), mDescriptorPool,
-								nullptr);
 		if (mpWindow) {
 			SDL_DestroyWindow(mpWindow);
 		}
@@ -575,7 +566,7 @@ namespace render::vulkan {
 	void VulkanRenderer::init_descriptors() {
 		mDescriptorAllocatorPool = {mDevice};
 		mDescriptorLayoutCache = {mDevice};
-		mMainDescriptorAllocator = mDescriptorAllocatorPool.get_allocator();
+		mMainDescriptorAllocator = mDescriptorAllocatorPool.get_allocator(0);
 		const size_t scene_param_buffer_size =
 			MAXIMUM_FRAMES_IN_FLIGHT * pad_uniform_buffer(sizeof(SceneData));
 		mScene = {mDevice.allocator(), scene_param_buffer_size, {}};

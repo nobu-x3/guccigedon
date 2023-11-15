@@ -54,7 +54,7 @@ namespace render::vulkan {
 			// creation
 			if (mOwner) {
 				mOwner->return_allocator(*this, true);
-				*this = mOwner->get_allocator();
+				*this = mOwner->get_allocator(mID);
 				return allocate(layout);
 			}
 			return {};
@@ -132,10 +132,10 @@ namespace render::vulkan {
 		return *this;
 	}
 
-	DescriptorAllocator&& DescriptorAllocatorPool::get_allocator() {
+	DescriptorAllocator& DescriptorAllocatorPool::get_allocator(u32 frame) {
 		std::lock_guard<std::mutex> lock(mPoolMutex);
 		bool found = false;
-		u8 poolIndex = mFrameIndex;
+		u8 poolIndex = frame;
 		VkDescriptorPool allocator;
 		if (mClearedAllocators.size() != 0) {
 			allocator = mClearedAllocators.back();
@@ -169,6 +169,9 @@ namespace render::vulkan {
 			mDescriptorPools[allocator.id()].usableAllocators.push_back(
 				allocator.handle());
 		}
+		std::cout << "size after returning "
+				  << mDescriptorPools[allocator.id()].usableAllocators.size()
+				  << std::endl;
 	}
 
 	VkDescriptorPool

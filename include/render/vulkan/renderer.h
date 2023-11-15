@@ -71,12 +71,11 @@ namespace render::vulkan {
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
 		DescriptorAllocatorPool mDescriptorAllocatorPool{};
-		DescriptorLayoutCache mDescriptorLayoutCache{};
 		DescriptorAllocator mMainDescriptorAllocator{};
+		DescriptorLayoutCache mDescriptorLayoutCache{};
 		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
 		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
 		VkDescriptorSetLayout mTextureSamplerDescriptorSetLayout{};
-		VkDescriptorPool mDescriptorPool{};
 		Scene mScene{};
 		UploadContext mUploadContext{};
 		u32 mCurrFrame{0};

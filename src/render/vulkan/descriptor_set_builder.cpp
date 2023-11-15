@@ -23,6 +23,7 @@ namespace render::vulkan {
 	DescriptorLayoutCache::~DescriptorLayoutCache() {
 		if (mDevice) {
 			for (auto& [k, v] : mCache) {
+                core::Logger::Trace("Destroying descr layout");
 				vkDestroyDescriptorSetLayout(mDevice, v, nullptr);
 			}
 		}
