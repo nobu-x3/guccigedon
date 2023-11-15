@@ -132,7 +132,7 @@ namespace render::vulkan {
 		return *this;
 	}
 
-	DescriptorAllocator& DescriptorAllocatorPool::get_allocator(u32 frame) {
+	DescriptorAllocator&& DescriptorAllocatorPool::get_allocator(u32 frame) {
 		std::lock_guard<std::mutex> lock(mPoolMutex);
 		bool found = false;
 		u8 poolIndex = frame;

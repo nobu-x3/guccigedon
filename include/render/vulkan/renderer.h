@@ -3,6 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
+#include "gameplay/camera.h"
 #include "render/vulkan/descriptor_allocator.h"
 #include "render/vulkan/descriptor_set_builder.h"
 #include "render/vulkan/device.h"
@@ -81,5 +82,6 @@ namespace render::vulkan {
 		u32 mCurrFrame{0};
 		bool mShouldResize{false};
 		ShaderCache mShaderCache{};
+        gameplay::Camera mCamera{};
 	};
 } // namespace render::vulkan

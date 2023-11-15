@@ -71,7 +71,7 @@ namespace render::vulkan {
 		operator=(const DescriptorAllocatorPool&) = delete;
 		DescriptorAllocatorPool(DescriptorAllocatorPool&&) noexcept;
 		DescriptorAllocatorPool& operator=(DescriptorAllocatorPool&&) noexcept;
-		DescriptorAllocator& get_allocator(u32 frame);
+		DescriptorAllocator&& get_allocator(u32 frame);
 		void return_allocator(DescriptorAllocator& allocator, bool isFull);
 		VkDescriptorPool create_pool(int count, VkDescriptorPoolCreateFlags);
 		void set_pool_size_multiplier(VkDescriptorType, f32);
