@@ -110,14 +110,7 @@ namespace render::vulkan {
 		VkDeviceSize offset{0};
 		// make a model view matrix for rendering the object
 		// camera position
-		glm::vec3 camPos = {0.f, 0.f, -2.f};
-		glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
-		// camera projection
-		glm::mat4 projection = glm::perspective(
-			glm::radians(70.f),
-			static_cast<f32>(mWindowExtent.width) / mWindowExtent.height, 0.1f,
-			200.0f);
-		projection[1][1] *= -1;
+		mCamera.transform.position({0.f, 0.f, 2.f});
 		// model rotation
 		glm::mat4 model =
 			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.01f),
@@ -126,9 +119,9 @@ namespace render::vulkan {
 		MeshPushConstant constants;
 		constants.render_matrix = model;
 		CameraData cam_data = {};
-		cam_data.proj = projection;
-		cam_data.view = view;
-		cam_data.view_proj = projection * view;
+		cam_data.proj = mCamera.projection;
+		cam_data.view = mCamera.view();
+		cam_data.view_proj = mCamera.view_proj();
 		void* data; // classic approach
 		vmaMapMemory(mDevice.allocator(), frame_data.camera_buffer.memory,
 					 &data);
@@ -448,6 +441,10 @@ namespace render::vulkan {
 
 	void VulkanRenderer::init_scene() {
 		{
+			mCamera = {glm::radians(70.f),
+					   static_cast<f32>(mWindowExtent.width) /
+						   mWindowExtent.height,
+					   0.1f, 200.0f};
 			mShaderCache = {mDevice};
 			Material material{};
 			builder::PipelineBuilder builder;
@@ -573,10 +570,10 @@ namespace render::vulkan {
 		{
 			for (int i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
 				{
-					mFrames[i].camera_buffer = {mDevice.allocator(),
-												sizeof(CameraData),
-												VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-												VMA_MEMORY_USAGE_CPU_TO_GPU};
+					mFrames[i].camera_buffer = {
+						mDevice.allocator(), sizeof(CameraData),
+						VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+						VMA_MEMORY_USAGE_CPU_TO_GPU};
 					VkDescriptorBufferInfo camera_buffer_info{
 						mFrames[i].camera_buffer.handle, 0, sizeof(CameraData)};
 					VkDescriptorBufferInfo scene_buffer_info =
@@ -589,10 +586,11 @@ namespace render::vulkan {
 							.add_buffer(0, &camera_buffer_info,
 										VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 										VK_SHADER_STAGE_VERTEX_BIT)
-							.add_buffer(1, &scene_buffer_info,
-										VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-										VK_SHADER_STAGE_VERTEX_BIT |
-											VK_SHADER_STAGE_FRAGMENT_BIT)
+							.add_buffer(
+								1, &scene_buffer_info,
+								VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+								VK_SHADER_STAGE_VERTEX_BIT |
+									VK_SHADER_STAGE_FRAGMENT_BIT)
 							.build()
 							.value();
 					mGlobalDescriptorSetLayout = builder.layout();
@@ -608,12 +606,13 @@ namespace render::vulkan {
 					builder::DescriptorSetBuilder builder{
 						mDevice, &mDescriptorLayoutCache,
 						&mMainDescriptorAllocator};
-					mFrames[i].object_descriptor = builder
-						.add_buffer(0, &object_buffer_info,
-									VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-									VK_SHADER_STAGE_VERTEX_BIT)
-						.build()
-						.value();
+					mFrames[i].object_descriptor =
+						builder
+							.add_buffer(0, &object_buffer_info,
+										VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+										VK_SHADER_STAGE_VERTEX_BIT)
+							.build()
+							.value();
 					mObjectsDescriptorSetLayout = builder.layout();
 				}
 			}

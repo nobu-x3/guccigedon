@@ -13,7 +13,7 @@ namespace render::vulkan {
 		// open the file. With cursor at the end
 		std::ifstream file(filepath.data(), std::ios::ate | std::ios::binary);
 		if (!file.is_open()) {
-			core::Logger::Error("Failed to open shader code at path %s",
+			core::Logger::Error("Failed to open shader code at path {}",
 								filepath);
 			throw std::exception();
 		}
