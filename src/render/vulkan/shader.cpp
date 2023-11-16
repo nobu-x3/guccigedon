@@ -57,7 +57,7 @@ namespace render::vulkan {
 		mHandle = other.mHandle;
 		mDevice = other.mDevice;
 		mLifetime = ObjectLifetime::TEMP;
-		mCode = std::move(other.mCode);
+		mCode = other.mCode;
 		return *this;
 	}
 
