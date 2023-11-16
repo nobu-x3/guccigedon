@@ -582,7 +582,7 @@ namespace render::vulkan {
 						mDevice, &mDescriptorLayoutCache,
 						&mMainDescriptorAllocator};
 					mFrames[i].global_descriptor =
-						builder
+						std::move(builder
 							.add_buffer(0, &camera_buffer_info,
 										VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 										VK_SHADER_STAGE_VERTEX_BIT)
@@ -592,7 +592,7 @@ namespace render::vulkan {
 								VK_SHADER_STAGE_VERTEX_BIT |
 									VK_SHADER_STAGE_FRAGMENT_BIT)
 							.build()
-							.value();
+							.value());
 					mGlobalDescriptorSetLayout = builder.layout();
 				}
 				{
@@ -607,12 +607,12 @@ namespace render::vulkan {
 						mDevice, &mDescriptorLayoutCache,
 						&mMainDescriptorAllocator};
 					mFrames[i].object_descriptor =
-						builder
+						std::move(builder
 							.add_buffer(0, &object_buffer_info,
 										VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 										VK_SHADER_STAGE_VERTEX_BIT)
 							.build()
-							.value();
+							.value());
 					mObjectsDescriptorSetLayout = builder.layout();
 				}
 			}
