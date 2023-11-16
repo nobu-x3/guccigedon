@@ -35,7 +35,9 @@ namespace core {
 			// It's done so that Logger had it's own thread where it does the
 			// actual logging without blocking other threads. This needs
 			// testing, might be a-ok with context switch.
-			auto f = std::async(std::launch::async, serialize, str);
+			//auto f = std::async(std::launch::async, serialize, str);
+			std::cout << view;
+			std::cout.flush();
 		}
 
 		template <typename... Args>
