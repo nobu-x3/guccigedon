@@ -12,12 +12,12 @@ namespace gameplay {
 		Transform transform{};
 		glm::mat4x4 projection{1.0};
 
-		inline glm::mat4x4 view() const {
-			glm::vec3 pos = transform.position();
-			pos *= -1;
-			return glm::translate(glm::mat4(1.f), pos);
+		inline glm::mat4x4 view() {
+			return glm::lookAt(transform.position(),
+							   transform.position() + transform.forward(),
+							   transform.up());
 		}
 
-		glm::mat4x4 view_proj() const { return projection * view(); }
+		glm::mat4x4 view_proj() { return projection * view(); }
 	};
 } // namespace gameplay

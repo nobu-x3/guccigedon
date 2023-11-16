@@ -13,6 +13,7 @@
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
 #include "core/logger.h"
+#include "core/input.h"
 #include "render/vulkan/builders.h"
 #include "render/vulkan/pipeline.h"
 #include "render/vulkan/types.h"
@@ -265,7 +266,7 @@ namespace render::vulkan {
 		depth_clear.depthStencil.depth = 1.f;
 		VkRenderPassBeginInfo renderpass_info = builder::renderpass_begin_info(
 			mRenderPass, mWindowExtent, mSwapchain.framebuffers()[image_index]);
-		float flash = abs(sin(mCurrFrame / 120.f));
+		float flash = abs(sin(mCurrFrame / 1200.f));
 		color_clear.color = {{0.f, 0.f, flash, 1.f}};
 		VkClearValue clear_values[]{color_clear, depth_clear};
 		renderpass_info.clearValueCount = 2;
@@ -273,7 +274,11 @@ namespace render::vulkan {
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
+	constexpr float sens_v = 2.f;
+	constexpr float sens_h = 2.f;
+
 	void VulkanRenderer::run() {
+		static core::MouseState last_state{};
 		SDL_Event e;
 		bool quit = false;
 		while (!quit) {
@@ -285,6 +290,16 @@ namespace render::vulkan {
 					core::Logger::Trace("Resizing set");
 					mShouldResize = true;
 				}
+				auto state = core::InputSystem::mouse_state();
+				if (state.RMB) {
+					auto euler = mCamera.transform.euler();
+					core::Logger::Trace("{} {} {}", mCamera.transform.euler().x,
+										mCamera.transform.euler().y, mCamera.transform.euler().z);
+					euler.y += -1 * sens_h * (state.position.x - last_state.position.x);
+					euler.x += sens_v * (state.position.y - last_state.position.y);
+					mCamera.transform.rotation(euler);
+				}
+				last_state = state;
 			}
 			draw();
 		}

@@ -58,6 +58,8 @@ namespace render::vulkan {
 		void draw();
 		void run();
 
+		inline SDL_Window* window() const { return mpWindow; }
+
 		// I'm obviously not gonna keep all this in this megaclass.
 		// This is temporary, I'll refactor once I get it running.
 
