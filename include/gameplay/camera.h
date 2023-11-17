@@ -13,9 +13,11 @@ namespace gameplay {
 		glm::mat4x4 projection{1.0};
 
 		inline glm::mat4x4 view() {
-			return glm::lookAt(transform.position(),
-							   transform.position() + transform.forward(),
-							   transform.up());
+			glm::mat4 view =
+				glm::translate(glm::mat4{1}, transform.position()) *
+				transform.rotation_matrix();
+			view = glm::inverse(view);
+			return view;
 		}
 
 		glm::mat4x4 view_proj() { return projection * view(); }

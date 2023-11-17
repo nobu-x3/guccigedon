@@ -26,20 +26,10 @@ namespace gameplay {
 			return *this;
 		}
 
-		inline Transform& rotation(const glm::vec3& rotation) {
-			mEulerAngles = rotation;
-			mRotation = glm::quat(rotation);
-			mDirty = true;
-			mForward.x =
-				cos(glm::radians(rotation.y) * cos(glm::radians(rotation.x)));
-			mForward.y = sin(glm::radians(rotation.x));
-			mForward.z =
-				sin(glm::radians(rotation.y) * cos(glm::radians(rotation.x)));
-			// @NOTE: not sure if normalization is ok...
-			mForward = glm::normalize(mForward);
-			mRight = glm::normalize(glm::cross(mForward, {0.0, 1.0, 0.0}));
-			mUp = glm::normalize(glm::cross(mRight, mForward));
-			return *this;
+		Transform& rotation(const glm::vec3& rotation);
+
+		inline const glm::mat4& rotation_matrix() const {
+			return mRotationMatrix;
 		}
 
 	private:
@@ -52,5 +42,6 @@ namespace gameplay {
 		glm::vec3 mRight{1.0, 0.0, 0.0};
 		glm::vec3 mForward{0.0, 0.0, -1.0};
 		glm::vec3 mUp{0.0, 1.0, 0.0};
+		glm::mat4x4 mRotationMatrix{1};
 	};
 } // namespace gameplay
