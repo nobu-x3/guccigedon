@@ -56,6 +56,8 @@ namespace render::vulkan {
 		}
 
 		void draw();
+
+		// TEMP, @TODO: move this to engine
 		void run();
 
 		inline SDL_Window* window() const { return mpWindow; }

@@ -13,7 +13,8 @@ namespace core {
 
 	MouseState InputSystem::mouse_state() {
 		MouseState state{};
-		u32 buttons{SDL_GetMouseState(&state.position.x, &state.position.y)};
+		int x, y;
+		u32 buttons{SDL_GetMouseState(&x, &y)};
 		if (buttons & SDL_BUTTON_LMASK) {
 			state.LMB = true;
 		}

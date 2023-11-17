@@ -5,8 +5,9 @@
 
 namespace gameplay {
 
-    template<typename T>
-        concept WorldObject = requires(T t){
-            {t.transform} -> std::same_as<glm::mat4>;
-        };
+	template <typename T>
+	concept WorldObject = requires(T t) {
+		{ t.transform } -> std::same_as<glm::mat4>;
+		{ t.update() } -> void;
+	};
 }

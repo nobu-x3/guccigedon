@@ -405,7 +405,6 @@ namespace core {
 
 	struct MouseState {
 		bool RMB = false, LMB = false;
-		MousePosition position{};
 	};
 
 	class InputSystem {

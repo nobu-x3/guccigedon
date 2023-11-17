@@ -274,11 +274,9 @@ namespace render::vulkan {
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	constexpr float sens_v = 0.002f;
-	constexpr float sens_h = 0.002f;
 
 	void VulkanRenderer::run() {
-		static core::MouseState last_state{};
+		static ;
 		SDL_Event e;
 		bool quit = false;
 		while (!quit) {
@@ -290,15 +288,9 @@ namespace render::vulkan {
 					core::Logger::Trace("Resizing set");
 					mShouldResize = true;
 				}
-				auto state = core::InputSystem::mouse_state();
-				if (state.RMB) {
-					auto euler = mCamera.transform.euler();
-					euler.y += sens_h * (state.position.x - last_state.position.x);
-					euler.x += sens_v * (state.position.y - last_state.position.y);
-					mCamera.transform.rotation(euler);
-				}
-				last_state = state;
+				mCamera.input.process_input_event(&e);
 			}
+			mCamera.update(0);
 			draw();
 		}
 	}

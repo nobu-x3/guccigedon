@@ -7,4 +7,14 @@ namespace gameplay {
 		projection[1][1] *= -1;
 	}
 
+	void Camera::update(f32 dt) {
+		if (input.mouse_state.RMB) {
+			auto euler = transform.euler();
+			euler.y += input.mouse_delta_x;
+			euler.x += input.mouse_delta_y;
+			transform.rotation(euler);
+		}
+		input.reset();
+	}
+
 } // namespace gameplay
