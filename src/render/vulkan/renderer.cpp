@@ -12,8 +12,8 @@
 #include <iterator>
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
-#include "core/logger.h"
 #include "core/input.h"
+#include "core/logger.h"
 #include "render/vulkan/builders.h"
 #include "render/vulkan/pipeline.h"
 #include "render/vulkan/types.h"
@@ -41,6 +41,7 @@ namespace render::vulkan {
 		init_sync_objects();
 		init_descriptors();
 		init_scene();
+		mCamera.transform.position({0.f, 0.f, 2.f});
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -110,8 +111,6 @@ namespace render::vulkan {
 		// insert actual commands
 		VkDeviceSize offset{0};
 		// make a model view matrix for rendering the object
-		// camera position
-		mCamera.transform.position({0.f, 0.f, 2.f});
 		// model rotation
 		glm::mat4 model =
 			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.01f),
@@ -274,9 +273,8 @@ namespace render::vulkan {
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-
 	void VulkanRenderer::run() {
-		static ;
+		static;
 		SDL_Event e;
 		bool quit = false;
 		while (!quit) {
@@ -288,9 +286,12 @@ namespace render::vulkan {
 					core::Logger::Trace("Resizing set");
 					mShouldResize = true;
 				}
-				mCamera.input.process_input_event(&e);
+				;
+				if (core::InputSystem::mouse_state().RMB) {
+					mCamera.input.process_input_event(&e);
+				}
 			}
-			mCamera.update(0);
+			mCamera.update(1);
 			draw();
 		}
 	}
@@ -586,8 +587,8 @@ namespace render::vulkan {
 					builder::DescriptorSetBuilder builder{
 						mDevice, &mDescriptorLayoutCache,
 						&mMainDescriptorAllocator};
-					mFrames[i].global_descriptor =
-						std::move(builder
+					mFrames[i].global_descriptor = std::move(
+						builder
 							.add_buffer(0, &camera_buffer_info,
 										VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 										VK_SHADER_STAGE_VERTEX_BIT)
@@ -611,8 +612,8 @@ namespace render::vulkan {
 					builder::DescriptorSetBuilder builder{
 						mDevice, &mDescriptorLayoutCache,
 						&mMainDescriptorAllocator};
-					mFrames[i].object_descriptor =
-						std::move(builder
+					mFrames[i].object_descriptor = std::move(
+						builder
 							.add_buffer(0, &object_buffer_info,
 										VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 										VK_SHADER_STAGE_VERTEX_BIT)

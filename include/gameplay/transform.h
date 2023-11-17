@@ -2,6 +2,8 @@
 
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include "core/types.h"
+#include "core/logger.h"
 
 namespace gameplay {
 	class Transform {

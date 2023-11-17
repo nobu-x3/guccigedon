@@ -21,7 +21,7 @@ add_executable(Guccigedon
     src/render/vulkan/shader.cpp
     src/render/vulkan/descriptor_set_builder.cpp
     src/gameplay/camera.cpp
-    src/gameplay/transform.cpp "src/core/input.cpp" "src/gameplay/input_component.cpp")
+    src/gameplay/transform.cpp "src/core/input.cpp" "src/gameplay/input_component.cpp" "src/gameplay/movement_component.cpp")
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)

@@ -9,7 +9,7 @@ namespace gameplay {
 		if (mDirty) {
 			glm::mat4 scale = glm::scale(mScale);
 			glm::mat4 rot = glm::toMat4(mRotation);
-			glm::mat4 transl = glm::translate(glm::mat4(), mPosition);
+			glm::mat4 transl = glm::translate(glm::mat4(1), mPosition);
 			mTransform = transl * rot * scale;
 			mDirty = false;
 		}

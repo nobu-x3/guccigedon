@@ -1,4 +1,5 @@
 #include "gameplay/camera.h"
+#include <core/logger.h>
 #include <glm/ext/matrix_transform.hpp>
 
 namespace gameplay {
@@ -8,12 +9,17 @@ namespace gameplay {
 	}
 
 	void Camera::update(f32 dt) {
-		if (input.mouse_state.RMB) {
-			auto euler = transform.euler();
-			euler.y += input.mouse_delta_x;
-			euler.x += input.mouse_delta_y;
-			transform.rotation(euler);
-		}
+		auto euler = transform.euler();
+		euler.y += input.mouse_delta_x;
+		euler.x += input.mouse_delta_y;
+		transform.rotation(euler);
+		movement.velocity = -input.input_axis.x * transform.forward() +
+			input.input_axis.y * transform.right() +
+			input.input_axis.z * transform.up();
+		movement.velocity *= dt * movement.speed;
+		auto position = transform.position();
+		position += movement.velocity;
+		transform.position(position);
 		input.reset();
 	}
 
