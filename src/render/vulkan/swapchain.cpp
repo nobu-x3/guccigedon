@@ -14,7 +14,8 @@ namespace render::vulkan {
 		mDevice(device.logical_device()),
 		mPhysicalDevice(device.physical_device()), mWindowExtent(window_extent),
 		mSurface(surface.surface()), mAllocator(allocator),
-		mLifetime(ObjectLifetime::OWNED), mSwapchainDescription(surface.surface(), device.physical_device()) {
+		mLifetime(ObjectLifetime::OWNED),
+		mSwapchainDescription(surface.surface(), device.physical_device()) {
 		u32 img_count{};
 		img_count = mSwapchainDescription.capabilities.minImageCount + 1;
 		if (mSwapchainDescription.capabilities.maxImageCount > 0 &&
@@ -322,6 +323,10 @@ namespace render::vulkan {
 		imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		imgAllocCi.requiredFlags =
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		// @NOTE: I'm sure this is unacceptable by c++ gurus but I think it's
+		// okay. A workaround to this would be to add a destroy() method to
+		// Image which you'd call explicitly.
+		mDepthAttachment.~Image();
 		mDepthAttachment = {
 			mAllocator, mDevice,
 			builder::image_ci(mDepthFormat,
