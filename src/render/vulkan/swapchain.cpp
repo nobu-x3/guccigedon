@@ -165,6 +165,9 @@ namespace render::vulkan {
 		mSwapchainImageViews = swapchain.mSwapchainImageViews;
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
 		mFramebuffers = swapchain.mFramebuffers;
+		mSurface = swapchain.mSurface;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
+		mAllocator = swapchain.mAllocator;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 	}
 
@@ -178,6 +181,9 @@ namespace render::vulkan {
 		std::swap(mSwapchainImageViews, swapchain.mSwapchainImageViews);
 		std::swap(mFramebuffers, swapchain.mFramebuffers);
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
+		mSurface = swapchain.mSurface;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
+		mAllocator = swapchain.mAllocator;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 	}
 
@@ -191,6 +197,9 @@ namespace render::vulkan {
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
 		mFramebuffers = swapchain.mFramebuffers;
 		mDevice = swapchain.mDevice;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
+		mSurface = swapchain.mSurface;
+		mAllocator = swapchain.mAllocator;
 		mLifetime = ObjectLifetime::OWNED;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 		return *this;
@@ -201,6 +210,8 @@ namespace render::vulkan {
 		mDepthFormat = swapchain.mDepthFormat;
 		mDepthAttachment = swapchain.mDepthAttachment;
 		mWindowExtent = swapchain.mWindowExtent;
+		mSurface = swapchain.mSurface;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
 		std::swap(mSwapchainImages, swapchain.mSwapchainImages);
 		std::swap(mSwapchainImageViews, swapchain.mSwapchainImageViews);
 		std::swap(mFramebuffers, swapchain.mFramebuffers);
@@ -208,6 +219,7 @@ namespace render::vulkan {
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 		mLifetime = ObjectLifetime::OWNED;
 		mDevice = swapchain.mDevice;
+		mAllocator = swapchain.mAllocator;
 		return *this;
 	}
 

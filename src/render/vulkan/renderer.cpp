@@ -143,37 +143,25 @@ namespace render::vulkan {
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
-		/* std::chrono::time_point<std::chrono::high_resolution_clock>
-		 * start_time {std::chrono::high_resolution_clock::now()}; */
-		/* std::ranges::for_each(mMaterialMap, [&](auto& entry) { */
-		/* 	vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
-		/* 					  entry.first.pipeline); */
-		/* 	vkCmdBindDescriptorSets( */
-		/* 		buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
-		 */
-		/* 		&frame_data.global_descriptor, 1, &uniform_offset); */
-		/* 	vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
-		/* 							entry.first.layout, 1, 1, */
-		/* 							&frame_data.object_descriptor, 0, nullptr);
-		 */
-		/* 	if (entry.first.textureSet != VK_NULL_HANDLE) { */
-		/* 		vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
-		/* 								entry.first.layout, 2, 1, */
-		/* 								&entry.first.textureSet, 0, nullptr); */
-		/* 	} */
-		/* 	std::ranges::for_each(entry.second, [&](Mesh& mesh) { */
-		/* 		vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
-		 */
-		/* 		// upload the matrix to the GPU via push constants */
-		/* 		vkCmdPushConstants(buf, entry.first.layout, */
-		/* 						   VK_SHADER_STAGE_VERTEX_BIT, 0, */
-		/* 						   sizeof(MeshPushConstant), &constants); */
-		/* 		vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0); */
-		/* 	}); */
-		/* }); */
+		bool first_bind = true;
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
 			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							  entry.first.pipeline);
+			if (first_bind) {
+				VkViewport vp{};
+				vp.height = static_cast<f32>(mWindowExtent.height);
+				vp.width = static_cast<f32>(mWindowExtent.width);
+				vp.maxDepth = 1.f;
+				vp.minDepth = 0.f;
+				vp.x = 0.f;
+				vp.y = 0.f;
+				vkCmdSetViewport(buf, 0, 1, &vp);
+				VkRect2D scissor{};
+				scissor.offset = {0, 0};
+				scissor.extent = mWindowExtent;
+				vkCmdSetScissor(buf, 0, 1, &scissor);
+				first_bind = false;
+			}
 			vkCmdBindDescriptorSets(
 				buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
 				&frame_data.global_descriptor, 1, &uniform_offset);
@@ -228,11 +216,13 @@ namespace render::vulkan {
 								 &frame_data.render_fence, true, 1000000000));
 		if (mShouldResize) {
 			int w, h;
-			SDL_GetWindowSize(mpWindow, &w, &h);
+			SDL_Vulkan_GetDrawableSize(mpWindow, &w, &h);
 			core::Logger::Warning("Resizing in get next imag {}, {}", w, h);
 			mWindowExtent = {static_cast<uint32_t>(w),
 							 static_cast<uint32_t>(h)};
 			mSwapchain.rebuild(w, h, mRenderPass);
+			mCamera.aspect = w / (f32)h;
+			mCamera.build_projection();
 			mShouldResize = false;
 		}
 		VK_CHECK(vkResetFences(mDevice.logical_device(), 1,
@@ -244,12 +234,13 @@ namespace render::vulkan {
 			frame_data.present_semaphore, nullptr, &image_index);
 		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
 			int w, h;
-			SDL_GetWindowSize(mpWindow, &w, &h);
+			SDL_Vulkan_GetDrawableSize(mpWindow, &w, &h);
 			core::Logger::Warning("Resizing in get next image: {}, {}", w, h);
 			mWindowExtent = {static_cast<uint32_t>(w),
 							 static_cast<uint32_t>(h)};
 			mSwapchain.rebuild(w, h, mRenderPass);
-			return;
+			mCamera.aspect = w / (f32)h;
+			mCamera.build_projection();
 		} else if (res != VK_SUCCESS) {
 			core::Logger::Error("Cannot acquire next image. {}",
 								static_cast<u32>(res));
@@ -285,8 +276,7 @@ namespace render::vulkan {
 						 e.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
 					core::Logger::Trace("Resizing set");
 					mShouldResize = true;
-				}
-				;
+				};
 				if (core::InputSystem::mouse_state().RMB) {
 					mCamera.input.process_input_event(&e);
 				}
@@ -468,7 +458,6 @@ namespace render::vulkan {
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
 					.set_polygon_mode(VK_POLYGON_MODE_FILL)
-					// @TODO: cull mode
 					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
 								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.set_multisampling_enabled(false)
@@ -479,14 +468,15 @@ namespace render::vulkan {
 					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
 					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
 					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
-					/* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) */
-					/* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) */
+					.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
+					.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
 					/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
 					.add_viewport(
 						{0, 0, static_cast<float>(mWindowExtent.width),
 						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
 					.add_scissor({{0, 0}, mWindowExtent})
 					.build_layout(mDevice.logical_device());
+
 			material.pipeline =
 				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
 			Mesh monkeyMesh{};

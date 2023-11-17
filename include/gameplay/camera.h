@@ -11,10 +11,17 @@ namespace gameplay {
 		Camera() = default;
 		Camera(f32 fov, f32 aspect, f32 near, f32 far);
 
+		void build_projection();
+
 		Transform transform{};
 		InputComponent input{};
 		MovementComponent movement{};
 		glm::mat4x4 projection{1.0};
+
+		f32 fov;
+		f32 aspect;
+		f32 near;
+		f32 far;
 
 		inline glm::mat4x4 view() {
 			glm::mat4 view =
