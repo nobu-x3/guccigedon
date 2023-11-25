@@ -265,7 +265,6 @@ namespace render::vulkan {
 	}
 
 	void VulkanRenderer::run() {
-		static;
 		SDL_Event e;
 		bool quit = false;
 		while (!quit) {

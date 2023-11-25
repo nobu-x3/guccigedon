@@ -31,13 +31,7 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			// This will spawn a new thread. Some compilers reuse it.
-			// It's done so that Logger had it's own thread where it does the
-			// actual logging without blocking other threads. This needs
-			// testing, might be a-ok with context switch.
-			//auto f = std::async(std::launch::async, serialize, str);
-			std::cout << view;
-			std::cout.flush();
+            get().push(view);
 		}
 
 		template <typename... Args>
@@ -49,7 +43,7 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			auto f = std::async(std::launch::async, serialize, str);
+            get().push(view);
 		}
 
 		template <typename... Args>
@@ -61,7 +55,7 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			auto f = std::async(std::launch::async, serialize, str);
+            get().push(view);
 		}
 
 		template <typename... Args>
@@ -73,29 +67,22 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			auto f = std::async(std::launch::async, serialize, str);
+            get().push(view);
 		}
 
 	private:
-		std::stringstream mStream;
-		std::mutex mLogMutex;
+        static Logger* instance;
+		std::stringstream mStream{};
+		std::mutex mLogMutex{};
+        std::condition_variable mCV{};
+        std::jthread mThread;
+        bool bEmpty {false};
 
 	private:
-		Logger() = default;
-		static Logger& instance() {
-			static Logger instance;
-			return instance;
-		}
-
-		static void serialize(std::string_view formatted_message) {
-			// Same stuff since we only have mutex
-			/* std::lock_guard<std::mutex> lock(instance().mLogMutex); */
-			std::scoped_lock lock(instance().mLogMutex);
-			instance().mStream << formatted_message;
-			std::cout << instance().mStream.str();
-			std::cout.flush();
-			instance().mStream.clear();
-		}
+		Logger();
+        static Logger& get();
+        void push(std::string_view);
+        void serialize();
 	};
 
 } // namespace core

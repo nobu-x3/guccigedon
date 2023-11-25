@@ -6,6 +6,7 @@ project(Guccigedon VERSION 0.1)
 
 add_executable(Guccigedon
     src/main.cpp
+    src/core/logger.cpp
     src/render/vulkan/renderer.cpp
     src/render/vulkan/builders.cpp
     src/render/vulkan/mesh.cpp
