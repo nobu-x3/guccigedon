@@ -4,7 +4,7 @@
 #include "core/input.h"
 
 int main() {
-    render::vulkan::VulkanRenderer renderer {};
+   render::vulkan::VulkanRenderer renderer {};
 	core::InputSystem::show_cursor(true);
 	//core::InputSystem::set_window_grab(renderer.window(), false);
     renderer.run();

@@ -16,18 +16,17 @@ namespace core {
 	void Logger::serialize() {
 		while (true) {
 			std::unique_lock<std::mutex> lock(mLogMutex);
-			mCV.wait(lock,
-					 [] { return !instance->bEmpty; });
+			mCV.wait(lock, [] { return !instance->bEmpty; });
 			std::cout << mStream.view() << std::endl;
 			mStream.clear();
-            bEmpty = true;
+			bEmpty = true;
 		}
 	}
 
 	void Logger::push(std::string_view view) {
 		std::unique_lock<std::mutex> lock(mLogMutex);
 		mStream << view;
-        bEmpty = false;
+		bEmpty = false;
 		mCV.notify_one();
 	}
 

@@ -147,13 +147,14 @@ namespace render::vulkan {
 			new_binding.pImmutableSamplers = nullptr;
 			new_binding.stageFlags = stage_flags;
 			new_binding.binding = binding;
+			mBindings.push_back(new_binding);
 			VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 									   nullptr};
 			write.descriptorType = type;
 			write.descriptorCount = 1;
 			write.pImageInfo = image_info;
 			write.dstBinding = binding;
-			mBindings.push_back(new_binding);
+			// mWrites.push_back(write);
 			return *this;
 		}
 

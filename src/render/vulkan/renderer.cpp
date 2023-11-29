@@ -434,127 +434,6 @@ namespace render::vulkan {
 							   nullptr, &mUploadContext.upload_fence));
 	}
 
-	void VulkanRenderer::init_scene() {
-		{
-			mCamera = {glm::radians(70.f),
-					   static_cast<f32>(mWindowExtent.width) /
-						   mWindowExtent.height,
-					   0.1f, 200.0f};
-			mShaderCache = {mDevice};
-			Material material{};
-			builder::PipelineBuilder builder;
-			material.layout =
-				builder
-					.add_shader_module(
-						mShaderCache.get_shader(
-							"assets/shaders/default_shader.vert.glsl.spv"),
-						ShaderType::VERTEX)
-					.add_shader_module(
-						mShaderCache.get_shader(
-							"assets/shaders/default_shader.frag.glsl.spv"),
-						ShaderType::FRAGMENT)
-					.set_vertex_input_description(Vertex::get_description())
-					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-										false)
-					.set_polygon_mode(VK_POLYGON_MODE_FILL)
-					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
-								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
-					.set_multisampling_enabled(false)
-					.add_default_color_blend_attachment()
-					.set_color_blending_enabled(false)
-					.add_push_constant(sizeof(MeshPushConstant),
-									   VK_SHADER_STAGE_VERTEX_BIT)
-					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
-					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
-					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
-					.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
-					.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
-					/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
-					.add_viewport(
-						{0, 0, static_cast<float>(mWindowExtent.width),
-						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
-					.add_scissor({{0, 0}, mWindowExtent})
-					.build_layout(mDevice.logical_device());
-
-			material.pipeline =
-				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
-			Mesh monkeyMesh{};
-			monkeyMesh.load_from_obj("assets/models/monkey.obj");
-			upload_mesh(monkeyMesh);
-			add_material_to_mesh(material, monkeyMesh);
-		}
-		/* { */
-		/* 	Material material{}; */
-		/* 	VkSamplerCreateInfo sampler_info = */
-		/* 		builder::sampler_create_info(VK_FILTER_NEAREST); */
-		/* 	VkSampler sampler; */
-		/* 	vkCreateSampler(mDevice.logical_device(), &sampler_info, nullptr, */
-		/* 					&sampler); */
-		/* 	VkDescriptorSetAllocateInfo texture_alloc_info{ */
-		/* 		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, */
-		/* 		mDescriptorPool, 1, &mTextureSamplerDescriptorSetLayout}; */
-		/* 	VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(), */
-		/* 									  &texture_alloc_info, */
-		/* 									  &material.textureSet)); */
-		/* 	Image texture{"assets/textures/lost_empire-RGBA.png",
-		 * mDevice.allocator(), */
-		/* 				  mDevice.logical_device(), *this}; */
-		/* 	VkDescriptorImageInfo image_buf_info{ */
-		/* 		sampler, texture.view, */
-		/* 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}; */
-		/* 	VkWriteDescriptorSet tex_write = builder::write_descriptor_image( */
-		/* 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet,
-		 */
-		/* 		&image_buf_info, 0); */
-		/* 	vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write, 0,
-		 */
-		/* 						   nullptr); */
-		/* 	builder::PipelineBuilder builder; */
-		/* 	material.layout = */
-		/* 		builder */
-		/* 			.add_shader(mDevice.logical_device(), */
-		/* 						"assets/shaders/textured_mesh.vert.glsl.spv", */
-		/* 						builder::ShaderType::VERTEX) */
-		/* 			.add_shader(mDevice.logical_device(), */
-		/* 						"assets/shaders/textured_mesh.frag.glsl.spv", */
-		/* 						builder::ShaderType::FRAGMENT) */
-		/* 			.set_vertex_input_description(Vertex::get_description()) */
-		/* 			.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, */
-		/* 								false) */
-		/* 			.set_polygon_mode(VK_POLYGON_MODE_FILL) */
-		/* 			// @TODO: cull mode */
-		/* 			.set_cull_mode(VK_CULL_MODE_BACK_BIT, */
-		/* 						   VK_FRONT_FACE_COUNTER_CLOCKWISE) */
-		/* 			.set_multisampling_enabled(false) */
-		/* 			.add_default_color_blend_attachment() */
-		/* 			.set_color_blending_enabled(false) */
-		/* 			.add_push_constant(sizeof(MeshPushConstant), */
-		/* 							   VK_SHADER_STAGE_VERTEX_BIT) */
-		/* 			.add_descriptor_set_layout(mGlobalDescriptorSetLayout) */
-		/* 			.add_descriptor_set_layout(mObjectsDescriptorSetLayout) */
-		/* 			.add_descriptor_set_layout( */
-		/* 				mTextureSamplerDescriptorSetLayout) */
-		/* 			.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
-		 */
-		/* 			/1* .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT) *1/ */
-		/* 			/1* .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR) *1/ */
-		/* 			/1* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) *1/ */
-		/* 			.add_viewport( */
-		/* 				{0, 0, static_cast<float>(mWindowExtent.width), */
-		/* 				 static_cast<float>(mWindowExtent.height), 0.f, 1.f}) */
-		/* 			.add_scissor({{0, 0}, mWindowExtent}) */
-		/* 			.build_layout(mDevice.logical_device()); */
-		/* 	material.pipeline = */
-		/* 		builder.build_pipeline(mDevice.logical_device(), mRenderPass);
-		 */
-		/* 	Mesh lost_empire{}; */
-		/* 	lost_empire.load_from_obj("assets/models/lost_empire.obj"); */
-		/* 	upload_mesh(lost_empire); */
-		/* 	add_material_to_mesh(material, lost_empire); */
-		/* } */
-		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
-	}
-
 	void VulkanRenderer::init_descriptors() {
 		mDescriptorAllocatorPool = {mDevice};
 		mDescriptorLayoutCache = {mDevice};
@@ -612,6 +491,140 @@ namespace render::vulkan {
 				}
 			}
 		}
+	}
+
+	void VulkanRenderer::init_scene() {
+		{
+			mCamera = {glm::radians(70.f),
+					   static_cast<f32>(mWindowExtent.width) /
+						   mWindowExtent.height,
+					   0.1f, 200.0f};
+			mShaderCache = {mDevice};
+			Material material{};
+			builder::PipelineBuilder builder;
+			material.layout =
+				builder
+					.add_shader_module(
+						mShaderCache.get_shader(
+							"assets/shaders/default_shader.vert.glsl.spv"),
+						ShaderType::VERTEX)
+					.add_shader_module(
+						mShaderCache.get_shader(
+							"assets/shaders/default_shader.frag.glsl.spv"),
+						ShaderType::FRAGMENT)
+					.set_vertex_input_description(Vertex::get_description())
+					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+										false)
+					.set_polygon_mode(VK_POLYGON_MODE_FILL)
+					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.set_multisampling_enabled(false)
+					.add_default_color_blend_attachment()
+					.set_color_blending_enabled(false)
+					.add_push_constant(sizeof(MeshPushConstant),
+									   VK_SHADER_STAGE_VERTEX_BIT)
+					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
+					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
+					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+					.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
+					.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
+					/* .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH) */
+					.add_viewport(
+						{0, 0, static_cast<float>(mWindowExtent.width),
+						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
+					.add_scissor({{0, 0}, mWindowExtent})
+					.build_layout(mDevice.logical_device());
+
+			material.pipeline =
+				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
+			Mesh monkeyMesh{};
+			monkeyMesh.load_from_obj("assets/models/monkey.obj");
+			upload_mesh(monkeyMesh);
+			add_material_to_mesh(material, monkeyMesh);
+		}
+		{
+			Material material{};
+			VkSamplerCreateInfo sampler_info =
+				builder::sampler_create_info(VK_FILTER_NEAREST);
+			VkSampler sampler;
+			vkCreateSampler(mDevice.logical_device(), &sampler_info, nullptr,
+							&sampler);
+			// VkDescriptorSetAllocateInfo texture_alloc_info{
+			// 	VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+			// 	mDescriptorPool, 1, &mTextureSamplerDescriptorSetLayout};
+			// VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
+			// 								  &texture_alloc_info,
+			// 								  &material.textureSet));
+			Image texture{"assets/textures/lost_empire-RGBA.png",
+						  mDevice.allocator(), mDevice.logical_device(), *this};
+			// VkDescriptorImageInfo image_buf_info{
+			// 	sampler, texture.view,
+			// 	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+			// VkWriteDescriptorSet tex_write = builder::write_descriptor_image(
+			// 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet,
+			// 	&image_buf_info, 0);
+			// vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write, 0,
+			// 					   nullptr);
+			{
+				builder::DescriptorSetBuilder builder{
+					mDevice, &mDescriptorLayoutCache,
+					&mMainDescriptorAllocator};
+				VkDescriptorImageInfo image_buf_info{
+					sampler, texture.view,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+				material.textureSet = std::move(
+					builder
+						.add_image(0, &image_buf_info,
+								   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+								   VK_SHADER_STAGE_FRAGMENT_BIT)
+						.build()
+						.value());
+				mTextureSamplerDescriptorSetLayout = builder.layout();
+			}
+			builder::PipelineBuilder builder;
+			material.layout =
+				builder
+					.add_shader_module(
+						mShaderCache.get_shader(
+							"assets/shaders/textured_mesh.vert.glsl.spv"),
+						ShaderType::VERTEX)
+					.add_shader_module(
+						mShaderCache.get_shader(
+							"assets/shaders/textured_mesh.frag.glsl.spv"),
+						ShaderType::FRAGMENT)
+					.set_vertex_input_description(Vertex::get_description())
+					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+										false)
+					.set_polygon_mode(VK_POLYGON_MODE_FILL)
+					// @TODO: cull mode
+					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.set_multisampling_enabled(false)
+					.add_default_color_blend_attachment()
+					.set_color_blending_enabled(false)
+					.add_push_constant(sizeof(MeshPushConstant),
+									   VK_SHADER_STAGE_VERTEX_BIT)
+					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
+					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
+					.add_descriptor_set_layout(
+						mTextureSamplerDescriptorSetLayout)
+					.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+					.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
+					.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
+					// .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
+					.add_viewport(
+						{0, 0, static_cast<float>(mWindowExtent.width),
+						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
+					.add_scissor({{0, 0}, mWindowExtent})
+					.build_layout(mDevice.logical_device());
+			material.pipeline =
+				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
+			Mesh lost_empire{};
+			lost_empire.load_from_obj("assets/models/lost_empire.obj");
+			upload_mesh(lost_empire);
+			add_material_to_mesh(material, lost_empire);
+		}
+		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
 
 	void VulkanRenderer::add_material_to_mesh(const Material& material,

@@ -86,6 +86,6 @@ namespace render::vulkan {
 		u32 mCurrFrame{0};
 		bool mShouldResize{false};
 		ShaderCache mShaderCache{};
-        gameplay::Camera mCamera{};
+		gameplay::Camera mCamera{};
 	};
 } // namespace render::vulkan
