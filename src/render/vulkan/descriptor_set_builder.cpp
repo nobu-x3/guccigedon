@@ -154,7 +154,7 @@ namespace render::vulkan {
 			write.descriptorCount = 1;
 			write.pImageInfo = image_info;
 			write.dstBinding = binding;
-			// mWrites.push_back(write);
+			mWrites.push_back(write);
 			return *this;
 		}
 

@@ -87,5 +87,6 @@ namespace render::vulkan {
 		bool mShouldResize{false};
 		ShaderCache mShaderCache{};
 		gameplay::Camera mCamera{};
+		Image mTexture{};
 	};
 } // namespace render::vulkan

@@ -555,7 +555,7 @@ namespace render::vulkan {
 			// VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
 			// 								  &texture_alloc_info,
 			// 								  &material.textureSet));
-			Image texture{"assets/textures/lost_empire-RGBA.png",
+			mTexture = {"assets/textures/lost_empire-RGBA.png",
 						  mDevice.allocator(), mDevice.logical_device(), *this};
 			// VkDescriptorImageInfo image_buf_info{
 			// 	sampler, texture.view,
@@ -570,7 +570,7 @@ namespace render::vulkan {
 					mDevice, &mDescriptorLayoutCache,
 					&mMainDescriptorAllocator};
 				VkDescriptorImageInfo image_buf_info{
-					sampler, texture.view,
+					sampler, mTexture.view,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 				material.textureSet = std::move(
 					builder
