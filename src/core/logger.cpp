@@ -18,7 +18,8 @@ namespace core {
 			std::unique_lock<std::mutex> lock(mLogMutex);
 			mCV.wait(lock, [] { return !instance->bEmpty; });
 			std::cout << mStream.view() << std::endl;
-			mStream.clear();
+			std::stringstream stream{};
+			std::swap(mStream, stream);
 			bEmpty = true;
 		}
 	}
