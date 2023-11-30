@@ -287,12 +287,23 @@ namespace render::vulkan {
 
 	void VulkanRenderer::init_instance() {
 		vkb::InstanceBuilder builder;
-		vkb::Instance vkb_inst = builder.set_app_name("Guccigedon")
-									 .request_validation_layers(true)
-									 .use_default_debug_messenger()
-									 .require_api_version(1, 1, 0)
-									 .build()
-									 .value();
+		vkb::Instance vkb_inst =
+			builder.set_app_name("Guccigedon")
+				.request_validation_layers(true)
+				.set_debug_callback(
+					[](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+					   VkDebugUtilsMessageTypeFlagsEXT messageType,
+					   const VkDebugUtilsMessengerCallbackDataEXT*
+						   pCallbackData,
+					   void* pUserData) -> VkBool32 {
+						auto severity =
+							vkb::to_string_message_severity(messageSeverity);
+						auto type = vkb::to_string_message_type(messageType);
+						core::Logger::Error("Type: {}. Message: {}", type,
+											pCallbackData->pMessage);
+						return VK_FALSE;
+					})
+		.require_api_version(1, 1, 0).build().value();
 		mInstance = {vkb_inst};
 		mSurface = {mpWindow, mInstance.handle()};
 		mDevice = {vkb_inst, mSurface.surface()};
@@ -556,15 +567,15 @@ namespace render::vulkan {
 			// 								  &texture_alloc_info,
 			// 								  &material.textureSet));
 			mTexture = {"assets/textures/lost_empire-RGBA.png",
-						  mDevice.allocator(), mDevice.logical_device(), *this};
+						mDevice.allocator(), mDevice.logical_device(), *this};
 			// VkDescriptorImageInfo image_buf_info{
 			// 	sampler, texture.view,
 			// 	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 			// VkWriteDescriptorSet tex_write = builder::write_descriptor_image(
 			// 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet,
 			// 	&image_buf_info, 0);
-			// vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write, 0,
-			// 					   nullptr);
+			// vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write,
+			// 0, 					   nullptr);
 			{
 				builder::DescriptorSetBuilder builder{
 					mDevice, &mDescriptorLayoutCache,
