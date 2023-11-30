@@ -2,7 +2,7 @@
 #include <iostream>
 #include <mutex>
 namespace core {
-	Logger* Logger::instance = nullptr;
+	Logger* Logger::instance = new Logger();
 
 	Logger::Logger() { mThread = std::jthread{&Logger::serialize, this}; }
 
