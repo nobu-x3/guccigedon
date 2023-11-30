@@ -18,6 +18,7 @@ namespace core {
 		Logger& operator=(const Logger&) noexcept = delete;
 		Logger(Logger&&) = delete;
 		Logger& operator=(Logger&&) noexcept = delete;
+		~Logger() { std::cout.flush(); }
 
 		template <typename... Args>
 		static void Trace(std::string_view message, Args... args) {
@@ -29,14 +30,8 @@ namespace core {
 				("[TRACE]\t" +
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
-			// This will spawn a new thread. Some compilers reuse it.
-			// It's done so that Logger had it's own thread where it does the
-			// actual logging without blocking other threads. This needs
-			// testing, might be a-ok with context switch.
-			// auto f = std::async(std::launch::async, serialize, view);
-			std::lock_guard<std::mutex> lock{instance().mLogMutex};
-			instance().mStringQueue.emplace_back(str, static_cast<size_t>(len));
-			instance().mCV.notify_one();
+			std::string_view view{str, static_cast<size_t>(len)};
+            get().push(view);
 		}
 
 		template <typename... Args>
@@ -48,7 +43,7 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			auto f = std::async(std::launch::async, serialize, str);
+            get().push(view);
 		}
 
 		template <typename... Args>
@@ -60,7 +55,7 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			auto f = std::async(std::launch::async, serialize, str);
+            get().push(view);
 		}
 
 		template <typename... Args>
@@ -72,80 +67,22 @@ namespace core {
 				 std::vformat(message, std::make_format_args(args...)) + "\n")
 					.c_str());
 			std::string_view view{str, static_cast<size_t>(len)};
-			auto f = std::async(std::launch::async, serialize, str);
+            get().push(view);
 		}
 
 	private:
-		std::stringstream mStream;
-		std::mutex mLogMutex;
-		std::jthread mThread{serialize_q};
-		std::list<std::string_view> mStringQueue;
-		std::list<std::string_view>::iterator mCurrentLog = mStringQueue.begin();
-		std::condition_variable mCV;
-		bool mClosing{false};
+        static Logger* instance;
+		std::stringstream mStream{};
+		std::mutex mLogMutex{};
+        std::condition_variable mCV{};
+        std::jthread mThread;
+        bool bEmpty {false};
 
 	private:
-		Logger() = default;
-		~Logger() {
-			{
-				std::lock_guard<std::mutex> lock{instance().mLogMutex};
-				instance().mClosing = true;
-			}
-			instance().mCV.notify_one();
-		}
-
-		static Logger& instance() {
-			static Logger instance;
-			return instance;
-		}
-
-		static void serialize_q() {
-			while (true) {
-				std::unique_lock<std::mutex> lock{instance().mLogMutex};
-				instance().mCV.wait(lock, [=]{
-					return instance().mClosing
-						||
-						instance().mCurrentLog != instance().mStringQueue.end();
-				});
-				std::cout << "HELLOO" << std::endl;
-				auto& current_log = instance().mCurrentLog;
-				auto& closing = instance().mClosing;
-				auto& queue = instance().mStringQueue;
-				auto& stream = instance().mStream;
-				if (closing) {
-					while (!queue.empty()) {
-						if (current_log == queue.end()) {
-							current_log = queue.begin();
-						}
-						while (current_log != queue.end()) {
-							stream << *current_log;
-							current_log = queue.erase(current_log);
-						}
-						std::cout << instance().mStream.str();
-						instance().mStream.flush();
-						instance().mStream.clear();
-						break;
-					}
-				}
-				while (current_log != queue.end()) {
-					stream << *current_log;
-					current_log = queue.erase(current_log);
-				}
-				std::cout << instance().mStream.str();
-				instance().mStream.flush();
-				instance().mStream.clear();
-			}
-		}
-
-		static void serialize(std::string_view formatted_message) {
-			// Same stuff since we only have mutex
-			/* std::lock_guard<std::mutex> lock(instance().mLogMutex); */
-			std::scoped_lock lock(instance().mLogMutex);
-			instance().mStream << formatted_message;
-			std::cout << instance().mStream.str();
-			instance().mStream.flush();
-			instance().mStream.clear();
-		}
+		Logger();
+        static Logger& get();
+        void push(std::string_view);
+        void serialize();
 	};
 
 } // namespace core

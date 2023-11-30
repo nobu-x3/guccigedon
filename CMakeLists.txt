@@ -6,20 +6,27 @@ project(Guccigedon VERSION 0.1)
 
 add_executable(Guccigedon
     src/main.cpp
+    src/core/logger.cpp
     src/render/vulkan/renderer.cpp
-    src/render/vulkan/vulkan_builders.cpp
-    src/render/vulkan/vulkan_mesh.cpp
-    src/render/vulkan/vulkan_types.cpp
-    src/render/vulkan/vulkan_image.cpp
+    src/render/vulkan/builders.cpp
+    src/render/vulkan/mesh.cpp
+    src/render/vulkan/types.cpp
+    src/render/vulkan/image.cpp
     src/render/vulkan/device.cpp
     src/render/vulkan/instance.cpp
     src/render/vulkan/surface.cpp
     src/render/vulkan/swapchain.cpp
     src/render/vulkan/scene.cpp
-    )
+    src/render/vulkan/pipeline.cpp
+    src/render/vulkan/descriptor_allocator.cpp
+    src/render/vulkan/shader.cpp
+    src/render/vulkan/descriptor_set_builder.cpp
+    src/gameplay/camera.cpp
+    src/gameplay/transform.cpp "src/core/input.cpp" "src/gameplay/input_component.cpp" "src/gameplay/movement_component.cpp")
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)
+#find_package(spirv-reflect)
 find_package(SDL2)
 find_package(VulkanMemoryAllocator CONFIG)
 find_package(glm)
@@ -28,13 +35,26 @@ find_package(tinyobjloader) # but for now obj is fine. I need to get some meshes
 find_package(vk-bootstrap)
 find_package(stb)
 
+#if(NOT spirv-reflect_FOUND)
+#    message("Cannot find SPIRV-Reflect, using bundled version")
+#    execute_process(COMMAND git submodule update --init -- vendor/SPIRV-Reflect
+#                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+#                    set(SPIRV_REFLECT_EXECUTABLE OFF)
+#                    set(SPIRV_REFLECT_STATIC_LIB ON)
+#    add_subdirectory(vendor/SPIRV-Reflect)
+#    set(SPIRV_REFLECT_INCLUDE_DIR vendor/SPIRV-Reflect)
+#    set(SPIRV_REFLECT_LIBRARY spirv-reflect-static)
+#endif()
+
 if(NOT SDL2_FOUND)
     message("Cannot find SDL2, using bundled version")
     execute_process(COMMAND git submodule update --init -- vendor/SDL2
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+    set(SDL_SHARED ON CACHE BOOL "" FORCE)
     add_subdirectory(vendor/SDL2)
-    set(SDL2_INCLUDE_DIRS vendor/SDL2/include)
-    set(SDL2_LIBRARIES SDL2)
+    #set(SDL2_INCLUDE_DIRS vendor/SDL2/include)
+    #set(SDL2_LIBRARIES SDL2)
 endif()
 
 if (NOT VulkanMemoryAllocator_DIR)
@@ -99,15 +119,19 @@ include_directories(${Vulkan_INCLUDE_DIR}
     ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR}
     ${VK_BOOTSTRAP_INCLUDE_DIR}
     ${STB_INCLUDE_DIR}
+    ${SPIRV_REFLECT_INCLUDE_DIR}
     )
 
 target_include_directories(Guccigedon PUBLIC include)
 
 target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
+    SDL2::SDL2
+    SDL2::SDL2main
     ${Vulkan_LIBRARY} ${GLM_LIBRARY}
     ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}
     ${TINYOBJLOADER_LIBRARY}
     ${VK_BOOTSTRAP_LIBRARY}
+    ${SPIRV_REFLECT_LIBRARY}
     )
 
 find_program(GLSL_VALIDATOR glslangValidator)

@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 project(Experiments VERSION 0.1)
 
 add_executable(Experiments
-    logging_exp.cpp)
+    logging_exp.cpp
+    ../src/core/logger.cpp)
 
 include_directories(../include)

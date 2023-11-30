@@ -14,7 +14,8 @@ namespace render::vulkan {
 		mDevice(device.logical_device()),
 		mPhysicalDevice(device.physical_device()), mWindowExtent(window_extent),
 		mSurface(surface.surface()), mAllocator(allocator),
-		mLifetime(ObjectLifetime::OWNED), mSwapchainDescription(surface.surface(), device.physical_device()) {
+		mLifetime(ObjectLifetime::OWNED),
+		mSwapchainDescription(surface.surface(), device.physical_device()) {
 		u32 img_count{};
 		img_count = mSwapchainDescription.capabilities.minImageCount + 1;
 		if (mSwapchainDescription.capabilities.maxImageCount > 0 &&
@@ -69,12 +70,12 @@ namespace render::vulkan {
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		mDepthAttachment = {
 			allocator, device.logical_device(),
-			vkbuild::image_ci(mDepthFormat,
+			builder::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
 			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(renderpass, mWindowExtent);
+			builder::framebuffer_ci(renderpass, mWindowExtent);
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
@@ -149,7 +150,7 @@ namespace render::vulkan {
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		mDepthAttachment = {
 			allocator, device.logical_device(),
-			vkbuild::image_ci(mDepthFormat,
+			builder::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
 			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
@@ -165,6 +166,9 @@ namespace render::vulkan {
 		mSwapchainImageViews = swapchain.mSwapchainImageViews;
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
 		mFramebuffers = swapchain.mFramebuffers;
+		mSurface = swapchain.mSurface;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
+		mAllocator = swapchain.mAllocator;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 	}
 
@@ -178,6 +182,9 @@ namespace render::vulkan {
 		std::swap(mSwapchainImageViews, swapchain.mSwapchainImageViews);
 		std::swap(mFramebuffers, swapchain.mFramebuffers);
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
+		mSurface = swapchain.mSurface;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
+		mAllocator = swapchain.mAllocator;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 	}
 
@@ -191,6 +198,9 @@ namespace render::vulkan {
 		mSwapchainImageFormat = swapchain.mSwapchainImageFormat;
 		mFramebuffers = swapchain.mFramebuffers;
 		mDevice = swapchain.mDevice;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
+		mSurface = swapchain.mSurface;
+		mAllocator = swapchain.mAllocator;
 		mLifetime = ObjectLifetime::OWNED;
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 		return *this;
@@ -201,6 +211,8 @@ namespace render::vulkan {
 		mDepthFormat = swapchain.mDepthFormat;
 		mDepthAttachment = swapchain.mDepthAttachment;
 		mWindowExtent = swapchain.mWindowExtent;
+		mSurface = swapchain.mSurface;
+		mPhysicalDevice = swapchain.mPhysicalDevice;
 		std::swap(mSwapchainImages, swapchain.mSwapchainImages);
 		std::swap(mSwapchainImageViews, swapchain.mSwapchainImageViews);
 		std::swap(mFramebuffers, swapchain.mFramebuffers);
@@ -208,6 +220,7 @@ namespace render::vulkan {
 		swapchain.mLifetime = ObjectLifetime::TEMP;
 		mLifetime = ObjectLifetime::OWNED;
 		mDevice = swapchain.mDevice;
+		mAllocator = swapchain.mAllocator;
 		return *this;
 	}
 
@@ -233,7 +246,7 @@ namespace render::vulkan {
 			mWindowExtent = *extent;
 
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(renderpass, mWindowExtent);
+			builder::framebuffer_ci(renderpass, mWindowExtent);
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {
@@ -310,14 +323,18 @@ namespace render::vulkan {
 		imgAllocCi.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		imgAllocCi.requiredFlags =
 			VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		// @NOTE: I'm sure this is unacceptable by c++ gurus but I think it's
+		// okay. A workaround to this would be to add a destroy() method to
+		// Image which you'd call explicitly.
+		mDepthAttachment.~Image();
 		mDepthAttachment = {
 			mAllocator, mDevice,
-			vkbuild::image_ci(mDepthFormat,
+			builder::image_ci(mDepthFormat,
 							  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 							  depthImageExtent),
 			imgAllocCi, VK_IMAGE_ASPECT_DEPTH_BIT};
 		VkFramebufferCreateInfo fb_ci =
-			vkbuild::framebuffer_ci(renderpass, mWindowExtent);
+			builder::framebuffer_ci(renderpass, mWindowExtent);
 		const u32 image_count = mSwapchainImages.size();
 		mFramebuffers = std::vector<VkFramebuffer>(image_count);
 		for (int i = 0; i < image_count; ++i) {

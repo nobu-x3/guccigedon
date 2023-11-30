@@ -92,6 +92,12 @@ namespace render::vulkan {
 		OWNED = 1,
 	};
 
+	struct VertexInputDescription {
+		ArrayList<VkVertexInputBindingDescription> bindings;
+		ArrayList<VkVertexInputAttributeDescription> attributes;
+		VkPipelineVertexInputStateCreateFlags flags{0};
+	};
+
 } // namespace render::vulkan
 
 template <>
@@ -99,4 +105,5 @@ struct std::hash<render::vulkan::Material> {
 	std::size_t operator()(const render::vulkan::Material& k) const {
 		return hash<void*>()(k.pipeline);
 	}
+
 };

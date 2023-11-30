@@ -1,4 +1,5 @@
 #pragma once
+
 #include <functional>
 #include <vulkan/vulkan_core.h>
 #include "render/vulkan/types.h"

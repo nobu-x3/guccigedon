@@ -3,11 +3,14 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "core/core.h"
+#include "gameplay/camera.h"
+#include "render/vulkan/descriptor_allocator.h"
+#include "render/vulkan/descriptor_set_builder.h"
 #include "render/vulkan/device.h"
-#include "render/vulkan/image.h"
 #include "render/vulkan/instance.h"
 #include "render/vulkan/mesh.h"
 #include "render/vulkan/scene.h"
+#include "render/vulkan/shader.h"
 #include "render/vulkan/surface.h"
 #include "render/vulkan/swapchain.h"
 #include "render/vulkan/types.h"
@@ -31,9 +34,9 @@ namespace render::vulkan {
 		void init_descriptors();
 		void init_scene();
 		size_t pad_uniform_buffer(size_t original_size);
-        void begin_renderpass(FrameData& frame_data, u32& image_index);
-        void end_renderpass(VkCommandBuffer buf);
-        void resize();
+		void begin_renderpass(FrameData& frame_data, u32& image_index);
+		void end_renderpass(VkCommandBuffer buf);
+		void resize();
 
 	public:
 		VulkanRenderer();
@@ -53,7 +56,11 @@ namespace render::vulkan {
 		}
 
 		void draw();
+
+		// TEMP, @TODO: move this to engine
 		void run();
+
+		inline SDL_Window* window() const { return mpWindow; }
 
 		// I'm obviously not gonna keep all this in this megaclass.
 		// This is temporary, I'll refactor once I get it running.
@@ -68,13 +75,18 @@ namespace render::vulkan {
 		VkRenderPass mRenderPass{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
+		DescriptorAllocatorPool mDescriptorAllocatorPool{};
+		DescriptorAllocator mMainDescriptorAllocator{};
+		DescriptorLayoutCache mDescriptorLayoutCache{};
 		VkDescriptorSetLayout mGlobalDescriptorSetLayout{};
 		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
 		VkDescriptorSetLayout mTextureSamplerDescriptorSetLayout{};
-		VkDescriptorPool mDescriptorPool{};
 		Scene mScene{};
 		UploadContext mUploadContext{};
 		u32 mCurrFrame{0};
 		bool mShouldResize{false};
+		ShaderCache mShaderCache{};
+		gameplay::Camera mCamera{};
+		Image mTexture{};
 	};
 } // namespace render::vulkan
