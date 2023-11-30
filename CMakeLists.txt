@@ -186,3 +186,6 @@ add_custom_target(
     Shaders
     DEPENDS ${SPIRV_BINARY_FILES}
     )
+
+### Make logs folder
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/logs")

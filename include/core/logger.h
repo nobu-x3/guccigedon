@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <fstream>
 #include <format>
 #include <future>
 #include <iostream>
@@ -18,7 +19,7 @@ namespace core {
 		Logger& operator=(const Logger&) noexcept = delete;
 		Logger(Logger&&) = delete;
 		Logger& operator=(Logger&&) noexcept = delete;
-		~Logger() { std::cout.flush(); }
+		~Logger(); 
 
 		template <typename... Args>
 		static void Trace(std::string_view message, Args... args) {
@@ -71,12 +72,14 @@ namespace core {
 		}
 
 	private:
-        static Logger* instance;
+        static std::unique_ptr<Logger> instance;
 		std::stringstream mStream{};
 		std::mutex mLogMutex{};
         std::condition_variable mCV{};
         std::jthread mThread;
         bool bEmpty {false};
+		bool bClosing{false};
+		std::ofstream mFileHandle;
 
 	private:
 		Logger();

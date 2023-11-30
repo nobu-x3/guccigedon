@@ -1,14 +1,29 @@
 #include "core/logger.h"
-#include <iostream>
-#include <mutex>
-namespace core {
-	Logger* Logger::instance = new Logger();
+#include <ctime>
+#include <iomanip>
 
-	Logger::Logger() { mThread = std::jthread{&Logger::serialize, this}; }
+namespace core {
+	std::unique_ptr<Logger> Logger::instance =
+		std::unique_ptr<Logger>(new Logger());
+
+	Logger::~Logger() {
+		std::unique_lock<std::mutex> lock(mLogMutex);
+		bClosing = true;
+		mCV.notify_one();
+	}
+
+	Logger::Logger() {
+		std::time_t t = std::time(nullptr);
+		std::tm* tm = std::localtime(&t);
+		std::ostringstream oss;
+		oss << "logs/log" << std::put_time(tm, "%d-%m-%Y_%H%M%S") << ".log";
+		mFileHandle.open(oss.str(), std::ios::out);
+		mThread = std::jthread{&Logger::serialize, this};
+	}
 
 	Logger& Logger::get() {
 		if (instance == nullptr) {
-			instance = new Logger();
+			instance = std::unique_ptr<Logger>(new Logger());
 		}
 		return *instance;
 	}
@@ -16,8 +31,14 @@ namespace core {
 	void Logger::serialize() {
 		while (true) {
 			std::unique_lock<std::mutex> lock(mLogMutex);
-			mCV.wait(lock, [] { return !instance->bEmpty; });
+			mCV.wait(lock,
+					 [] { return !instance->bEmpty || instance->bClosing; });
 			std::cout << mStream.view() << std::endl;
+			if (!bClosing) {
+				mFileHandle << mStream.view() << std::endl;
+			} else {
+				break;
+			}
 			std::stringstream stream{};
 			std::swap(mStream, stream);
 			bEmpty = true;
