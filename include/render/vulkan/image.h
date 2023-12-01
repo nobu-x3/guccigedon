@@ -17,7 +17,7 @@ namespace render::vulkan {
 		VmaAllocator mAllocator{};
 		VkDevice mDevice{};
 		ObjectLifetime mLifetime{ObjectLifetime::TEMP};
-
+		VkSampler mSampler{nullptr};
 	public:
 		Image() = default;
 
@@ -30,7 +30,9 @@ namespace render::vulkan {
 		// the function pointer is a mess @TODO
 		// instead of passing a reference to renderer, pass pfn
 		Image(const char* path, VmaAllocator alloc, VkDevice device,
-			  VulkanRenderer& renderer);
+			  VulkanRenderer& renderer, bool create_sampler = false);
+
+		Image(Image& other);
 
 		Image& operator=(Image& other);
 
@@ -39,5 +41,7 @@ namespace render::vulkan {
 		Image& operator=(Image&& img);
 
 		~Image();
+
+		inline const VkSampler& sampler() const { return mSampler; }
 	};
 } // namespace render::vulkan

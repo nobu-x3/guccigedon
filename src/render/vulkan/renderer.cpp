@@ -555,33 +555,14 @@ namespace render::vulkan {
 		}
 		{
 			Material material{};
-			VkSamplerCreateInfo sampler_info =
-				builder::sampler_create_info(VK_FILTER_NEAREST);
-			VkSampler sampler;
-			vkCreateSampler(mDevice.logical_device(), &sampler_info, nullptr,
-							&sampler);
-			// VkDescriptorSetAllocateInfo texture_alloc_info{
-			// 	VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-			// 	mDescriptorPool, 1, &mTextureSamplerDescriptorSetLayout};
-			// VK_CHECK(vkAllocateDescriptorSets(mDevice.logical_device(),
-			// 								  &texture_alloc_info,
-			// 								  &material.textureSet));
 			mTexture = {"assets/textures/lost_empire-RGBA.png",
-						mDevice.allocator(), mDevice.logical_device(), *this};
-			// VkDescriptorImageInfo image_buf_info{
-			// 	sampler, texture.view,
-			// 	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-			// VkWriteDescriptorSet tex_write = builder::write_descriptor_image(
-			// 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, material.textureSet,
-			// 	&image_buf_info, 0);
-			// vkUpdateDescriptorSets(mDevice.logical_device(), 1, &tex_write,
-			// 0, 					   nullptr);
+						mDevice.allocator(), mDevice.logical_device(), *this, true};
 			{
 				builder::DescriptorSetBuilder builder{
 					mDevice, &mDescriptorLayoutCache,
 					&mMainDescriptorAllocator};
 				VkDescriptorImageInfo image_buf_info{
-					sampler, mTexture.view,
+					mTexture.sampler(), mTexture.view,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 				material.textureSet = std::move(
 					builder

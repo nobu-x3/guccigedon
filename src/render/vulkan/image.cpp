@@ -1,12 +1,12 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <vk_mem_alloc.h>
-#include "render/vulkan/types.h"
 #include <vulkan/vulkan_core.h>
+#include "render/vulkan/types.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "render/vulkan/renderer.h"
 #include "render/vulkan/builders.h"
 #include "render/vulkan/image.h"
+#include "render/vulkan/renderer.h"
 
 namespace render::vulkan {
 
@@ -18,12 +18,13 @@ namespace render::vulkan {
 		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
 		VK_CHECK(vmaCreateImage(alloc, &image_ci, &alloc_info, &handle, &memory,
 								nullptr));
-        VkImageViewCreateInfo view_ci = builder::imageview_ci(image_ci.format, handle, aspect_flags);
+		VkImageViewCreateInfo view_ci =
+			builder::imageview_ci(image_ci.format, handle, aspect_flags);
 		VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr, &view));
 	}
 
 	Image::Image(const char* path, VmaAllocator alloc, VkDevice device,
-				 VulkanRenderer& renderer) :
+				 VulkanRenderer& renderer, bool create_sampler) :
 		mAllocator(alloc),
 		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
 		int texWidth, texHeight, texChannels;
@@ -99,6 +100,22 @@ namespace render::vulkan {
 		VkImageViewCreateInfo view_ci = builder::imageview_ci(
 			VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
 		vkCreateImageView(device, &view_ci, nullptr, &view);
+		if (create_sampler) {
+			VkSamplerCreateInfo sampler_info =
+				builder::sampler_create_info(VK_FILTER_NEAREST);
+			vkCreateSampler(device, &sampler_info, nullptr, &mSampler);
+		}
+	}
+
+	Image::Image(Image& other) {
+		handle = other.handle;
+		view = other.view;
+		memory = other.memory;
+		mAllocator = other.mAllocator;
+		mDevice = other.mDevice;
+		mSampler = other.mSampler;
+		mLifetime = ObjectLifetime::OWNED;
+		other.mLifetime = ObjectLifetime::TEMP;
 	}
 
 	Image& Image::operator=(Image& other) {
@@ -107,6 +124,7 @@ namespace render::vulkan {
 		memory = other.memory;
 		mAllocator = other.mAllocator;
 		mDevice = other.mDevice;
+		mSampler = other.mSampler;
 		mLifetime = ObjectLifetime::OWNED;
 		other.mLifetime = ObjectLifetime::TEMP;
 		return *this;
@@ -118,6 +136,7 @@ namespace render::vulkan {
 		memory = img.memory;
 		mAllocator = img.mAllocator;
 		mDevice = img.mDevice;
+		mSampler = img.mSampler;
 		mLifetime = ObjectLifetime::OWNED;
 		img.mLifetime = ObjectLifetime::TEMP;
 	}
@@ -128,6 +147,7 @@ namespace render::vulkan {
 		memory = img.memory;
 		mAllocator = img.mAllocator;
 		mDevice = img.mDevice;
+		mSampler = img.mSampler;
 		mLifetime = ObjectLifetime::OWNED;
 		img.mLifetime = ObjectLifetime::TEMP;
 		return *this;
@@ -140,9 +160,12 @@ namespace render::vulkan {
 			if (view) {
 				vkDestroyImageView(mDevice, view, nullptr);
 			}
+			if (mSampler) {
+				vkDestroySampler(mDevice, mSampler, nullptr);
+			}
 		}
 		if (mAllocator && handle && memory) {
 			vmaDestroyImage(mAllocator, handle, memory);
 		}
 	}
-} // namespace render
+} // namespace render::vulkan
