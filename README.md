@@ -2,4 +2,4 @@
 Game / Engine written in C++
 
 ## Status
-Nothing to show yet, setting up vulkan renderer.
+To track the development, please visit the [website](https://publish.obsidian.md/nobu/Guccigedon/Guccigedon+Kanban)
