@@ -209,7 +209,7 @@ namespace render::vulkan {
 	Swapchain& Swapchain::operator=(Swapchain&& swapchain) noexcept {
 		mSwapchain = swapchain.mSwapchain;
 		mDepthFormat = swapchain.mDepthFormat;
-		mDepthAttachment = swapchain.mDepthAttachment;
+		mDepthAttachment = std::move(swapchain.mDepthAttachment);
 		mWindowExtent = swapchain.mWindowExtent;
 		mSurface = swapchain.mSurface;
 		mPhysicalDevice = swapchain.mPhysicalDevice;

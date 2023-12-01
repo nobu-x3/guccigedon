@@ -32,7 +32,7 @@ namespace render::vulkan {
 									STBI_rgb_alpha);
 		if (!pixels) {
 			// @TODO: load default texture instead of exiting
-			core::Logger::Fatal("Failed to load data from image at path %s",
+			core::Logger::Fatal("Failed to load data from image at path {}",
 								path);
 			exit(-1);
 		}
@@ -107,30 +107,28 @@ namespace render::vulkan {
 		}
 	}
 
-	Image::Image(Image& other) {
+	Image::Image(const Image& other) {
 		handle = other.handle;
 		view = other.view;
 		memory = other.memory;
 		mAllocator = other.mAllocator;
 		mDevice = other.mDevice;
 		mSampler = other.mSampler;
-		mLifetime = ObjectLifetime::OWNED;
-		other.mLifetime = ObjectLifetime::TEMP;
+		mLifetime = ObjectLifetime::TEMP;
 	}
 
-	Image& Image::operator=(Image& other) {
+	Image& Image::operator=(const Image& other) {
 		handle = other.handle;
 		view = other.view;
 		memory = other.memory;
 		mAllocator = other.mAllocator;
 		mDevice = other.mDevice;
 		mSampler = other.mSampler;
-		mLifetime = ObjectLifetime::OWNED;
-		other.mLifetime = ObjectLifetime::TEMP;
+		mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
 
-	Image::Image(Image&& img) {
+	Image::Image(Image&& img) noexcept {
 		handle = img.handle;
 		view = img.view;
 		memory = img.memory;
@@ -141,7 +139,7 @@ namespace render::vulkan {
 		img.mLifetime = ObjectLifetime::TEMP;
 	}
 
-	Image& Image::operator=(Image&& img) {
+	Image& Image::operator=(Image&& img) noexcept {
 		handle = img.handle;
 		view = img.view;
 		memory = img.memory;
@@ -167,5 +165,49 @@ namespace render::vulkan {
 		if (mAllocator && handle && memory) {
 			vmaDestroyImage(mAllocator, handle, memory);
 		}
+	}
+	bool ImageCache::add_image(const std::string& path, VmaAllocator alloc,
+							   VkDevice device,
+							   const VkImageCreateInfo& image_ci,
+							   const VmaAllocationCreateInfo& alloc_info,
+							   VkImageAspectFlags aspectFlags) {
+		if (mCache.contains(path)) {
+			core::Logger::Warning("Texture on path {} is already in the cache.",
+								  path);
+			return false;
+		}
+		mCache[path] = {alloc, device, image_ci, alloc_info, aspectFlags};
+		return true;
+	}
+
+	bool ImageCache::add_image(const std::string& path, VmaAllocator alloc,
+							   VkDevice device, VulkanRenderer& renderer,
+							   bool create_sampler) {
+		if (mCache.contains(path)) {
+			core::Logger::Warning("Texture on path {} is already in the cache.",
+								  path);
+			return false;
+		}
+		mCache[path] = {path.c_str(), alloc, device, renderer, create_sampler};
+		return true;
+	}
+
+	bool ImageCache::add_image(const std::string& path, Image& image) {
+		if (mCache.contains(path)) {
+			core::Logger::Warning("Texture on path {} is already in the cache.",
+								  path);
+			return false;
+		}
+		mCache[path] = image;
+		return true;
+	}
+
+	Image* ImageCache::get_image(const std::string& path) {
+		if (!mCache.contains(path)) {
+			if (!mRenderer)
+				return nullptr;
+			mCache[path] = {path.c_str(), mAlloc, mDevice, *mRenderer, true};
+		}
+		return &mCache[path];
 	}
 } // namespace render::vulkan

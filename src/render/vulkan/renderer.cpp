@@ -303,7 +303,9 @@ namespace render::vulkan {
 											pCallbackData->pMessage);
 						return VK_FALSE;
 					})
-		.require_api_version(1, 1, 0).build().value();
+				.require_api_version(1, 1, 0)
+				.build()
+				.value();
 		mInstance = {vkb_inst};
 		mSurface = {mpWindow, mInstance.handle()};
 		mDevice = {vkb_inst, mSurface.surface()};
@@ -510,6 +512,7 @@ namespace render::vulkan {
 					   static_cast<f32>(mWindowExtent.width) /
 						   mWindowExtent.height,
 					   0.1f, 200.0f};
+			mImageCache = {mDevice, this};
 			mShaderCache = {mDevice};
 			Material material{};
 			builder::PipelineBuilder builder;
@@ -555,14 +558,14 @@ namespace render::vulkan {
 		}
 		{
 			Material material{};
-			mTexture = {"assets/textures/lost_empire-RGBA.png",
-						mDevice.allocator(), mDevice.logical_device(), *this, true};
 			{
 				builder::DescriptorSetBuilder builder{
 					mDevice, &mDescriptorLayoutCache,
 					&mMainDescriptorAllocator};
+				Image* image = mImageCache.get_image(
+					"assets/textures/lost_empire-RGBA.png");
 				VkDescriptorImageInfo image_buf_info{
-					mTexture.sampler(), mTexture.view,
+					image->sampler(), image->view,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 				material.textureSet = std::move(
 					builder
@@ -588,7 +591,6 @@ namespace render::vulkan {
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
 					.set_polygon_mode(VK_POLYGON_MODE_FILL)
-					// @TODO: cull mode
 					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
 								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.set_multisampling_enabled(false)
