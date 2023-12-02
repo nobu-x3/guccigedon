@@ -1,12 +1,12 @@
 #include <glm/ext/scalar_constants.hpp>
+#include <string_view>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 #include "render/vulkan/types.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include "render/vulkan/builders.h"
 #include "render/vulkan/image.h"
 #include "render/vulkan/renderer.h"
+#include "assets/textures/texture_importer.h"
 
 namespace render::vulkan {
 
@@ -23,31 +23,21 @@ namespace render::vulkan {
 		VK_CHECK(vkCreateImageView(mDevice, &view_ci, nullptr, &view));
 	}
 
-	Image::Image(const char* path, VmaAllocator alloc, VkDevice device,
+	Image::Image(std::string_view path, VmaAllocator alloc, VkDevice device,
 				 VulkanRenderer& renderer, bool create_sampler) :
 		mAllocator(alloc),
 		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
-		int texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load(path, &texWidth, &texHeight, &texChannels,
-									STBI_rgb_alpha);
-		if (!pixels) {
-			// @TODO: load default texture instead of exiting
-			core::Logger::Fatal("Failed to load data from image at path {}",
-								path);
-			exit(-1);
-		}
-		void* pPixels = pixels;
+        asset::Texture texture = asset::TextureImporter::import({path});
 		// rgba to match vk
-		VkDeviceSize img_size = texWidth * texHeight * 4;
+		VkDeviceSize img_size = texture.width() * texture.height() * 4;
 		Buffer staging_buffer{alloc, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 							  VMA_MEMORY_USAGE_CPU_ONLY};
 		void* data;
 		vmaMapMemory(alloc, staging_buffer.memory, &data);
-		memcpy(data, pPixels, static_cast<size_t>(img_size));
+		memcpy(data, texture.pixels(), static_cast<size_t>(img_size));
 		vmaUnmapMemory(alloc, staging_buffer.memory);
-		stbi_image_free(pixels);
-		VkExtent3D img_extent{static_cast<u32>(texWidth),
-							  static_cast<u32>(texHeight), 1};
+		VkExtent3D img_extent{static_cast<u32>(texture.width()),
+							  static_cast<u32>(texture.height()), 1};
 		VkImageCreateInfo image_ci = builder::image_ci(
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
@@ -188,7 +178,7 @@ namespace render::vulkan {
 								  path);
 			return false;
 		}
-		mCache[path] = {path.c_str(), alloc, device, renderer, create_sampler};
+		mCache[path] = {path, alloc, device, renderer, create_sampler};
 		return true;
 	}
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
 #include <vulkan/vulkan_core.h>
 #include "render/vulkan/types.h"
@@ -31,7 +32,7 @@ namespace render::vulkan {
 
 		// the function pointer is a mess @TODO
 		// instead of passing a reference to renderer, pass pfn
-		Image(const char* path, VmaAllocator alloc, VkDevice device,
+		Image(std::string_view path, VmaAllocator alloc, VkDevice device,
 			  VulkanRenderer& renderer, bool create_sampler = false);
 
 		Image(const Image& other);

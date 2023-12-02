@@ -178,3 +178,8 @@ private:
 	};
 	bool mValid;
 };
+
+enum class ObjectLifetime : u8 {
+	TEMP = 0,
+	OWNED = 1,
+};

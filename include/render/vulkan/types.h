@@ -87,10 +87,6 @@ namespace render::vulkan {
 		glm::mat4 model_matrix;
 	};
 
-	enum class ObjectLifetime : u8 {
-		TEMP = 0,
-		OWNED = 1,
-	};
 
 	struct VertexInputDescription {
 		ArrayList<VkVertexInputBindingDescription> bindings;
