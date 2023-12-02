@@ -22,7 +22,11 @@ add_executable(Guccigedon
     src/render/vulkan/shader.cpp
     src/render/vulkan/descriptor_set_builder.cpp
     src/gameplay/camera.cpp
-    src/gameplay/transform.cpp "src/core/input.cpp" "src/gameplay/input_component.cpp" "src/gameplay/movement_component.cpp")
+    src/gameplay/transform.cpp
+    src/core/input.cpp
+    src/gameplay/input_component.cpp
+    src/gameplay/movement_component.cpp
+    src/assets/textures/texture_importer.cpp)
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)
@@ -34,6 +38,7 @@ find_package(tinygltf) # I eventually want to just have gltf support
 find_package(tinyobjloader) # but for now obj is fine. I need to get some meshes up.
 find_package(vk-bootstrap)
 find_package(stb)
+find_package(KTX-Software)
 
 #if(NOT spirv-reflect_FOUND)
 #    message("Cannot find SPIRV-Reflect, using bundled version")
@@ -111,6 +116,15 @@ if(NOT stb_FOUND)
     set(STB_INCLUDE_DIR vendor/stb)
 endif()
 
+if(NOT KTX-Software_FOUND)
+       message("Cannot find KTX, using bundled version")
+       execute_process(COMMAND git submodule update --init -- vendor/KTX-Software
+       			       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+       add_subdirectory(vendor/KTX-Software)
+       set(KTX_LIBRARY ktx)
+       set(KTX_INCLUDE vendor/KTX-Software/include)
+endif()
+
 include_directories(${Vulkan_INCLUDE_DIR}
     ${SDL2_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIR}
@@ -120,6 +134,7 @@ include_directories(${Vulkan_INCLUDE_DIR}
     ${VK_BOOTSTRAP_INCLUDE_DIR}
     ${STB_INCLUDE_DIR}
     ${SPIRV_REFLECT_INCLUDE_DIR}
+    ${KTX_INCLUDE}
     )
 
 target_include_directories(Guccigedon PUBLIC include)
@@ -132,6 +147,7 @@ target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
     ${TINYOBJLOADER_LIBRARY}
     ${VK_BOOTSTRAP_LIBRARY}
     ${SPIRV_REFLECT_LIBRARY}
+    ${KTX_LIBRARY}
     )
 
 find_program(GLSL_VALIDATOR glslangValidator)

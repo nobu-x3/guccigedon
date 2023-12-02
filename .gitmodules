@@ -23,3 +23,7 @@
 [submodule "vendor/SPIRV-Reflect"]
 	path = vendor/SPIRV-Reflect
 	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
+[submodule "vendor/KTX-Software"]
+	path = vendor/KTX-Software
+	url = https://github.com/KhronosGroup/KTX-Software.git
+	branch = v4.2.1
