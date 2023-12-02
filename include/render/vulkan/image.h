@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <functional>
 #include <vulkan/vulkan_core.h>
-#include "render/vulkan/types.h"
 #include "render/vulkan/device.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 	class VulkanRenderer;
@@ -51,8 +51,9 @@ namespace render::vulkan {
 	class ImageCache {
 	public:
 		ImageCache() = default;
-		ImageCache(Device& device,  VulkanRenderer* renderer) :
-			mDevice(device.logical_device()), mAlloc(device.allocator()), mRenderer(renderer) {}
+		ImageCache(Device& device, VulkanRenderer* renderer) :
+			mDevice(device.logical_device()), mAlloc(device.allocator()),
+			mRenderer(renderer) {}
 		~ImageCache() = default;
 		bool add_image(const std::string& path, VmaAllocator alloc,
 					   VkDevice device, const VkImageCreateInfo& image_ci,

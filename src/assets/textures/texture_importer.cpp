@@ -3,9 +3,9 @@
 #include <filesystem>
 #include <system_error>
 #include "core/types.h"
+#include "ktx.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "core/logger.h"
 
 namespace asset {
 
@@ -73,8 +73,45 @@ namespace asset {
 		}
 	}
 
+	KTX_Texture::KTX_Texture(std::filesystem::path path) : Texture(path) {
+		ktxResult result;
+		result = ktxTexture_CreateFromNamedFile(
+			path.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &mTexture);
+		if (result != KTX_SUCCESS) {
+			throw std::filesystem::filesystem_error(
+				"Failed to find image at given path. See logs.", path,
+				std::error_code());
+		}
+		mWidth = mTexture->baseWidth;
+		mHeight = mTexture->baseHeight;
+		mMipLevels = mTexture->numLevels;
+		// NOTE: i think that's correct?
+		mChannels = mTexture->dataSize / (mWidth * mHeight);
+		mLayerCount = mTexture->isCubemap ? 6 : 1;
+		ktx_uint8_t* mTexture_data = ktxTexture_GetData(mTexture);
+		pPixels = mTexture_data;
+	}
+
+	KTX_Texture::~KTX_Texture() {
+		if (mLifetime == ObjectLifetime::TEMP)
+			return;
+		if (pPixels) {
+			ktxTexture_Destroy(mTexture);
+		}
+	}
+
+	size_t KTX_Texture::offset(int level, int layer, int faceSlice)  {
+        size_t offset{0};
+		KTX_error_code ret = ktxTexture_GetImageOffset(mTexture, level, layer, faceSlice, &offset);
+        if(ret != KTX_SUCCESS){
+            throw ret;
+        }
+        return offset;
+    }
+
 	Texture TextureImporter::import(std::filesystem::path path) {
 		if (path.extension() == ".ktx") {
+			return KTX_Texture(path);
 		}
 
 		return STB_Texture(path);

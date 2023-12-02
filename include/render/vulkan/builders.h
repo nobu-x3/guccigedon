@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
+#include "core/types.h"
 
 namespace render::vulkan::builder {
 
@@ -30,10 +31,12 @@ namespace render::vulkan::builder {
 												VkFramebuffer framebuffer);
 
 	VkImageCreateInfo image_ci(VkFormat format, VkImageUsageFlags usageFlags,
-							   VkExtent3D extent);
+							   VkExtent3D extent, u32 mipLevels = 1,
+							   u32 arrayLayers = 1);
 
 	VkImageViewCreateInfo imageview_ci(VkFormat format, VkImage image,
-									   VkImageAspectFlags aspectFlags);
+									   VkImageAspectFlags aspectFlags,
+									   u32 mipLevels = 1, u32 arrayLayers = 1);
 
 	VkDescriptorSetLayoutBinding descriptorset_layout_binding(
 		VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding);
@@ -46,12 +49,11 @@ namespace render::vulkan::builder {
 	VkSamplerCreateInfo
 	sampler_create_info(VkFilter filters,
 						VkSamplerAddressMode samplerAddressMode =
-							VK_SAMPLER_ADDRESS_MODE_REPEAT);
+							VK_SAMPLER_ADDRESS_MODE_REPEAT, int mipLevels = 1);
 
 	VkWriteDescriptorSet
 	write_descriptor_image(VkDescriptorType type, VkDescriptorSet dstSet,
 						   VkDescriptorImageInfo* imageInfo, uint32_t binding);
-
 
 	VkPipelineShaderStageCreateInfo
 	pipeline_shader_stage_ci(VkShaderModule module,
@@ -59,4 +61,4 @@ namespace render::vulkan::builder {
 
 	VkPipelineLayoutCreateInfo pipeline_layout_ci();
 
-} // namespace builder
+} // namespace render::vulkan::builder

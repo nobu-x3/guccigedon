@@ -548,7 +548,6 @@ namespace render::vulkan {
 						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
 					.add_scissor({{0, 0}, mWindowExtent})
 					.build_layout(mDevice.logical_device());
-
 			material.pipeline =
 				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
 			Mesh monkeyMesh{};
@@ -618,6 +617,10 @@ namespace render::vulkan {
 			upload_mesh(lost_empire);
 			add_material_to_mesh(material, lost_empire);
 		}
+        {
+				Image* image = mImageCache.get_image(
+					"assets/textures/cubemap_yokohama_rgba.ktx");
+        }
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
 

@@ -1,7 +1,7 @@
+#include "render/vulkan/builders.h"
 #include <algorithm>
 #include <fstream>
 #include <vulkan/vulkan_core.h>
-#include "render/vulkan/builders.h"
 
 namespace render::vulkan::builder {
 
@@ -110,41 +110,39 @@ namespace render::vulkan::builder {
 	}
 
 	VkImageCreateInfo image_ci(VkFormat format, VkImageUsageFlags usageFlags,
-							   VkExtent3D extent) {
+							   VkExtent3D extent, u32 mipLevels,
+							   u32 arrayLayers) {
 		VkImageCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		info.pNext = nullptr;
-
 		info.imageType = VK_IMAGE_TYPE_2D;
-
 		info.format = format;
 		info.extent = extent;
-
-		info.mipLevels = 1;
-		info.arrayLayers = 1;
+		info.mipLevels = mipLevels;
+		info.arrayLayers = arrayLayers;
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		info.usage = usageFlags;
-
 		return info;
 	}
 
 	VkImageViewCreateInfo imageview_ci(VkFormat format, VkImage image,
-									   VkImageAspectFlags aspectFlags) {
+									   VkImageAspectFlags aspectFlags,
+									   u32 mip_levels, u32 array_layers) {
 		// build a image-view for the depth image to use for rendering
 		VkImageViewCreateInfo info = {};
+		VkImageViewType view_type =
+			array_layers > 1 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		info.pNext = nullptr;
-
-		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		info.viewType = view_type;
 		info.image = image;
 		info.format = format;
 		info.subresourceRange.baseMipLevel = 0;
-		info.subresourceRange.levelCount = 1;
+		info.subresourceRange.levelCount = mip_levels;
 		info.subresourceRange.baseArrayLayer = 0;
-		info.subresourceRange.layerCount = 1;
+		info.subresourceRange.layerCount = array_layers;
 		info.subresourceRange.aspectMask = aspectFlags;
-
 		return info;
 	}
 
@@ -178,17 +176,22 @@ namespace render::vulkan::builder {
 
 	VkSamplerCreateInfo
 	sampler_create_info(VkFilter filters,
-						VkSamplerAddressMode samplerAddressMode) {
+						VkSamplerAddressMode samplerAddressMode, int mipLevels) {
 		VkSamplerCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		info.pNext = nullptr;
-
 		info.magFilter = filters;
 		info.minFilter = filters;
 		info.addressModeU = samplerAddressMode;
 		info.addressModeV = samplerAddressMode;
 		info.addressModeW = samplerAddressMode;
-
+        info.minLod = 0.0f;
+        info.maxLod = static_cast<f32>(mipLevels);
+        info.mipLodBias = 0.0f;
+        info.compareOp = VK_COMPARE_OP_NEVER;
+        info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+        info.maxAnisotropy = 1.0;
+        info.anisotropyEnable = VK_FALSE;
 		return info;
 	}
 
@@ -229,4 +232,4 @@ namespace render::vulkan::builder {
 		info.pPushConstantRanges = nullptr;
 		return info;
 	}
-} // namespace builder
+} // namespace render::vulkan::builder

@@ -1,12 +1,12 @@
+#include "render/vulkan/image.h"
 #include <glm/ext/scalar_constants.hpp>
 #include <string_view>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
-#include "render/vulkan/types.h"
-#include "render/vulkan/builders.h"
-#include "render/vulkan/image.h"
-#include "render/vulkan/renderer.h"
 #include "assets/textures/texture_importer.h"
+#include "render/vulkan/builders.h"
+#include "render/vulkan/renderer.h"
+#include "render/vulkan/types.h"
 
 namespace render::vulkan {
 
@@ -27,9 +27,9 @@ namespace render::vulkan {
 				 VulkanRenderer& renderer, bool create_sampler) :
 		mAllocator(alloc),
 		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
-        asset::Texture texture = asset::TextureImporter::import({path});
+		asset::Texture texture = asset::TextureImporter::import({path});
 		// rgba to match vk
-		VkDeviceSize img_size = texture.width() * texture.height() * 4;
+		VkDeviceSize img_size = texture.size();
 		Buffer staging_buffer{alloc, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 							  VMA_MEMORY_USAGE_CPU_ONLY};
 		void* data;
@@ -41,7 +41,7 @@ namespace render::vulkan {
 		VkImageCreateInfo image_ci = builder::image_ci(
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			img_extent);
+			img_extent, texture.mip_levels(), texture.layer_count());
 		VmaAllocationCreateInfo alloc_info{};
 		alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		VK_CHECK(vmaCreateImage(alloc, &image_ci, &alloc_info, &handle, &memory,
@@ -50,9 +50,9 @@ namespace render::vulkan {
 			VkImageSubresourceRange range;
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			range.baseMipLevel = 0;
-			range.levelCount = 1;
+			range.levelCount = texture.mip_levels();
 			range.baseArrayLayer = 0;
-			range.layerCount = 1;
+			range.layerCount = texture.layer_count();
 			VkImageMemoryBarrier img_barrier_transfer{
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				nullptr,
@@ -65,11 +65,26 @@ namespace render::vulkan {
 			vkCmdPipelineBarrier(buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 								 VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
 								 0, nullptr, 1, &img_barrier_transfer);
-			VkBufferImageCopy copy_region{
-				0, 0, 0, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {}, img_extent};
+			ArrayList<VkBufferImageCopy> buffer_copy_regions;
+			for (int face = 0; face < texture.layer_count(); ++face) {
+				for (int level = 0; level < texture.mip_levels(); ++level) {
+					VkBufferImageCopy copy_region{};
+					copy_region.imageSubresource.aspectMask =
+						VK_IMAGE_ASPECT_COLOR_BIT;
+					copy_region.imageSubresource.mipLevel = level;
+					copy_region.imageSubresource.layerCount = face;
+					copy_region.imageSubresource.layerCount = 1;
+					copy_region.imageExtent.width = texture.width() >> level;
+					copy_region.imageExtent.height = texture.height() >> level;
+					copy_region.imageExtent.depth = 1;
+					copy_region.bufferOffset = texture.offset(level, 0, face);
+					buffer_copy_regions.push_back(copy_region);
+				}
+			}
 			vkCmdCopyBufferToImage(buf, staging_buffer.handle, handle,
-								   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-								   &copy_region);
+								   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+								   static_cast<u32>(buffer_copy_regions.size()),
+								   buffer_copy_regions.data());
 			VkImageMemoryBarrier img_barrier_shader_readable =
 				img_barrier_transfer;
 			img_barrier_shader_readable.oldLayout =
@@ -88,11 +103,13 @@ namespace render::vulkan {
 		});
 		staging_buffer.destroy();
 		VkImageViewCreateInfo view_ci = builder::imageview_ci(
-			VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT);
+			VK_FORMAT_R8G8B8A8_SRGB, handle, VK_IMAGE_ASPECT_COLOR_BIT,
+			texture.mip_levels(), texture.layer_count());
 		vkCreateImageView(device, &view_ci, nullptr, &view);
 		if (create_sampler) {
-			VkSamplerCreateInfo sampler_info =
-				builder::sampler_create_info(VK_FILTER_NEAREST);
+			VkSamplerCreateInfo sampler_info = builder::sampler_create_info(
+				VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				texture.mip_levels());
 			vkCreateSampler(device, &sampler_info, nullptr, &mSampler);
 		}
 	}
