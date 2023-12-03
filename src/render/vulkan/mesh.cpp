@@ -56,6 +56,7 @@ namespace render::vulkan {
 		position_attribute.location = 0;
 		position_attribute.format = VK_FORMAT_R32G32B32_SFLOAT;
 		position_attribute.offset = offsetof(SkyboxVertex, position);
+        description.attributes.push_back(position_attribute);
 		return description;
 	}
 
