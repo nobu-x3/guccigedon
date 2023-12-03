@@ -24,7 +24,7 @@ void main()
 {
 	texCoord = vPosition;
 	// Convert cubemap coordinates into Vulkan coordinate space
-	texCoord.xy *= -1.0;
+	//texCoord.xy *= -1.0;
     mat4 view = mat4(mat3(cameraData.view));
 	gl_Position = (cameraData.proj * view * vec4(vPosition.xyz, 1.0)).xyww;
 }

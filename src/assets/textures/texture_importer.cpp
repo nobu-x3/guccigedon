@@ -96,7 +96,8 @@ namespace asset {
 		}
 		mWidth = mTexture->baseWidth;
 		mHeight = mTexture->baseHeight;
-		mMipLevels = mTexture->numLevels;
+		/* mMipLevels = mTexture->numLevels; */
+		mMipLevels = 1;
 		/* mChannels = mTexture->dataSize / (mWidth * mHeight); */
         mChannels = 4;
         bIsCube = mTexture->isCubemap;
@@ -122,12 +123,12 @@ namespace asset {
         return offset;
     }
 
-	Texture TextureImporter::import(std::filesystem::path path) {
+	Texture* TextureImporter::import(std::filesystem::path path) {
 		if (path.extension() == ".ktx") {
-			return KTX_Texture(path);
+			return new KTX_Texture(path);
 		}
 
-		return STB_Texture(path);
+		return new STB_Texture(path);
 	}
 
 } // namespace asset

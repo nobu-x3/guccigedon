@@ -111,13 +111,13 @@ namespace render::vulkan {
 		VkCommandBuffer& buf = frame_data.command_buffer;
 		// insert actual commands
 		VkDeviceSize offset{0};
-		// make a model view matrix for rendering the object
 		// model rotation
 		glm::mat4 model =
 			glm::rotate(glm::mat4{1.0f}, glm::radians(0.f), glm::vec3(0, 1, 0));
 		// calculate final mesh matrix
 		MeshPushConstant constants;
 		constants.render_matrix = model;
+		// make a model view matrix for rendering the object
 		CameraData cam_data = {};
 		cam_data.proj = mCamera.projection;
 		cam_data.view = mCamera.view();
@@ -618,7 +618,7 @@ namespace render::vulkan {
 			add_material_to_mesh(material, lost_empire);
 		}
 		{
-			Material material{};
+			Material material {};
 			{
 				Image* image = mImageCache.get_image(
 					"assets/textures/cubemap_yokohama_rgba.ktx");

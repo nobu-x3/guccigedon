@@ -62,6 +62,6 @@ namespace asset {
 
 	class TextureImporter {
 	public:
-		static Texture import(std::filesystem::path path);
+		static Texture* import(std::filesystem::path path);
 	};
 } // namespace asset
