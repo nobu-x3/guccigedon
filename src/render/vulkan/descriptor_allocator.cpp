@@ -169,9 +169,6 @@ namespace render::vulkan {
 			mDescriptorPools[allocator.id()].usableAllocators.push_back(
 				allocator.handle());
 		}
-		std::cout << "size after returning "
-				  << mDescriptorPools[allocator.id()].usableAllocators.size()
-				  << std::endl;
 	}
 
 	VkDescriptorPool

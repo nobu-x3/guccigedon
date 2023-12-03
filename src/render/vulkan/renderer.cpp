@@ -113,7 +113,7 @@ namespace render::vulkan {
 		// make a model view matrix for rendering the object
 		// model rotation
 		glm::mat4 model =
-			glm::rotate(glm::mat4{1.0f}, glm::radians(mCurrFrame * 0.01f),
+			glm::rotate(glm::mat4{1.0f}, glm::radians(0.f),
 						glm::vec3(0, 1, 0));
 		// calculate final mesh matrix
 		MeshPushConstant constants;
@@ -618,8 +618,66 @@ namespace render::vulkan {
 			add_material_to_mesh(material, lost_empire);
 		}
         {
+			Material material{};
+			{
 				Image* image = mImageCache.get_image(
 					"assets/textures/cubemap_yokohama_rgba.ktx");
+				builder::DescriptorSetBuilder builder{
+					mDevice, &mDescriptorLayoutCache,
+					&mMainDescriptorAllocator};
+				VkDescriptorImageInfo image_buf_info{
+					image->sampler(), image->view,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+				material.textureSet = std::move(
+					builder
+						.add_image(0, &image_buf_info,
+								   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+								   VK_SHADER_STAGE_FRAGMENT_BIT)
+						.build()
+						.value());
+				mTextureSamplerDescriptorSetLayout = builder.layout();
+			}
+			builder::PipelineBuilder builder;
+			material.layout =
+				builder
+					.add_shader_module(
+						mShaderCache.get_shader(
+							"assets/shaders/skybox.vert.glsl.spv"),
+						ShaderType::VERTEX)
+					.add_shader_module(
+						mShaderCache.get_shader(
+							"assets/shaders/skybox.frag.glsl.spv"),
+						ShaderType::FRAGMENT)
+					.set_vertex_input_description(Vertex::get_description())
+					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+										false)
+					.set_polygon_mode(VK_POLYGON_MODE_FILL)
+					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+								   VK_FRONT_FACE_CLOCKWISE)
+					.set_multisampling_enabled(false)
+					.add_default_color_blend_attachment()
+					.set_color_blending_enabled(false)
+					.add_push_constant(sizeof(MeshPushConstant),
+									   VK_SHADER_STAGE_VERTEX_BIT)
+					.add_descriptor_set_layout(mGlobalDescriptorSetLayout)
+					.add_descriptor_set_layout(mObjectsDescriptorSetLayout)
+					.add_descriptor_set_layout(
+						mTextureSamplerDescriptorSetLayout)
+					.set_depth_testing(true, false, VK_COMPARE_OP_LESS_OR_EQUAL)
+					.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
+					.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
+					// .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
+					.add_viewport(
+						{0, 0, static_cast<float>(mWindowExtent.width),
+						 static_cast<float>(mWindowExtent.height), 0.f, 1.f})
+					.add_scissor({{0, 0}, mWindowExtent})
+					.build_layout(mDevice.logical_device());
+			material.pipeline =
+				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
+			Mesh skybox{};
+			skybox.load_from_obj("assets/models/cube.obj");
+			upload_mesh(skybox);
+			add_material_to_mesh(material, skybox);
         }
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
