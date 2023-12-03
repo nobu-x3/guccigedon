@@ -72,7 +72,7 @@ namespace render::vulkan {
 					copy_region.imageSubresource.aspectMask =
 						VK_IMAGE_ASPECT_COLOR_BIT;
 					copy_region.imageSubresource.mipLevel = level;
-					copy_region.imageSubresource.layerCount = face;
+					copy_region.imageSubresource.baseArrayLayer = face;
 					copy_region.imageSubresource.layerCount = 1;
 					copy_region.imageExtent.width = texture.width() >> level;
 					copy_region.imageExtent.height = texture.height() >> level;

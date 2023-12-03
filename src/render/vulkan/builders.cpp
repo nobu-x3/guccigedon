@@ -123,6 +123,9 @@ namespace render::vulkan::builder {
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		info.usage = usageFlags;
+		if (arrayLayers > 1) {
+			info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		}
 		return info;
 	}
 
@@ -176,7 +179,8 @@ namespace render::vulkan::builder {
 
 	VkSamplerCreateInfo
 	sampler_create_info(VkFilter filters,
-						VkSamplerAddressMode samplerAddressMode, int mipLevels) {
+						VkSamplerAddressMode samplerAddressMode,
+						int mipLevels) {
 		VkSamplerCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		info.pNext = nullptr;
@@ -185,13 +189,14 @@ namespace render::vulkan::builder {
 		info.addressModeU = samplerAddressMode;
 		info.addressModeV = samplerAddressMode;
 		info.addressModeW = samplerAddressMode;
-        info.minLod = 0.0f;
-        info.maxLod = static_cast<f32>(mipLevels);
-        info.mipLodBias = 0.0f;
-        info.compareOp = VK_COMPARE_OP_NEVER;
-        info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-        info.maxAnisotropy = 1.0;
-        info.anisotropyEnable = VK_FALSE;
+		info.minLod = 0.0f;
+		info.maxLod = static_cast<f32>(mipLevels);
+        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		info.mipLodBias = 0.0f;
+		info.compareOp = VK_COMPARE_OP_NEVER;
+		info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		info.maxAnisotropy = 1.0;
+		info.anisotropyEnable = VK_FALSE;
 		return info;
 	}
 
@@ -201,13 +206,11 @@ namespace render::vulkan::builder {
 		VkWriteDescriptorSet write = {};
 		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write.pNext = nullptr;
-
 		write.dstBinding = binding;
 		write.dstSet = dstSet;
 		write.descriptorCount = 1;
 		write.descriptorType = type;
 		write.pImageInfo = imageInfo;
-
 		return write;
 	}
 

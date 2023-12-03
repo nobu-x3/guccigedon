@@ -14,6 +14,9 @@ namespace asset {
 		mWidth = other.mWidth;
 		mHeight = other.mHeight;
 		mChannels = other.mChannels;
+        mLayerCount = other.mLayerCount;
+        mMipLevels = other.mMipLevels;
+        bIsCube = other.bIsCube;
 		mLifetime = ObjectLifetime::TEMP;
 	}
 
@@ -22,6 +25,9 @@ namespace asset {
 		mWidth = other.mWidth;
 		mHeight = other.mHeight;
 		mChannels = other.mChannels;
+        mLayerCount = other.mLayerCount;
+        mMipLevels = other.mMipLevels;
+        bIsCube = other.bIsCube;
 		mLifetime = ObjectLifetime::TEMP;
 		return *this;
 	}
@@ -32,6 +38,9 @@ namespace asset {
 		mHeight = other.mHeight;
 		mChannels = other.mChannels;
 		mLifetime = ObjectLifetime::OWNED;
+        bIsCube = other.bIsCube;
+        mLayerCount = other.mLayerCount;
+        mMipLevels = other.mMipLevels;
 		other.pPixels = nullptr;
 		other.mWidth = 0;
 		other.mHeight = 0;
@@ -45,6 +54,9 @@ namespace asset {
 		mHeight = other.mHeight;
 		mChannels = other.mChannels;
 		mLifetime = ObjectLifetime::OWNED;
+        bIsCube = other.bIsCube;
+        mLayerCount = other.mLayerCount;
+        mMipLevels = other.mMipLevels;
 		other.pPixels = nullptr;
 		other.mWidth = 0;
 		other.mHeight = 0;
@@ -85,8 +97,9 @@ namespace asset {
 		mWidth = mTexture->baseWidth;
 		mHeight = mTexture->baseHeight;
 		mMipLevels = mTexture->numLevels;
-		// NOTE: i think that's correct?
-		mChannels = mTexture->dataSize / (mWidth * mHeight);
+		/* mChannels = mTexture->dataSize / (mWidth * mHeight); */
+        mChannels = 4;
+        bIsCube = mTexture->isCubemap;
 		mLayerCount = mTexture->isCubemap ? 6 : 1;
 		ktx_uint8_t* mTexture_data = ktxTexture_GetData(mTexture);
 		pPixels = mTexture_data;

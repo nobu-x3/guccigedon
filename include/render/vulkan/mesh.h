@@ -1,6 +1,6 @@
 #pragma once
-#include "vk_mem_alloc.h"
 #include "render/vulkan/types.h"
+#include "vk_mem_alloc.h"
 
 namespace render::vulkan {
 
@@ -9,6 +9,12 @@ namespace render::vulkan {
 		glm::vec3 color;
 		glm::vec3 normal;
 		glm::vec2 uv;
+
+		static VertexInputDescription get_description();
+	};
+
+	struct SkyboxVertex {
+		glm::vec3 position;
 
 		static VertexInputDescription get_description();
 	};

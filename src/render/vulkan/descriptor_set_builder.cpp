@@ -23,7 +23,7 @@ namespace render::vulkan {
 	DescriptorLayoutCache::~DescriptorLayoutCache() {
 		if (mDevice) {
 			for (auto& [k, v] : mCache) {
-                core::Logger::Trace("Destroying descr layout");
+				core::Logger::Trace("Destroying descr layout");
 				vkDestroyDescriptorSetLayout(mDevice, v, nullptr);
 			}
 		}
@@ -112,11 +112,10 @@ namespace render::vulkan {
 
 	namespace builder {
 		DescriptorSetBuilder::DescriptorSetBuilder(
-			const Device& device,
-			DescriptorLayoutCache* cache, DescriptorAllocator* allocator) :
+			const Device& device, DescriptorLayoutCache* cache,
+			DescriptorAllocator* allocator) :
 			mDevice(device.logical_device()),
-			mCache(cache),
-			mAllocator(allocator) {}
+			mCache(cache), mAllocator(allocator) {}
 
 		DescriptorSetBuilder& DescriptorSetBuilder::add_buffer(
 			u32 binding, VkDescriptorBufferInfo* buffer_info,
@@ -158,8 +157,7 @@ namespace render::vulkan {
 			return *this;
 		}
 
-		std::optional<VkDescriptorSet>
-		DescriptorSetBuilder::build() {
+		std::optional<VkDescriptorSet> DescriptorSetBuilder::build() {
 			VkDescriptorSetLayoutCreateInfo ci{
 				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr};
 			ci.bindingCount = static_cast<u32>(mBindings.size());

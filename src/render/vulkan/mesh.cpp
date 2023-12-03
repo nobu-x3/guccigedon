@@ -42,6 +42,23 @@ namespace render::vulkan {
 		return description;
 	}
 
+	VertexInputDescription SkyboxVertex::get_description() {
+		VertexInputDescription description;
+		// we will have just 1 vertex buffer binding, with a per-vertex rate
+		VkVertexInputBindingDescription main_binding = {};
+		main_binding.binding = 0;
+		main_binding.stride = sizeof(SkyboxVertex);
+		main_binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		description.bindings.push_back(main_binding);
+		// Position will be stored at Location 0
+		VkVertexInputAttributeDescription position_attribute = {};
+		position_attribute.binding = 0;
+		position_attribute.location = 0;
+		position_attribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+		position_attribute.offset = offsetof(SkyboxVertex, position);
+		return description;
+	}
+
 	void Mesh::deinit(VmaAllocator alloc) { buffer.destroy(); }
 
 	Mesh& Mesh::set_vertices(ArrayList<Vertex>& data) {
@@ -66,12 +83,12 @@ namespace render::vulkan {
 		// make sure to output the warnings to the console, in case there are
 		// issues with the file
 		if (!warn.empty()) {
-            // core::Logger::Warning("%s", warn);
+			// core::Logger::Warning("%s", warn);
 		}
 		// if we have any error, print it to the console, and break the mesh
 		// loading. This happens if the file cant be found or is malformed
 		if (!err.empty()) {
-            // core::Logger::Error("%s", err);
+			// core::Logger::Error("%s", err);
 			return false;
 		}
 		// Loop over shapes
@@ -126,4 +143,4 @@ namespace render::vulkan {
 		}
 		return true;
 	}
-} // namespace render
+} // namespace render::vulkan

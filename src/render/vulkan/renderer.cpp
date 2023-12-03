@@ -15,6 +15,7 @@
 #include "core/input.h"
 #include "core/logger.h"
 #include "render/vulkan/builders.h"
+#include "render/vulkan/mesh.h"
 #include "render/vulkan/pipeline.h"
 #include "render/vulkan/types.h"
 
@@ -113,8 +114,7 @@ namespace render::vulkan {
 		// make a model view matrix for rendering the object
 		// model rotation
 		glm::mat4 model =
-			glm::rotate(glm::mat4{1.0f}, glm::radians(0.f),
-						glm::vec3(0, 1, 0));
+			glm::rotate(glm::mat4{1.0f}, glm::radians(0.f), glm::vec3(0, 1, 0));
 		// calculate final mesh matrix
 		MeshPushConstant constants;
 		constants.render_matrix = model;
@@ -617,7 +617,7 @@ namespace render::vulkan {
 			upload_mesh(lost_empire);
 			add_material_to_mesh(material, lost_empire);
 		}
-        {
+		{
 			Material material{};
 			{
 				Image* image = mImageCache.get_image(
@@ -635,7 +635,6 @@ namespace render::vulkan {
 								   VK_SHADER_STAGE_FRAGMENT_BIT)
 						.build()
 						.value());
-				mTextureSamplerDescriptorSetLayout = builder.layout();
 			}
 			builder::PipelineBuilder builder;
 			material.layout =
@@ -648,7 +647,8 @@ namespace render::vulkan {
 						mShaderCache.get_shader(
 							"assets/shaders/skybox.frag.glsl.spv"),
 						ShaderType::FRAGMENT)
-					.set_vertex_input_description(Vertex::get_description())
+					.set_vertex_input_description(
+						SkyboxVertex::get_description())
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
 					.set_polygon_mode(VK_POLYGON_MODE_FILL)
@@ -678,7 +678,7 @@ namespace render::vulkan {
 			skybox.load_from_obj("assets/models/cube.obj");
 			upload_mesh(skybox);
 			add_material_to_mesh(material, skybox);
-        }
+		}
 		mScene.scene_data.ambient_color = {0.7f, 0.4f, 0.1f, 0.f};
 	}
 

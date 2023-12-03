@@ -141,8 +141,6 @@ namespace render::vulkan::builder {
 			{0.f, 0.f, 0.f, 0.f}};
 
 		VkPipelineLayoutCreateInfo mLayoutCi{
-			// @TODO: add methods to add more descriptor sets and push
-			// constants
 			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			nullptr,
 			0,
