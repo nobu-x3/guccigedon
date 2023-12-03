@@ -652,8 +652,8 @@ namespace render::vulkan {
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
 					.set_polygon_mode(VK_POLYGON_MODE_FILL)
-					.set_cull_mode(VK_CULL_MODE_BACK_BIT,
-								   VK_FRONT_FACE_CLOCKWISE)
+					.set_cull_mode(VK_CULL_MODE_FRONT_BIT,
+								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.set_multisampling_enabled(false)
 					.add_default_color_blend_attachment()
 					.set_color_blending_enabled(false)
