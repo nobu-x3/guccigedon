@@ -23,7 +23,7 @@ namespace asset {
 		inline int width() const { return mWidth; }
 		inline int height() const { return mHeight; }
 		inline int channels() const { return mChannels; }
-		inline int size() const { return mWidth * mHeight * mChannels; }
+		inline int size() const { return mWidth * mHeight * mChannels * mLayerCount; }
 		inline int mip_levels() const { return mMipLevels; }
 		inline int layer_count() const { return mLayerCount; }
 		inline void* pixels() const { return pPixels; }
