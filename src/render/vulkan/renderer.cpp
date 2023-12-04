@@ -648,12 +648,12 @@ namespace render::vulkan {
 							"assets/shaders/skybox.frag.glsl.spv"),
 						ShaderType::FRAGMENT)
 					.set_vertex_input_description(
-						SkyboxVertex::get_description())
+						Vertex::get_description())
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
 					.set_polygon_mode(VK_POLYGON_MODE_FILL)
 					.set_cull_mode(VK_CULL_MODE_FRONT_BIT,
-								   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+								   VK_FRONT_FACE_CLOCKWISE)
 					.set_multisampling_enabled(false)
 					.add_default_color_blend_attachment()
 					.set_color_blending_enabled(false)
@@ -675,7 +675,7 @@ namespace render::vulkan {
 			material.pipeline =
 				builder.build_pipeline(mDevice.logical_device(), mRenderPass);
 			Mesh skybox{};
-			skybox.load_from_obj("assets/models/cube.obj");
+			skybox.load_primitive(PrimitiveType::Cube);
 			upload_mesh(skybox);
 			add_material_to_mesh(material, skybox);
 		}

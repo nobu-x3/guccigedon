@@ -144,4 +144,18 @@ namespace render::vulkan {
 		}
 		return true;
 	}
+	bool Mesh::load_primitive(PrimitiveType type) {
+		switch (type) {
+		case PrimitiveType::Cube:
+			for (int i = 0; i < 108; i+=3) {
+				Vertex new_vert{};
+				new_vert.position.x = cube[i];
+				new_vert.position.y = cube[i + 1];
+				new_vert.position.z = cube[i + 2];
+				vertices.push_back(new_vert);
+			}
+			break;
+		}
+		return true;
+	}
 } // namespace render::vulkan
