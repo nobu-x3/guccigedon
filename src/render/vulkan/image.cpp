@@ -1,7 +1,7 @@
 #include "render/vulkan/image.h"
 #include <glm/ext/scalar_constants.hpp>
-#include <string_view>
 #include <memory>
+#include <string_view>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 #include "assets/textures/texture_importer.h"
@@ -28,8 +28,10 @@ namespace render::vulkan {
 				 VulkanRenderer& renderer, bool create_sampler) :
 		mAllocator(alloc),
 		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
-            // NOTE: okay this is a hack until I implement asset manager
-            std::unique_ptr<asset::Texture> texture = std::unique_ptr<asset::Texture>(std::move(asset::TextureImporter::import({path})));
+		// NOTE: okay this is a hack until I implement asset manager
+		std::unique_ptr<asset::Texture> texture =
+			std::unique_ptr<asset::Texture>(
+				std::move(asset::TextureImporter::import({path})));
 		// rgba to match vk
 		VkDeviceSize img_size = texture->size();
 		Buffer staging_buffer{alloc, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
