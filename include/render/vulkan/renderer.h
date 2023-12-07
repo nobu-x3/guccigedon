@@ -45,6 +45,7 @@ namespace render::vulkan {
 		void add_material_to_mesh(const Material& material, const Mesh& mesh);
 
 		void upload_mesh(Mesh& mesh);
+        Buffer merge_vertices(ArrayList<Mesh>&);
 
 		// function template instead of std::function because c++20...
 		// @TODO: figure out lambdas as param and passing this fn as pointer

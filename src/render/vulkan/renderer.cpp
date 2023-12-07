@@ -5,11 +5,13 @@
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
 #include <algorithm>
+#include <bits/ranges_algo.h>
 #include <chrono>
 #include <ctime>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <iterator>
+#include <ranges>
 #include <vulkan/vulkan_core.h>
 #include "../../vendor/vk-bootstrap/src/VkBootstrap.h"
 #include "core/input.h"
@@ -43,6 +45,9 @@ namespace render::vulkan {
 		init_descriptors();
 		init_scene();
 		mCamera.transform.position({0.f, 0.f, 2.f});
+		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+			merge_vertices(entry.second);
+		}
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -618,7 +623,7 @@ namespace render::vulkan {
 			add_material_to_mesh(material, lost_empire);
 		}
 		{
-			Material material {};
+			Material material{};
 			{
 				Image* image = mImageCache.get_image(
 					"assets/textures/cubemap_yokohama_rgba.ktx");
@@ -721,6 +726,38 @@ namespace render::vulkan {
 			vkCmdCopyBuffer(cmd, staging.handle, mesh.buffer.handle, 1, &copy);
 		});
 		staging.destroy();
+	}
+
+	Buffer VulkanRenderer::merge_vertices(ArrayList<Mesh>& meshes) {
+		auto joined_view = meshes |
+			std::views::transform([](Mesh& mesh) -> ArrayList<Vertex>& {
+							   return mesh.vertices;
+						   }) |
+			std::views::join;
+		ArrayList<Vertex> merged_vertices;
+		std::ranges::copy(joined_view, std::back_inserter(merged_vertices));
+		const size_t buf_size =
+			std::ranges::size(merged_vertices) * sizeof(Vertex);
+		Buffer staging{mDevice.allocator(), buf_size,
+					   VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+					   VMA_MEMORY_USAGE_CPU_ONLY};
+		std::ranges::for_each(joined_view, [](Vertex v) {
+			std::cout << v.position.x << std::endl;
+		});
+		void* data;
+		vmaMapMemory(mDevice.allocator(), staging.memory, &data);
+		memcpy(data, merged_vertices.data(), buf_size);
+		vmaUnmapMemory(mDevice.allocator(), staging.memory);
+		Buffer buffer = {mDevice.allocator(), buf_size,
+						 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						 VMA_MEMORY_USAGE_GPU_ONLY};
+		immediate_submit([=](VkCommandBuffer cmd) {
+			VkBufferCopy copy{0, 0, buf_size};
+			vkCmdCopyBuffer(cmd, staging.handle, buffer.handle, 1, &copy);
+		});
+		staging.destroy();
+		return buffer;
 	}
 
 	void VulkanRenderer::immediate_submit(
