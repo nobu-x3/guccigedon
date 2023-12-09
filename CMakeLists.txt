@@ -85,8 +85,8 @@ if(NOT tinygltf_FOUND)
     execute_process(COMMAND git submodule update --init -- vendor/tinygltf
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_subdirectory(vendor/tinygltf SYSTEM)
-    set(TINYGLTF_INCLUDE_DIR vendor/tinygltf/tinygltf.h)
-    set(TINYOBJLOADER_LIBRARY tinyobjloader)
+    set(TINYGLTF_INCLUDE_DIR vendor/tinygltf/tiny_gltf.h)
+    set(TINYGLTF_LIBRARY tinygltf)
 endif()
 
 if(NOT tinyobjloader_FOUND)
@@ -95,6 +95,7 @@ if(NOT tinyobjloader_FOUND)
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_subdirectory(vendor/tinyobj)
     set(TINYOBJLOADER_INCLUDE_DIR vendor/tinyobj/tiny_obj_loader.h)
+    set(TINYOBJLOADER_LIBRARY tinyobjloader)
 endif()
 
 
@@ -144,6 +145,7 @@ target_link_libraries(Guccigedon ${SDL2_LIBRARIES}
     SDL2::SDL2main
     ${Vulkan_LIBRARY} ${GLM_LIBRARY}
     ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}
+    ${TINYGLTF_LIBRARY}
     ${TINYOBJLOADER_LIBRARY}
     ${VK_BOOTSTRAP_LIBRARY}
     ${SPIRV_REFLECT_LIBRARY}
