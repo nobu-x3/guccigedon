@@ -22,6 +22,11 @@ namespace render::vulkan {
 	constexpr u32 MAXIMUM_FRAMES_IN_FLIGHT = 2;
 	constexpr u32 MAX_OBJECTS = 1000;
 
+	struct VertexBuffer {
+		u32 size{0};
+		Buffer buffer{};
+	};
+
 	class VulkanRenderer {
 
 	private:
@@ -45,7 +50,7 @@ namespace render::vulkan {
 		void add_material_to_mesh(const Material& material, const Mesh& mesh);
 
 		void upload_mesh(Mesh& mesh);
-        Buffer merge_vertices(ArrayList<Mesh>&);
+		VertexBuffer merge_vertices(ArrayList<Mesh>&);
 
 		// function template instead of std::function because c++20...
 		// @TODO: figure out lambdas as param and passing this fn as pointer
@@ -75,6 +80,7 @@ namespace render::vulkan {
 		Swapchain mSwapchain{};
 		VkRenderPass mRenderPass{};
 		HashMap<Material, ArrayList<Mesh>> mMaterialMap{};
+		HashMap<Material, VertexBuffer> mMaterialBufferMap{};
 		FrameData mFrames[MAXIMUM_FRAMES_IN_FLIGHT];
 		DescriptorAllocatorPool mDescriptorAllocatorPool{};
 		DescriptorAllocator mMainDescriptorAllocator{};

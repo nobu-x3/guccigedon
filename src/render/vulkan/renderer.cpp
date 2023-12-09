@@ -46,7 +46,7 @@ namespace render::vulkan {
 		init_scene();
 		mCamera.transform.position({0.f, 0.f, 2.f});
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
-			merge_vertices(entry.second);
+            mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
 		}
 	}
 
@@ -94,6 +94,8 @@ namespace render::vulkan {
 									entry.first.layout, nullptr);
 			vkDestroyPipeline(mDevice.logical_device(), entry.first.pipeline,
 							  nullptr);
+            Buffer& vb = mMaterialBufferMap[entry.first].buffer;
+            vb.destroy();
 			for (Mesh& mesh : entry.second) {
 				mesh.deinit(mDevice.allocator());
 			}
@@ -149,7 +151,7 @@ namespace render::vulkan {
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
 		bool first_bind = true;
-		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+		for (std::pair<const Material, VertexBuffer>& entry : mMaterialBufferMap) {
 			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							  entry.first.pipeline);
 			if (first_bind) {
@@ -178,14 +180,12 @@ namespace render::vulkan {
 										entry.first.layout, 2, 1,
 										&entry.first.textureSet, 0, nullptr);
 			}
-			for (Mesh& mesh : entry.second) {
-				vkCmdBindVertexBuffers(buf, 0, 1, &mesh.buffer.handle, &offset);
+				vkCmdBindVertexBuffers(buf, 0, 1, &entry.second.buffer.handle, &offset);
 				// upload the matrix to the GPU via push constants
 				vkCmdPushConstants(buf, entry.first.layout,
 								   VK_SHADER_STAGE_VERTEX_BIT, 0,
 								   sizeof(MeshPushConstant), &constants);
-				vkCmdDraw(buf, mesh.vertices.size(), 1, 0, 0);
-			}
+				vkCmdDraw(buf, entry.second.size, 1, 0, 0);
 		}
 		/* std::chrono::duration<f64> delta
 		 * {std::chrono::high_resolution_clock::now() - start_time}; */
@@ -652,8 +652,7 @@ namespace render::vulkan {
 						mShaderCache.get_shader(
 							"assets/shaders/skybox.frag.glsl.spv"),
 						ShaderType::FRAGMENT)
-					.set_vertex_input_description(
-						Vertex::get_description())
+					.set_vertex_input_description(Vertex::get_description())
 					.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 										false)
 					.set_polygon_mode(VK_POLYGON_MODE_FILL)
@@ -728,7 +727,7 @@ namespace render::vulkan {
 		staging.destroy();
 	}
 
-	Buffer VulkanRenderer::merge_vertices(ArrayList<Mesh>& meshes) {
+	VertexBuffer VulkanRenderer::merge_vertices(ArrayList<Mesh>& meshes) {
 		auto joined_view = meshes |
 			std::views::transform([](Mesh& mesh) -> ArrayList<Vertex>& {
 							   return mesh.vertices;
@@ -738,26 +737,25 @@ namespace render::vulkan {
 		std::ranges::copy(joined_view, std::back_inserter(merged_vertices));
 		const size_t buf_size =
 			std::ranges::size(merged_vertices) * sizeof(Vertex);
+		VertexBuffer vertex_buffer{static_cast<u32>(buf_size)};
 		Buffer staging{mDevice.allocator(), buf_size,
 					   VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 					   VMA_MEMORY_USAGE_CPU_ONLY};
-		std::ranges::for_each(joined_view, [](Vertex v) {
-			std::cout << v.position.x << std::endl;
-		});
 		void* data;
 		vmaMapMemory(mDevice.allocator(), staging.memory, &data);
 		memcpy(data, merged_vertices.data(), buf_size);
 		vmaUnmapMemory(mDevice.allocator(), staging.memory);
-		Buffer buffer = {mDevice.allocator(), buf_size,
-						 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-						 VMA_MEMORY_USAGE_GPU_ONLY};
+		vertex_buffer.buffer = {mDevice.allocator(), buf_size,
+								VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+									VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+								VMA_MEMORY_USAGE_GPU_ONLY};
 		immediate_submit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy{0, 0, buf_size};
-			vkCmdCopyBuffer(cmd, staging.handle, buffer.handle, 1, &copy);
+			vkCmdCopyBuffer(cmd, staging.handle, vertex_buffer.buffer.handle, 1,
+							&copy);
 		});
 		staging.destroy();
-		return buffer;
+		return vertex_buffer;
 	}
 
 	void VulkanRenderer::immediate_submit(

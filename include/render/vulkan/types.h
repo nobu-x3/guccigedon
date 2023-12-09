@@ -30,6 +30,10 @@ namespace render::vulkan {
 		Buffer() = default;
 		Buffer(VmaAllocator alloc, size_t allocation_size,
 			   VkBufferUsageFlags usage, VmaMemoryUsage mem_usage);
+        Buffer(const Buffer& other);
+        Buffer& operator=(const Buffer& other);
+        Buffer(Buffer&& other) noexcept;
+        Buffer& operator=(Buffer&& other) noexcept;
 
 		// The reason we want to explicitly destroy the object is because
 		// most of the time we don't want to actually clear the memory and

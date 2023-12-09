@@ -2,6 +2,7 @@
 #include <vulkan/vulkan_core.h>
 
 namespace render::vulkan {
+
 	Buffer::Buffer(VmaAllocator alloc, size_t allocation_size,
 				   VkBufferUsageFlags usage, VmaMemoryUsage mem_usage) :
 		mAlloc(alloc) {
@@ -19,4 +20,32 @@ namespace render::vulkan {
 		}
 	}
 
-} // namespace render
+	Buffer::Buffer(const Buffer& other) :
+		mAlloc(other.mAlloc), memory(other.memory), handle(other.handle) {}
+
+	Buffer& Buffer::operator=(const Buffer& other)
+    {
+        mAlloc = other.mAlloc;
+        memory = other.memory;
+        handle = other.handle;
+        return *this;
+    }
+    Buffer::	Buffer(Buffer&& other) noexcept{
+        mAlloc = other.mAlloc;
+        memory = other.memory;
+        handle = other.handle;
+        other.mAlloc = nullptr;
+        other.handle = nullptr;
+        other.memory = nullptr;
+    }
+
+	Buffer& Buffer::operator=(Buffer&& other) noexcept{
+        mAlloc = other.mAlloc;
+        memory = other.memory;
+        handle = other.handle;
+        other.mAlloc = nullptr;
+        other.handle = nullptr;
+        other.memory = nullptr;
+        return *this;
+    }
+} // namespace render::vulkan
