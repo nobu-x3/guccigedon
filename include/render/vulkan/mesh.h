@@ -1,24 +1,9 @@
 #pragma once
+#include "render/vulkan/primitives.h"
 #include "render/vulkan/types.h"
 #include "vk_mem_alloc.h"
-#include "render/vulkan/primitives.h"
 
 namespace render::vulkan {
-
-	struct Vertex {
-		glm::vec3 position{0, 0, 0};
-		glm::vec3 color{0,0,0};
-		glm::vec3 normal{0, 0, 0};
-		glm::vec2 uv{0, 0};
-
-		static VertexInputDescription get_description();
-	};
-
-	struct SkyboxVertex {
-		glm::vec3 position;
-
-		static VertexInputDescription get_description();
-	};
 
 	class Mesh {
 	public:

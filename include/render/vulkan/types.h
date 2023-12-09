@@ -30,10 +30,10 @@ namespace render::vulkan {
 		Buffer() = default;
 		Buffer(VmaAllocator alloc, size_t allocation_size,
 			   VkBufferUsageFlags usage, VmaMemoryUsage mem_usage);
-        Buffer(const Buffer& other);
-        Buffer& operator=(const Buffer& other);
-        Buffer(Buffer&& other) noexcept;
-        Buffer& operator=(Buffer&& other) noexcept;
+		Buffer(const Buffer& other);
+		Buffer& operator=(const Buffer& other);
+		Buffer(Buffer&& other) noexcept;
+		Buffer& operator=(Buffer&& other) noexcept;
 
 		// The reason we want to explicitly destroy the object is because
 		// most of the time we don't want to actually clear the memory and
@@ -91,13 +91,26 @@ namespace render::vulkan {
 		glm::mat4 model_matrix;
 	};
 
-
 	struct VertexInputDescription {
 		ArrayList<VkVertexInputBindingDescription> bindings;
 		ArrayList<VkVertexInputAttributeDescription> attributes;
 		VkPipelineVertexInputStateCreateFlags flags{0};
 	};
 
+	struct Vertex {
+		glm::vec3 position{0, 0, 0};
+		glm::vec3 color{0, 0, 0};
+		glm::vec3 normal{0, 0, 0};
+		glm::vec2 uv{0, 0};
+
+		static VertexInputDescription get_description();
+	};
+
+	struct SkyboxVertex {
+		glm::vec3 position;
+
+		static VertexInputDescription get_description();
+	};
 } // namespace render::vulkan
 
 template <>
@@ -105,5 +118,4 @@ struct std::hash<render::vulkan::Material> {
 	std::size_t operator()(const render::vulkan::Material& k) const {
 		return hash<void*>()(k.pipeline);
 	}
-
 };

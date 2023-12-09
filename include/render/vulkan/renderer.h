@@ -2,11 +2,11 @@
 
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include "core/core.h"
 #include "gameplay/camera.h"
 #include "render/vulkan/descriptor_allocator.h"
 #include "render/vulkan/descriptor_set_builder.h"
 #include "render/vulkan/device.h"
+#include "render/vulkan/image.h"
 #include "render/vulkan/instance.h"
 #include "render/vulkan/mesh.h"
 #include "render/vulkan/scene.h"
@@ -67,6 +67,8 @@ namespace render::vulkan {
 		void run();
 
 		inline SDL_Window* window() const { return mpWindow; }
+
+        inline ImageCache& image_cache() { return mImageCache;}
 
 		// I'm obviously not gonna keep all this in this megaclass.
 		// This is temporary, I'll refactor once I get it running.
