@@ -58,7 +58,8 @@ namespace render::vulkan {
 			Node* parent;
 			ArrayList<Node*> children;
 			Mesh mesh;
-			gameplay::Transform transform;
+			glm::mat4 matrix;
+			std::string name;
 
 			~Node() {
 				for (Node* child : children) {
@@ -73,7 +74,7 @@ namespace render::vulkan {
 		};
 
 		struct gltfImage {
-			Image image;
+			Image* image;
 			VkDescriptorSet set;
 		};
 
@@ -96,5 +97,12 @@ namespace render::vulkan {
 		void load_textures(tinygltf::Model& input);
 
 		void load_materials(tinygltf::Model& input);
+
+		void loadNode(const tinygltf::Node& inputNode,
+					  const tinygltf::Model& input,
+					  Node* parent,
+					  std::vector<uint32_t>& indexBuffer,
+					  std::vector<Vertex>& vertexBuffer);
+
 	};
 } // namespace render::vulkan

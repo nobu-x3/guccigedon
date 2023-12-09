@@ -70,6 +70,16 @@ namespace render::vulkan {
 
         inline ImageCache& image_cache() { return mImageCache;}
 
+		inline const Device& device() const { return mDevice; }
+
+		inline DescriptorLayoutCache& descriptor_layout_cache() {
+			return mDescriptorLayoutCache;
+		}
+
+		inline DescriptorAllocator& main_descriptor_allocator() {
+			return mMainDescriptorAllocator;
+		}
+
 		// I'm obviously not gonna keep all this in this megaclass.
 		// This is temporary, I'll refactor once I get it running.
 
