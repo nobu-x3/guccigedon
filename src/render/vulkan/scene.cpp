@@ -1,7 +1,15 @@
 #include "render/vulkan/scene.h"
-#include "render/vulkan/types.h"
-#include "render/vulkan/renderer.h"
 #include <filesystem>
+#include "render/vulkan/renderer.h"
+#include "render/vulkan/types.h"
+#define TINYGLTF_IMPLEMENTATION
+// #define STB_IMAGE_IMPLEMENTATION
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#define TINYGLTF_NO_STB_IMAGE
+#define TINYGLTF_NO_EXTERNAL_IMAGE
+#include <tiny_gltf.h>
 
 namespace render::vulkan {
 
@@ -37,42 +45,104 @@ namespace render::vulkan {
 		return {mSceneDataBuffer.handle, offset, sizeof(SceneData)};
 	}
 
-    GLTFModel::GLTFModel(std::filesystem::path, VulkanRenderer* renderer){}
+	GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
+						 VulkanRenderer* renderer) :
+		renderer(renderer),
+		path(file.string()), mDevice(device) {
+		tinygltf::Model input;
+		tinygltf::TinyGLTF context;
+		std::string error, warning;
+		bool loaded = context.LoadASCIIFromFile(&input, &error, &warning, path);
+		ArrayList<u32> index_buffer;
+		ArrayList<Vertex> vertex_buffer;
+		if (loaded) {
+			load_images(&input);
+			load_materials(&input);
+			load_textures(&input);
+			const tinygltf::Scene& scene = input.scenes[0];
+			for (int i = 0; i < scene.nodes.size(); ++i) {
+				const tinygltf::Node node = input.nodes[scene.nodes[i]];
+				load_node(&node, &input, nullptr, index_buffer, vertex_buffer);
+			}
+		} else {
+			throw std::exception();
+		}
+		const size_t vertex_buf_size = vertex_buffer.size() * sizeof(Vertex);
+		const size_t index_buf_size = index_buffer.size() * sizeof(u32);
+		Buffer vertex_staging{mDevice->allocator(), vertex_buf_size,
+							  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							  VMA_MEMORY_USAGE_CPU_ONLY};
+		void* vertex_data;
+		vmaMapMemory(mDevice->allocator(), vertex_staging.memory, &vertex_data);
+		memcpy(vertex_data, vertex_buffer.data(), vertex_buf_size);
+		vmaUnmapMemory(mDevice->allocator(), vertex_staging.memory);
+		mVertexBuffer = {mDevice->allocator(), vertex_buf_size,
+						 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						 VMA_MEMORY_USAGE_GPU_ONLY};
+		Buffer index_staging{mDevice->allocator(), index_buf_size,
+							 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							 VMA_MEMORY_USAGE_CPU_ONLY};
+		void* index_data;
+		vmaMapMemory(mDevice->allocator(), index_staging.memory, &index_data);
+		memcpy(index_data, index_buffer.data(), vertex_buf_size);
+		vmaUnmapMemory(mDevice->allocator(), index_staging.memory);
+		mVertexBuffer = {mDevice->allocator(), index_buf_size,
+						 VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						 VMA_MEMORY_USAGE_GPU_ONLY};
+		renderer->immediate_submit([=](VkCommandBuffer cmd) {
+			VkBufferCopy vertex_copy{0, 0, vertex_buf_size};
+			vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
+							&vertex_copy);
+			VkBufferCopy index_copy{0, 0, index_buf_size};
+			vkCmdCopyBuffer(cmd, index_staging.handle, mVertexBuffer.handle, 1,
+							&index_copy);
+		});
+		vertex_staging.destroy();
+		index_staging.destroy();
+	}
 
-    GLTFModel::~GLTFModel(){
+	GLTFModel::~GLTFModel() {
+		mVertexBuffer.destroy();
+		mIndexBuffer.destroy();
+	}
 
-    }
-
-	void GLTFModel::load_images(tinygltf::Model& input) {
+	void GLTFModel::load_images(tinygltf::Model* in) {
+		tinygltf::Model& input = *in;
 		images.resize(input.images.size());
 		if (!renderer)
 			return;
 		for (int i = 0; i < input.images.size(); ++i) {
 			gltfImage gltfImage{};
-            gltfImage.image = renderer->image_cache().get_image(path + "/" + input.images[i].uri);
-				builder::DescriptorSetBuilder builder{renderer->device(), &renderer->descriptor_layout_cache(),
+			gltfImage.image = renderer->image_cache().get_image(
+				path + "/" + input.images[i].uri);
+			builder::DescriptorSetBuilder builder{
+				renderer->device(), &renderer->descriptor_layout_cache(),
 				&renderer->main_descriptor_allocator()};
-				VkDescriptorImageInfo image_buf_info{
-					gltfImage.image->sampler(), gltfImage.image->view,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-				gltfImage.set = std::move(
-					builder
-						.add_image(0, &image_buf_info,
-								   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-								   VK_SHADER_STAGE_FRAGMENT_BIT)
-						.build()
-						.value());
+			VkDescriptorImageInfo image_buf_info{
+				gltfImage.image->sampler(), gltfImage.image->view,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+			gltfImage.set = std::move(
+				builder
+					.add_image(0, &image_buf_info,
+							   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+							   VK_SHADER_STAGE_FRAGMENT_BIT)
+					.build()
+					.value());
 		}
 	}
 
-	void GLTFModel::load_textures(tinygltf::Model& input) {
+	void GLTFModel::load_textures(tinygltf::Model* in) {
+		tinygltf::Model& input = *in;
 		textures.resize(input.textures.size());
 		for (int i = 0; i < input.textures.size(); ++i) {
 			textures[i].image_index = input.textures[i].source;
 		}
 	}
 
-	void GLTFModel::load_materials(tinygltf::Model& input) {
+	void GLTFModel::load_materials(tinygltf::Model* in) {
+		tinygltf::Model& input = *in;
 		materials.resize(input.materials.size());
 		for (int i = 0; i < input.materials.size(); ++i) {
 			tinygltf::Material mat = input.materials[i];
@@ -87,10 +157,12 @@ namespace render::vulkan {
 		}
 	}
 
-	void GLTFModel::loadNode(const tinygltf::Node& inputNode,
-							 const tinygltf::Model& input, Node* parent,
-							 std::vector<uint32_t>& indexBuffer,
-							 std::vector<Vertex>& vertexBuffer) {
+	void GLTFModel::load_node(const tinygltf::Node* inNode,
+							  const tinygltf::Model* in, Node* parent,
+							  std::vector<uint32_t>& indexBuffer,
+							  std::vector<Vertex>& vertexBuffer) {
+		const tinygltf::Node& inputNode = *inNode;
+		const tinygltf::Model& input = *in;
 		Node* node = new Node{};
 		node->name = inputNode.name;
 		node->parent = parent;
@@ -119,8 +191,8 @@ namespace render::vulkan {
 		// Load node's children
 		if (inputNode.children.size() > 0) {
 			for (size_t i = 0; i < inputNode.children.size(); i++) {
-				loadNode(input.nodes[inputNode.children[i]], input, node,
-						 indexBuffer, vertexBuffer);
+				load_node(&input.nodes[inputNode.children[i]], &input, node,
+						  indexBuffer, vertexBuffer);
 			}
 		}
 
@@ -212,7 +284,7 @@ namespace render::vulkan {
 							? glm::make_vec2(&texCoordsBuffer[v * 2])
 							: glm::vec3(0.0f);
 						vert.color = glm::vec3(1.0f);
-						//vert.tangent = tangentsBuffer
+						// vert.tangent = tangentsBuffer
 						//	? glm::make_vec4(&tangentsBuffer[v * 4])
 						//	: glm::vec4(0.0f);
 						vertexBuffer.push_back(vert);

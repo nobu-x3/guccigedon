@@ -190,7 +190,7 @@ namespace core {
 		KEY_F22 = 113,
 		KEY_F23 = 114,
 		KEY_F24 = 115,
-		KEY_EXECUTE = 116,
+		KEY_BUTTON_EXECUTE = 116,
 		KEY_HELP = 117, /**< AL Integrated Help Center */
 		KEY_MENU = 118, /**< Menu (show menu) */
 		KEY_SELECT = 119,

@@ -47,6 +47,7 @@ namespace render::vulkan {
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
             mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
 		}
+		mGltfScene = {"assets/models/samplescene.gltf", &mDevice, this};
 	}
 
 	VulkanRenderer::~VulkanRenderer() {

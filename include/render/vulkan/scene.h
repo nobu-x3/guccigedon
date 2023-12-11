@@ -1,10 +1,14 @@
 #pragma once
 
 #include <glm/gtc/type_ptr.hpp>
-#include <tiny_gltf.h>
 #include "gameplay/transform.h"
 #include "render/vulkan/image.h"
 #include "render/vulkan/types.h"
+
+namespace tinygltf {
+	class Node;
+	class Model;
+} // namespace tinygltf
 
 namespace render::vulkan {
 
@@ -28,8 +32,15 @@ namespace render::vulkan {
 
 	class GLTFModel {
 	public:
-		GLTFModel(std::filesystem::path, class VulkanRenderer* renderer);
+		GLTFModel(std::filesystem::path file, Device* device,
+				  VulkanRenderer* renderer);
 		~GLTFModel();
+		// TODO: temp, actually have to implement them...
+		GLTFModel() = default;
+		GLTFModel(const GLTFModel& other) = default;
+		GLTFModel& operator=(const GLTFModel& other) = default;
+		GLTFModel(GLTFModel&& other) noexcept = default;
+		GLTFModel& operator=(GLTFModel&& other) noexcept = default;
 
 	public:
 		struct {
@@ -86,23 +97,24 @@ namespace render::vulkan {
 		ArrayList<Material> materials;
 		ArrayList<gltfImage> images;
 		ArrayList<Node*> nodes;
-		VkDevice device;
-		VkQueue copyQueue;
 		class VulkanRenderer* renderer;
-        std::string path;
+		std::string path;
 
-    private:
-		void load_images(tinygltf::Model& input);
+	private:
+		void load_images(tinygltf::Model* input);
 
-		void load_textures(tinygltf::Model& input);
+		void load_textures(tinygltf::Model* input);
 
-		void load_materials(tinygltf::Model& input);
+		void load_materials(tinygltf::Model* input);
 
-		void loadNode(const tinygltf::Node& inputNode,
-					  const tinygltf::Model& input,
-					  Node* parent,
-					  std::vector<uint32_t>& indexBuffer,
-					  std::vector<Vertex>& vertexBuffer);
+		void load_node(const tinygltf::Node* inputNode,
+					   const tinygltf::Model* input, Node* parent,
+					   std::vector<uint32_t>& indexBuffer,
+					   std::vector<Vertex>& vertexBuffer);
 
+	private:
+		Device* mDevice;
+		Buffer mVertexBuffer{};
+		Buffer mIndexBuffer{};
 	};
 } // namespace render::vulkan

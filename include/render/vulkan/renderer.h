@@ -68,7 +68,7 @@ namespace render::vulkan {
 
 		inline SDL_Window* window() const { return mpWindow; }
 
-        inline ImageCache& image_cache() { return mImageCache;}
+		inline ImageCache& image_cache() { return mImageCache; }
 
 		inline const Device& device() const { return mDevice; }
 
@@ -101,6 +101,7 @@ namespace render::vulkan {
 		VkDescriptorSetLayout mObjectsDescriptorSetLayout{};
 		VkDescriptorSetLayout mTextureSamplerDescriptorSetLayout{};
 		Scene mScene{};
+		GLTFModel mGltfScene;
 		UploadContext mUploadContext{};
 		u32 mCurrFrame{0};
 		bool mShouldResize{false};

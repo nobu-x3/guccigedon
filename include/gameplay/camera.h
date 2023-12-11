@@ -9,7 +9,7 @@ namespace gameplay {
 
 	struct Camera {
 		Camera() = default;
-		Camera(f32 fov, f32 aspect, f32 near, f32 far);
+		Camera(f32 fov, f32 aspect, f32 near_plane, f32 far_plane);
 
 		void build_projection();
 
@@ -20,8 +20,8 @@ namespace gameplay {
 
 		f32 fov;
 		f32 aspect;
-		f32 near;
-		f32 far;
+		f32 near_plane;
+		f32 far_plane;
 
 		inline glm::mat4x4 view() {
 			glm::mat4 view =
