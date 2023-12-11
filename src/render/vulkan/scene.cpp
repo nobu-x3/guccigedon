@@ -85,9 +85,9 @@ namespace render::vulkan {
 							 VMA_MEMORY_USAGE_CPU_ONLY};
 		void* index_data;
 		vmaMapMemory(mDevice->allocator(), index_staging.memory, &index_data);
-		memcpy(index_data, index_buffer.data(), vertex_buf_size);
+		memcpy(index_data, index_buffer.data(), index_buf_size);
 		vmaUnmapMemory(mDevice->allocator(), index_staging.memory);
-		mVertexBuffer = {mDevice->allocator(), index_buf_size,
+		mIndexBuffer = {mDevice->allocator(), index_buf_size,
 						 VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
 							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 						 VMA_MEMORY_USAGE_GPU_ONLY};
@@ -96,7 +96,7 @@ namespace render::vulkan {
 			vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
 							&vertex_copy);
 			VkBufferCopy index_copy{0, 0, index_buf_size};
-			vkCmdCopyBuffer(cmd, index_staging.handle, mVertexBuffer.handle, 1,
+			vkCmdCopyBuffer(cmd, index_staging.handle, mIndexBuffer.handle, 1,
 							&index_copy);
 		});
 		vertex_staging.destroy();
