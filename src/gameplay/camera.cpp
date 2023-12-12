@@ -3,9 +3,9 @@
 #include <glm/ext/matrix_transform.hpp>
 
 namespace gameplay {
-	Camera::Camera(f32 fov, f32 aspect, f32 near, f32 far) :
+	Camera::Camera(f32 fov, f32 aspect, f32 near_plane, f32 far_plane) :
 		projection(glm::perspective(fov, aspect, near_plane, far_plane)),
-		fov(fov), aspect(aspect), near_plane(near), far_plane(far) {
+		fov(fov), aspect(aspect), near_plane(near_plane), far_plane(far_plane) {
 		projection[1][1] *= -1;
 	}
 
