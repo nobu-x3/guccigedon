@@ -1,5 +1,6 @@
 #include "render/vulkan/scene.h"
 #include <filesystem>
+#include "render/vulkan/pipeline.h"
 #include "render/vulkan/renderer.h"
 #include "render/vulkan/types.h"
 #define TINYGLTF_IMPLEMENTATION
@@ -57,8 +58,8 @@ namespace render::vulkan {
 		ArrayList<Vertex> vertex_buffer;
 		if (loaded) {
 			load_images(&input);
-			load_materials(&input);
 			load_textures(&input);
+			load_materials(&input);
 			const tinygltf::Scene& scene = input.scenes[0];
 			for (int i = 0; i < scene.nodes.size(); ++i) {
 				const tinygltf::Node node = input.nodes[scene.nodes[i]];
@@ -108,22 +109,14 @@ namespace render::vulkan {
 		mIndexBuffer.destroy();
 	}
 
-	void GLTFModel::draw(VkCommandBuffer buf, ObjectData* object_ssbo,
-						 FrameData& frame_data, u32 uniform_offset) {
-		VkDeviceSize offsets[1] = {};
-		vkCmdBindVertexBuffers(buf, 0, 1, &mVertexBuffer.handle, offsets);
-		vkCmdBindIndexBuffer(buf, mIndexBuffer.handle, 0, VK_INDEX_TYPE_UINT32);
+	void GLTFModel::update(ObjectData* object_ssbo) {
 		int ssbo_index{0};
-		for (auto& node : nodes) {
-			draw_node(buf, object_ssbo, ssbo_index, node, frame_data,
-					  uniform_offset);
+		for (Node* node : nodes) {
+			update_node(object_ssbo, ssbo_index, node);
 		}
 	}
 
-	void GLTFModel::draw_node(VkCommandBuffer buf, ObjectData* ssbo,
-							  int& ssbo_index, Node* node,
-							  FrameData& frame_data, u32 uniform_offset) {
-
+	void GLTFModel::update_node(ObjectData* ssbo, int& ssbo_index, Node* node) {
 		if (!node->visible) {
 			// TODO: move it way behind camera so that it's culled
 			return;
@@ -139,6 +132,32 @@ namespace render::vulkan {
 			// NOTE: this is potentially wrong, gl_InstanceIndex might be off
 			ssbo[ssbo_index].model_matrix = node->matrix;
 			ssbo_index++;
+		}
+		for (Node* child : node->children) {
+			update_node(ssbo, ssbo_index, child);
+		}
+	}
+
+	void GLTFModel::draw(VkCommandBuffer buf, ObjectData* object_ssbo,
+						 FrameData& frame_data, u32 uniform_offset) {
+		VkDeviceSize offsets[1] = {};
+		vkCmdBindVertexBuffers(buf, 0, 1, &mVertexBuffer.handle, offsets);
+		vkCmdBindIndexBuffer(buf, mIndexBuffer.handle, 0, VK_INDEX_TYPE_UINT32);
+		int ssbo_index{0};
+		for (auto& node : nodes) {
+			draw_node(buf, object_ssbo, ssbo_index, node, frame_data,
+					  uniform_offset);
+		}
+	}
+
+	void GLTFModel::draw_node(VkCommandBuffer buf, ObjectData* ssbo,
+							  int& ssbo_index, Node* node,
+							  FrameData& frame_data, u32 uniform_offset) {
+		if (!node->visible) {
+			// TODO: move it way behind camera so that it's culled
+			return;
+		}
+		if (node->mesh.primitives.size() > 0) {
 			Material* current_material{nullptr};
 			for (Primitive& primitive : node->mesh.primitives) {
 				if (primitive.index_count > 0) {
@@ -193,6 +212,7 @@ namespace render::vulkan {
 							   VK_SHADER_STAGE_FRAGMENT_BIT)
 					.build()
 					.value());
+			gltfImage.layout = builder.layout();
 		}
 	}
 
@@ -213,10 +233,54 @@ namespace render::vulkan {
 				materials[i].base_color_factor = glm::make_vec4(
 					mat.values["baseColorFactor"].ColorFactor().data());
 			}
+			builder::PipelineBuilder builder;
+			builder
+				.add_shader_module(renderer->shader_cache().get_shader(
+									   "assets/shaders/"
+									   "default_shader.vert.glsl.spv"),
+								   ShaderType::VERTEX)
+				.add_shader_module(renderer->shader_cache().get_shader(
+									   "assets/shaders/"
+									   "default_shader.frag.glsl.spv"),
+								   ShaderType::FRAGMENT)
+				.set_vertex_input_description(Vertex::get_description())
+				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
+				.set_polygon_mode(VK_POLYGON_MODE_FILL)
+				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+							   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+				.set_multisampling_enabled(false)
+				.add_default_color_blend_attachment()
+				.set_color_blending_enabled(false)
+				.add_push_constant(sizeof(MeshPushConstant),
+								   VK_SHADER_STAGE_VERTEX_BIT)
+				.add_descriptor_set_layout(renderer->global_descriptor_layout())
+				.add_descriptor_set_layout(
+					renderer->objects_descriptor_layout())
+				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+				.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
+				.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
+				// .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
+				.add_viewport(
+					{0, 0, static_cast<float>(renderer->window_extent().width),
+					 static_cast<float>(renderer->window_extent().height), 0.f,
+					 1.f})
+				.add_scissor({{0, 0}, renderer->window_extent()});
 			if (mat.values.find("baseColorTexture") != mat.values.end()) {
-				materials[i].base_color_texture_index =
+				s32 base_color_texture_index =
 					mat.values["baseColorTexture"].TextureIndex();
+				materials[i].base_color_texture_index =
+					base_color_texture_index;
+				materials[i].texture_set =
+					images[textures[base_color_texture_index].image_index].set;
+				VkDescriptorSetLayout set_layout =
+					images[textures[base_color_texture_index].image_index]
+						.layout;
+				builder.add_descriptor_set_layout(set_layout);
 			}
+			materials[i].layout =
+				builder.build_layout(mDevice->logical_device());
+			materials[i].pipeline = builder.build_pipeline(
+				mDevice->logical_device(), renderer->render_pass());
 		}
 	}
 
@@ -231,7 +295,8 @@ namespace render::vulkan {
 		node->parent = parent;
 
 		// Get the local node matrix
-		// It's either made up from translation, rotation, scale or a 4x4 matrix
+		// It's either made up from translation, rotation, scale or a 4x4
+		// matrix
 		node->matrix = glm::mat4(1.0f);
 		if (inputNode.translation.size() == 3) {
 			node->matrix = glm::translate(
@@ -259,8 +324,8 @@ namespace render::vulkan {
 			}
 		}
 
-		// If the node contains mesh data, we load vertices and indices from the
-		// buffers In glTF this is done via accessors and buffer views
+		// If the node contains mesh data, we load vertices and indices from
+		// the buffers In glTF this is done via accessors and buffer views
 		if (inputNode.mesh > -1) {
 			const tinygltf::Mesh mesh = input.meshes[inputNode.mesh];
 			// Iterate through all primitives of this node's mesh
@@ -306,7 +371,8 @@ namespace render::vulkan {
 								.data[accessor.byteOffset + view.byteOffset]));
 					}
 					// Get buffer data for vertex texture coordinates
-					// glTF supports multiple sets, we only load the first one
+					// glTF supports multiple sets, we only load the first
+					// one
 					if (glTFPrimitive.attributes.find("TEXCOORD_0") !=
 						glTFPrimitive.attributes.end()) {
 						const tinygltf::Accessor& accessor =
@@ -319,8 +385,8 @@ namespace render::vulkan {
 							input.buffers[view.buffer]
 								.data[accessor.byteOffset + view.byteOffset]));
 					}
-					// POI: This sample uses normal mapping, so we also need to
-					// load the tangents from the glTF file
+					// POI: This sample uses normal mapping, so we also need
+					// to load the tangents from the glTF file
 					if (glTFPrimitive.attributes.find("TANGENT") !=
 						glTFPrimitive.attributes.end()) {
 						const tinygltf::Accessor& accessor =

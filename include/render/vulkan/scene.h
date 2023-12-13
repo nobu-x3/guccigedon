@@ -45,6 +45,8 @@ namespace render::vulkan {
 		void draw(VkCommandBuffer buf, ObjectData* data, FrameData& frame_data,
 				  u32 uniform_offset);
 
+        void update(ObjectData* data);
+
 	public:
 		struct {
 			u32 size{0};
@@ -86,6 +88,7 @@ namespace render::vulkan {
 		struct gltfImage {
 			Image* image;
 			VkDescriptorSet set;
+            VkDescriptorSetLayout layout;
 		};
 
 		struct Texture {
@@ -113,6 +116,8 @@ namespace render::vulkan {
 
 		void draw_node(VkCommandBuffer buf, ObjectData* ssbo, int& ssbo_index,
 					   Node* node, FrameData& frame_data, u32 uniform_offset);
+
+        void update_node(ObjectData* ssbo, int& ssbo_index, Node* node);
 
 	private:
 		Device* mDevice;

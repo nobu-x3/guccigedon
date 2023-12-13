@@ -70,6 +70,8 @@ namespace render::vulkan {
 
 		inline ImageCache& image_cache() { return mImageCache; }
 
+		inline ShaderCache& shader_cache() { return mShaderCache; }
+
 		inline const Device& device() const { return mDevice; }
 
 		inline DescriptorLayoutCache& descriptor_layout_cache() {
@@ -79,6 +81,22 @@ namespace render::vulkan {
 		inline DescriptorAllocator& main_descriptor_allocator() {
 			return mMainDescriptorAllocator;
 		}
+
+		inline VkDescriptorSetLayout global_descriptor_layout() const {
+			return mGlobalDescriptorSetLayout;
+		}
+
+		inline VkDescriptorSetLayout objects_descriptor_layout() const {
+			return mObjectsDescriptorSetLayout;
+		}
+
+        inline VkExtent2D window_extent() const {
+            return mWindowExtent;
+        }
+
+        inline VkRenderPass render_pass() const {
+            return mRenderPass;
+        }
 
 		// I'm obviously not gonna keep all this in this megaclass.
 		// This is temporary, I'll refactor once I get it running.
