@@ -49,11 +49,11 @@ namespace render::vulkan {
 	GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
 						 VulkanRenderer* renderer) :
 		renderer(renderer),
-		path(file.string()), mDevice(device) {
+		path(file), mDevice(device) {
 		tinygltf::Model input;
 		tinygltf::TinyGLTF context;
 		std::string error, warning;
-		bool loaded = context.LoadASCIIFromFile(&input, &error, &warning, path);
+		bool loaded = context.LoadASCIIFromFile(&input, &error, &warning, path.string());
 		ArrayList<u32> index_buffer;
 		ArrayList<Vertex> vertex_buffer;
 		if (loaded) {
@@ -176,7 +176,7 @@ namespace render::vulkan {
 						if (material.texture_set != nullptr) {
 							vkCmdBindDescriptorSets(
 								buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-								material.layout, 1, 1, &material.texture_set, 0,
+								material.layout, 2, 1, &material.texture_set, 0,
 								nullptr);
 						}
 					}
@@ -198,7 +198,7 @@ namespace render::vulkan {
 		for (int i = 0; i < input.images.size(); ++i) {
 			gltfImage gltfImage{};
 			gltfImage.image = renderer->image_cache().get_image(
-				path + "/" + input.images[i].uri);
+				path.parent_path().string() + "/" + input.images[i].uri);
 			builder::DescriptorSetBuilder builder{
 				renderer->device(), &renderer->descriptor_layout_cache(),
 				&renderer->main_descriptor_allocator()};
@@ -213,6 +213,7 @@ namespace render::vulkan {
 					.build()
 					.value());
 			gltfImage.layout = builder.layout();
+            images[i] = gltfImage;
 		}
 	}
 
@@ -237,11 +238,11 @@ namespace render::vulkan {
 			builder
 				.add_shader_module(renderer->shader_cache().get_shader(
 									   "assets/shaders/"
-									   "default_shader.vert.glsl.spv"),
+									   "textured_mesh.vert.glsl.spv"),
 								   ShaderType::VERTEX)
 				.add_shader_module(renderer->shader_cache().get_shader(
 									   "assets/shaders/"
-									   "default_shader.frag.glsl.spv"),
+									   "textured_mesh.frag.glsl.spv"),
 								   ShaderType::FRAGMENT)
 				.set_vertex_input_description(Vertex::get_description())
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
@@ -412,7 +413,7 @@ namespace render::vulkan {
 						vert.uv = texCoordsBuffer
 							? glm::make_vec2(&texCoordsBuffer[v * 2])
 							: glm::vec3(0.0f);
-						vert.color = glm::vec3(1.0f);
+						vert.color = vert.normal;
 						// vert.tangent = tangentsBuffer
 						//	? glm::make_vec4(&tangentsBuffer[v * 4])
 						//	: glm::vec4(0.0f);

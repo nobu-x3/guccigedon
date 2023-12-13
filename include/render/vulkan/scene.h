@@ -87,8 +87,8 @@ namespace render::vulkan {
 
 		struct gltfImage {
 			Image* image;
-			VkDescriptorSet set;
-            VkDescriptorSetLayout layout;
+			VkDescriptorSet set{nullptr};
+            VkDescriptorSetLayout layout{nullptr};
 		};
 
 		struct Texture {
@@ -100,7 +100,7 @@ namespace render::vulkan {
 		ArrayList<gltfImage> images;
 		ArrayList<Node*> nodes;
 		class VulkanRenderer* renderer;
-		std::string path;
+        std::filesystem::path path;
 
 	private:
 		void load_images(tinygltf::Model* input);

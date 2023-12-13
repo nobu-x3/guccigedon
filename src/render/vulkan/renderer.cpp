@@ -42,12 +42,19 @@ namespace render::vulkan {
 		init_commands();
 		init_sync_objects();
 		init_descriptors();
-		init_scene();
+		/* init_scene(); */
 		mCamera.transform.position({0.f, 0.f, 2.f});
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
 			mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
 		}
-		mGltfScene = {"assets/models/samplescene.gltf", &mDevice, this};
+		/* mGltfScene = {"assets/models/samplescene.gltf", &mDevice, this}; */
+		mCamera = {glm::radians(70.f),
+				   static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
+				   0.1f, 200.0f};
+		mImageCache = {mDevice, this};
+		mShaderCache = {mDevice};
+		mGltfScene = {"assets/models/CesiumMan/glTF/CesiumMan.gltf", &mDevice,
+					  this};
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -138,9 +145,10 @@ namespace render::vulkan {
 		vmaMapMemory(mDevice.allocator(), frame_data.object_buffer.memory,
 					 &object_data);
 		ObjectData* object_ssbo = static_cast<ObjectData*>(object_data);
-        mGltfScene.update(object_ssbo);
+		mGltfScene.update(object_ssbo);
 		/* int ssbo_index{0}; */
-		/* for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) { */
+		/* for (std::pair<const Material, ArrayList<Mesh>>& entry :
+		 * mMaterialMap) { */
 		/* 	for (Mesh& mesh : entry.second) { */
 		/* 		mesh.transform = model; */
 		/* 		object_ssbo[ssbo_index].model_matrix = mesh.transform; */
@@ -163,22 +171,25 @@ namespace render::vulkan {
 		scissor.offset = {0, 0};
 		scissor.extent = mWindowExtent;
 		vkCmdSetScissor(buf, 0, 1, &scissor);
-        mGltfScene.draw(buf, object_ssbo, frame_data, uniform_offset);
+		mGltfScene.draw(buf, object_ssbo, frame_data, uniform_offset);
 		// draw scene here
 		/* for (std::pair<const Material, VertexBuffer>& entry : */
 		/* 	 mMaterialBufferMap) { */
 		/* 	vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 					  entry.first.pipeline); */
 		/* 	vkCmdBindDescriptorSets( */
-		/* 		buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1, */
+		/* 		buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
+		 */
 		/* 		&frame_data.global_descriptor, 1, &uniform_offset); */
 		/* 	vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 							entry.first.layout, 1, 1, */
-		/* 							&frame_data.object_descriptor, 0, nullptr); */
+		/* 							&frame_data.object_descriptor, 0, nullptr);
+		 */
 		/* 	if (entry.first.texture_set != VK_NULL_HANDLE) { */
 		/* 		vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 								entry.first.layout, 2, 1, */
-		/* 								&entry.first.texture_set, 0, nullptr); */
+		/* 								&entry.first.texture_set, 0, nullptr);
+		 */
 		/* 	} */
 		/* 	vkCmdBindVertexBuffers(buf, 0, 1, &entry.second.buffer.handle, */
 		/* 						   &offset); */
