@@ -46,9 +46,11 @@ namespace render::vulkan {
 	};
 
 	struct Material {
-		VkDescriptorSet textureSet{VK_NULL_HANDLE};
+		VkDescriptorSet texture_set{VK_NULL_HANDLE};
 		VkPipeline pipeline{};
 		VkPipelineLayout layout{};
+		glm::vec4 base_color_factor = glm::vec4(1.f);
+		u32 base_color_texture_index;
 
 		bool operator==(const Material& other) const {
 			return pipeline == other.pipeline;

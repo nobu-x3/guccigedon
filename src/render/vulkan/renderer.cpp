@@ -45,7 +45,7 @@ namespace render::vulkan {
 		init_scene();
 		mCamera.transform.position({0.f, 0.f, 2.f});
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
-            mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
+			mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
 		}
 		mGltfScene = {"assets/models/samplescene.gltf", &mDevice, this};
 	}
@@ -94,8 +94,8 @@ namespace render::vulkan {
 									entry.first.layout, nullptr);
 			vkDestroyPipeline(mDevice.logical_device(), entry.first.pipeline,
 							  nullptr);
-            Buffer& vb = mMaterialBufferMap[entry.first].buffer;
-            vb.destroy();
+			Buffer& vb = mMaterialBufferMap[entry.first].buffer;
+			vb.destroy();
 			for (Mesh& mesh : entry.second) {
 				mesh.deinit(mDevice.allocator());
 			}
@@ -150,42 +150,41 @@ namespace render::vulkan {
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
 		mScene.write_to_buffer(uniform_offset);
-		bool first_bind = true;
-		for (std::pair<const Material, VertexBuffer>& entry : mMaterialBufferMap) {
+		VkViewport vp{};
+		vp.height = static_cast<f32>(mWindowExtent.height);
+		vp.width = static_cast<f32>(mWindowExtent.width);
+		vp.maxDepth = 1.f;
+		vp.minDepth = 0.f;
+		vp.x = 0.f;
+		vp.y = 0.f;
+		vkCmdSetViewport(buf, 0, 1, &vp);
+		VkRect2D scissor{};
+		scissor.offset = {0, 0};
+		scissor.extent = mWindowExtent;
+		vkCmdSetScissor(buf, 0, 1, &scissor);
+		// draw scene here
+		for (std::pair<const Material, VertexBuffer>& entry :
+			 mMaterialBufferMap) {
 			vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							  entry.first.pipeline);
-			if (first_bind) {
-				VkViewport vp{};
-				vp.height = static_cast<f32>(mWindowExtent.height);
-				vp.width = static_cast<f32>(mWindowExtent.width);
-				vp.maxDepth = 1.f;
-				vp.minDepth = 0.f;
-				vp.x = 0.f;
-				vp.y = 0.f;
-				vkCmdSetViewport(buf, 0, 1, &vp);
-				VkRect2D scissor{};
-				scissor.offset = {0, 0};
-				scissor.extent = mWindowExtent;
-				vkCmdSetScissor(buf, 0, 1, &scissor);
-				first_bind = false;
-			}
 			vkCmdBindDescriptorSets(
 				buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
 				&frame_data.global_descriptor, 1, &uniform_offset);
 			vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 									entry.first.layout, 1, 1,
 									&frame_data.object_descriptor, 0, nullptr);
-			if (entry.first.textureSet != VK_NULL_HANDLE) {
+			if (entry.first.texture_set != VK_NULL_HANDLE) {
 				vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
 										entry.first.layout, 2, 1,
-										&entry.first.textureSet, 0, nullptr);
+										&entry.first.texture_set, 0, nullptr);
 			}
-				vkCmdBindVertexBuffers(buf, 0, 1, &entry.second.buffer.handle, &offset);
-				// upload the matrix to the GPU via push constants
-				vkCmdPushConstants(buf, entry.first.layout,
-								   VK_SHADER_STAGE_VERTEX_BIT, 0,
-								   sizeof(MeshPushConstant), &constants);
-				vkCmdDraw(buf, entry.second.size, 1, 0, 0);
+			vkCmdBindVertexBuffers(buf, 0, 1, &entry.second.buffer.handle,
+								   &offset);
+			// upload the matrix to the GPU via push constants
+			vkCmdPushConstants(buf, entry.first.layout,
+							   VK_SHADER_STAGE_VERTEX_BIT, 0,
+							   sizeof(MeshPushConstant), &constants);
+			vkCmdDraw(buf, entry.second.size, 1, 0, 0);
 		}
 		/* std::chrono::duration<f64> delta
 		 * {std::chrono::high_resolution_clock::now() - start_time}; */
@@ -571,7 +570,7 @@ namespace render::vulkan {
 				VkDescriptorImageInfo image_buf_info{
 					image->sampler(), image->view,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-				material.textureSet = std::move(
+				material.texture_set = std::move(
 					builder
 						.add_image(0, &image_buf_info,
 								   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -633,7 +632,7 @@ namespace render::vulkan {
 				VkDescriptorImageInfo image_buf_info{
 					image->sampler(), image->view,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-				material.textureSet = std::move(
+				material.texture_set = std::move(
 					builder
 						.add_image(0, &image_buf_info,
 								   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

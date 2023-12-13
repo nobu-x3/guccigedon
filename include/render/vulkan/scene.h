@@ -42,6 +42,9 @@ namespace render::vulkan {
 		GLTFModel(GLTFModel&& other) noexcept = default;
 		GLTFModel& operator=(GLTFModel&& other) noexcept = default;
 
+		void draw(VkCommandBuffer buf, ObjectData* data, FrameData& frame_data,
+				  u32 uniform_offset);
+
 	public:
 		struct {
 			u32 size{0};
@@ -71,17 +74,13 @@ namespace render::vulkan {
 			Mesh mesh;
 			glm::mat4 matrix;
 			std::string name;
+			bool visible{true};
 
 			~Node() {
 				for (Node* child : children) {
 					delete child;
 				}
 			}
-		};
-
-		struct Material {
-			glm::vec4 base_color_factor = glm::vec4(1.f);
-			u32 base_color_texture_index;
 		};
 
 		struct gltfImage {
@@ -111,6 +110,9 @@ namespace render::vulkan {
 					   const tinygltf::Model* input, Node* parent,
 					   std::vector<uint32_t>& indexBuffer,
 					   std::vector<Vertex>& vertexBuffer);
+
+		void draw_node(VkCommandBuffer buf, ObjectData* ssbo, int& ssbo_index,
+					   Node* node, FrameData& frame_data, u32 uniform_offset);
 
 	private:
 		Device* mDevice;

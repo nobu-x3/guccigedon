@@ -88,9 +88,9 @@ namespace render::vulkan {
 		memcpy(index_data, index_buffer.data(), index_buf_size);
 		vmaUnmapMemory(mDevice->allocator(), index_staging.memory);
 		mIndexBuffer = {mDevice->allocator(), index_buf_size,
-						 VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-						 VMA_MEMORY_USAGE_GPU_ONLY};
+						VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+							VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						VMA_MEMORY_USAGE_GPU_ONLY};
 		renderer->immediate_submit([=](VkCommandBuffer cmd) {
 			VkBufferCopy vertex_copy{0, 0, vertex_buf_size};
 			vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
@@ -106,6 +106,69 @@ namespace render::vulkan {
 	GLTFModel::~GLTFModel() {
 		mVertexBuffer.destroy();
 		mIndexBuffer.destroy();
+	}
+
+	void GLTFModel::draw(VkCommandBuffer buf, ObjectData* object_ssbo,
+						 FrameData& frame_data, u32 uniform_offset) {
+		VkDeviceSize offsets[1] = {};
+		vkCmdBindVertexBuffers(buf, 0, 1, &mVertexBuffer.handle, offsets);
+		vkCmdBindIndexBuffer(buf, mIndexBuffer.handle, 0, VK_INDEX_TYPE_UINT32);
+		int ssbo_index{0};
+		for (auto& node : nodes) {
+			draw_node(buf, object_ssbo, ssbo_index, node, frame_data,
+					  uniform_offset);
+		}
+	}
+
+	void GLTFModel::draw_node(VkCommandBuffer buf, ObjectData* ssbo,
+							  int& ssbo_index, Node* node,
+							  FrameData& frame_data, u32 uniform_offset) {
+
+		if (!node->visible) {
+			// TODO: move it way behind camera so that it's culled
+			return;
+		}
+		if (node->mesh.primitives.size() > 0) {
+			glm::mat4 node_matrix = node->matrix;
+			Node* current_parent = node->parent;
+			// Traverse up to find final matrix
+			while (current_parent) {
+				node_matrix = current_parent->matrix * node_matrix;
+				current_parent = current_parent->parent;
+			}
+			// NOTE: this is potentially wrong, gl_InstanceIndex might be off
+			ssbo[ssbo_index].model_matrix = node->matrix;
+			ssbo_index++;
+			Material* current_material{nullptr};
+			for (Primitive& primitive : node->mesh.primitives) {
+				if (primitive.index_count > 0) {
+					Material& material = materials[primitive.material_index];
+					if (current_material != &material) {
+						vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+										  material.pipeline);
+						vkCmdBindDescriptorSets(
+							buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+							material.layout, 0, 1,
+							&frame_data.global_descriptor, 1, &uniform_offset);
+						vkCmdBindDescriptorSets(
+							buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+							material.layout, 1, 1,
+							&frame_data.object_descriptor, 0, nullptr);
+						if (material.texture_set != nullptr) {
+							vkCmdBindDescriptorSets(
+								buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+								material.layout, 1, 1, &material.texture_set, 0,
+								nullptr);
+						}
+					}
+					vkCmdDrawIndexed(buf, primitive.index_count, 1,
+									 primitive.first_index, 0, 0);
+				}
+			}
+		}
+		for (auto& child : node->children) {
+			draw_node(buf, ssbo, ssbo_index, child, frame_data, uniform_offset);
+		}
 	}
 
 	void GLTFModel::load_images(tinygltf::Model* in) {
