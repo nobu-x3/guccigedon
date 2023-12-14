@@ -95,7 +95,7 @@ namespace render::vulkan {
 			for (auto alloc : mClearedAllocators) {
 				vkDestroyDescriptorPool(mDevice, alloc, nullptr);
 			}
-			for (auto&& storage : mDescriptorPools) {
+			for (auto& storage : mDescriptorPools) {
 				for (auto alloc : storage.fullAllocators) {
 					vkDestroyDescriptorPool(mDevice, alloc, nullptr);
 				}
@@ -132,7 +132,7 @@ namespace render::vulkan {
 		return *this;
 	}
 
-	DescriptorAllocator&& DescriptorAllocatorPool::get_allocator(u32 frame) {
+	DescriptorAllocator DescriptorAllocatorPool::get_allocator(u32 frame) {
 		std::lock_guard<std::mutex> lock(mPoolMutex);
 		bool found = false;
 		u8 poolIndex = frame;
@@ -155,7 +155,7 @@ namespace render::vulkan {
 		}
 		DescriptorAllocator alloc = {this, poolIndex, allocator};
 		alloc.mShouldReturn = false;
-		return std::move(alloc);
+		return alloc;
 	}
 
 	void

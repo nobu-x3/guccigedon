@@ -45,6 +45,7 @@ namespace render::vulkan {
 		VmaAllocator mAlloc;
 	};
 
+	// TODO: make this a RAII class, remove stuff from scene.cpp dtor
 	struct Material {
 		VkDescriptorSet texture_set{VK_NULL_HANDLE};
 		VkPipeline pipeline{};

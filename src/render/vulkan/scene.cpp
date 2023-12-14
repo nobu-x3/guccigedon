@@ -3,6 +3,7 @@
 #include "render/vulkan/pipeline.h"
 #include "render/vulkan/renderer.h"
 #include "render/vulkan/types.h"
+#include "vulkan/vulkan_core.h"
 #define TINYGLTF_IMPLEMENTATION
 // #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_NO_INCLUDE_STB_IMAGE
@@ -105,6 +106,10 @@ namespace render::vulkan {
 	}
 
 	GLTFModel::~GLTFModel() {
+        for(auto& material : materials){
+            vkDestroyPipelineLayout(mDevice->logical_device(), material.layout, nullptr);
+            vkDestroyPipeline(mDevice->logical_device(), material.pipeline, nullptr);
+        }
 		mVertexBuffer.destroy();
 		mIndexBuffer.destroy();
 	}
