@@ -26,7 +26,7 @@ namespace gameplay {
 		auto position = transform.position();
 		position += movement.velocity;
 		transform.position(position);
-		input.reset();
+		input.reset_mouse_state();
 	}
 
 } // namespace gameplay

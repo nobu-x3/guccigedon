@@ -62,9 +62,12 @@ namespace gameplay {
 			glm::clamp(input_axis, {-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0});
 		mouse_state = core::InputSystem::mouse_state();
 	}
-	void InputComponent::reset() {
+
+	void InputComponent::reset_mouse_state() {
 		mouse_delta_x = 0.f;
 		mouse_delta_y = 0.f;
 		mouse_state = {};
 	}
+
+	void InputComponent::reset_input_axis() { input_axis = {0.f, 0.f, 0.f}; }
 } // namespace gameplay

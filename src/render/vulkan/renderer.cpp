@@ -51,6 +51,7 @@ namespace render::vulkan {
 		mCamera = {glm::radians(70.f),
 				   static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
 				   0.1f, 200.0f};
+		mCamera.transform.position({0, 0, 3});
 		mImageCache = {mDevice, this};
 		mShaderCache = {mDevice};
 		mGltfScene = {"assets/models/CesiumMan/glTF/CesiumMan.gltf", &mDevice,
@@ -296,6 +297,9 @@ namespace render::vulkan {
 				if (core::InputSystem::mouse_state().RMB) {
 					mCamera.input.process_input_event(&e);
 				}
+			}
+			if (!core::InputSystem::mouse_state().RMB) {
+				mCamera.input.reset_input_axis();
 			}
 			mCamera.update(1);
 			draw();

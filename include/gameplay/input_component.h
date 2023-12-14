@@ -12,6 +12,7 @@ namespace gameplay {
 		float mouse_delta_y = 0.f;
 		core::MouseState mouse_state{};
 		void process_input_event(SDL_Event* e);
-		void reset();
+		void reset_mouse_state();
+        void reset_input_axis();
 	};
 } // namespace gameplay
