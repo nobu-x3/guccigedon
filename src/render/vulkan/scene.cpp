@@ -113,6 +113,10 @@ namespace render::vulkan {
 			vkDestroyPipeline(mDevice->logical_device(), material.pipeline,
 							  nullptr);
 		}
+		vkDestroyPipelineLayout(mDevice->logical_device(),
+								mDefaultMaterial.layout, nullptr);
+		vkDestroyPipeline(mDevice->logical_device(), mDefaultMaterial.pipeline,
+						  nullptr);
 		mVertexBuffer.destroy();
 		mIndexBuffer.destroy();
 	}
