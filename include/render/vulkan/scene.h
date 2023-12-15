@@ -123,5 +123,6 @@ namespace render::vulkan {
 		Device* mDevice;
 		Buffer mVertexBuffer{};
 		Buffer mIndexBuffer{};
+		Material mDefaultMaterial{};
 	};
 } // namespace render::vulkan

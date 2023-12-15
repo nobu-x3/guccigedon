@@ -54,7 +54,8 @@ namespace render::vulkan {
 		tinygltf::Model input;
 		tinygltf::TinyGLTF context;
 		std::string error, warning;
-		bool loaded = context.LoadASCIIFromFile(&input, &error, &warning, path.string());
+		bool loaded =
+			context.LoadASCIIFromFile(&input, &error, &warning, path.string());
 		ArrayList<u32> index_buffer;
 		ArrayList<Vertex> vertex_buffer;
 		if (loaded) {
@@ -106,10 +107,12 @@ namespace render::vulkan {
 	}
 
 	GLTFModel::~GLTFModel() {
-        for(auto& material : materials){
-            vkDestroyPipelineLayout(mDevice->logical_device(), material.layout, nullptr);
-            vkDestroyPipeline(mDevice->logical_device(), material.pipeline, nullptr);
-        }
+		for (auto& material : materials) {
+			vkDestroyPipelineLayout(mDevice->logical_device(), material.layout,
+									nullptr);
+			vkDestroyPipeline(mDevice->logical_device(), material.pipeline,
+							  nullptr);
+		}
 		mVertexBuffer.destroy();
 		mIndexBuffer.destroy();
 	}
@@ -166,24 +169,42 @@ namespace render::vulkan {
 			Material* current_material{nullptr};
 			for (Primitive& primitive : node->mesh.primitives) {
 				if (primitive.index_count > 0) {
-					Material& material = materials[primitive.material_index];
-					if (current_material != &material) {
+					if (primitive.material_index >= 0) {
+						Material& material =
+							materials[primitive.material_index];
+						if (current_material != &material) {
+							current_material = &material;
+							vkCmdBindPipeline(buf,
+											  VK_PIPELINE_BIND_POINT_GRAPHICS,
+											  material.pipeline);
+							vkCmdBindDescriptorSets(
+								buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+								material.layout, 0, 1,
+								&frame_data.global_descriptor, 1,
+								&uniform_offset);
+							vkCmdBindDescriptorSets(
+								buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+								material.layout, 1, 1,
+								&frame_data.object_descriptor, 0, nullptr);
+							if (material.texture_set != nullptr) {
+								vkCmdBindDescriptorSets(
+									buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+									material.layout, 2, 1,
+									&material.texture_set, 0, nullptr);
+							}
+						}
+					} else {
+						current_material = &mDefaultMaterial;
 						vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-										  material.pipeline);
+										  mDefaultMaterial.pipeline);
 						vkCmdBindDescriptorSets(
 							buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-							material.layout, 0, 1,
+							mDefaultMaterial.layout, 0, 1,
 							&frame_data.global_descriptor, 1, &uniform_offset);
 						vkCmdBindDescriptorSets(
 							buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-							material.layout, 1, 1,
+							mDefaultMaterial.layout, 1, 1,
 							&frame_data.object_descriptor, 0, nullptr);
-						if (material.texture_set != nullptr) {
-							vkCmdBindDescriptorSets(
-								buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-								material.layout, 2, 1, &material.texture_set, 0,
-								nullptr);
-						}
 					}
 					vkCmdDrawIndexed(buf, primitive.index_count, 1,
 									 primitive.first_index, 0, 0);
@@ -218,7 +239,7 @@ namespace render::vulkan {
 					.build()
 					.value());
 			gltfImage.layout = builder.layout();
-            images[i] = gltfImage;
+			images[i] = gltfImage;
 		}
 	}
 
@@ -231,6 +252,43 @@ namespace render::vulkan {
 	}
 
 	void GLTFModel::load_materials(tinygltf::Model* in) {
+		{ // default material
+			builder::PipelineBuilder builder;
+			builder.set_vertex_input_description(Vertex::get_description())
+				.add_shader_module(renderer->shader_cache().get_shader(
+									   "assets/shaders/"
+									   "default_shader.vert.glsl.spv"),
+								   ShaderType::VERTEX)
+				.add_shader_module(renderer->shader_cache().get_shader(
+									   "assets/shaders/"
+									   "default_shader.frag.glsl.spv"),
+								   ShaderType::FRAGMENT)
+				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
+				.set_polygon_mode(VK_POLYGON_MODE_FILL)
+				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
+							   VK_FRONT_FACE_COUNTER_CLOCKWISE)
+				.set_multisampling_enabled(false)
+				.add_default_color_blend_attachment()
+				.set_color_blending_enabled(false)
+				.add_push_constant(sizeof(MeshPushConstant),
+								   VK_SHADER_STAGE_VERTEX_BIT)
+				.add_descriptor_set_layout(renderer->global_descriptor_layout())
+				.add_descriptor_set_layout(
+					renderer->objects_descriptor_layout())
+				.set_depth_testing(true, true, VK_COMPARE_OP_LESS_OR_EQUAL)
+				.add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
+				.add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
+				// .add_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
+				.add_viewport(
+					{0, 0, static_cast<float>(renderer->window_extent().width),
+					 static_cast<float>(renderer->window_extent().height), 0.f,
+					 1.f})
+				.add_scissor({{0, 0}, renderer->window_extent()});
+			mDefaultMaterial.layout =
+				builder.build_layout(mDevice->logical_device());
+			mDefaultMaterial.pipeline = builder.build_pipeline(
+				mDevice->logical_device(), renderer->render_pass());
+		}
 		tinygltf::Model& input = *in;
 		materials.resize(input.materials.size());
 		for (int i = 0; i < input.materials.size(); ++i) {
@@ -240,16 +298,7 @@ namespace render::vulkan {
 					mat.values["baseColorFactor"].ColorFactor().data());
 			}
 			builder::PipelineBuilder builder;
-			builder
-				.add_shader_module(renderer->shader_cache().get_shader(
-									   "assets/shaders/"
-									   "textured_mesh.vert.glsl.spv"),
-								   ShaderType::VERTEX)
-				.add_shader_module(renderer->shader_cache().get_shader(
-									   "assets/shaders/"
-									   "textured_mesh.frag.glsl.spv"),
-								   ShaderType::FRAGMENT)
-				.set_vertex_input_description(Vertex::get_description())
+			builder.set_vertex_input_description(Vertex::get_description())
 				.set_input_assembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false)
 				.set_polygon_mode(VK_POLYGON_MODE_FILL)
 				.set_cull_mode(VK_CULL_MODE_BACK_BIT,
@@ -281,7 +330,26 @@ namespace render::vulkan {
 				VkDescriptorSetLayout set_layout =
 					images[textures[base_color_texture_index].image_index]
 						.layout;
-				builder.add_descriptor_set_layout(set_layout);
+				builder
+					.add_shader_module(renderer->shader_cache().get_shader(
+										   "assets/shaders/"
+										   "textured_mesh.vert.glsl.spv"),
+									   ShaderType::VERTEX)
+					.add_shader_module(renderer->shader_cache().get_shader(
+										   "assets/shaders/"
+										   "textured_mesh.frag.glsl.spv"),
+									   ShaderType::FRAGMENT)
+					.add_descriptor_set_layout(set_layout);
+			} else {
+				builder
+					.add_shader_module(renderer->shader_cache().get_shader(
+										   "assets/shaders/"
+										   "default_shader.vert.glsl.spv"),
+									   ShaderType::VERTEX)
+					.add_shader_module(renderer->shader_cache().get_shader(
+										   "assets/shaders/"
+										   "default_shader.frag.glsl.spv"),
+									   ShaderType::FRAGMENT);
 			}
 			materials[i].layout =
 				builder.build_layout(mDevice->logical_device());
