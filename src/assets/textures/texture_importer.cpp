@@ -80,6 +80,18 @@ namespace asset {
 				std::error_code());
 		}
 		pPixels = pixels;
+        if(mChannels == 3){
+            auto size = mWidth * mHeight * 4;
+            u8* data = new u8[size];
+            for(int i = 0; i < this->size(); i+=3){
+                data[i] = pixels[i];
+                data[i + 1] = pixels[i+1];
+                data[i + 2] = pixels[i+2];
+                data[i + 3] = 255;
+            }
+            mChannels = 4;
+            pPixels = data;
+        }
 	}
 
 	STB_Texture::~STB_Texture() {

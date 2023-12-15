@@ -56,7 +56,7 @@ namespace render::vulkan {
 		mShaderCache = {mDevice};
 		//mGltfScene = {"assets/models/CesiumMan/glTF/CesiumMan.gltf", &mDevice,
 		//			  this};
-		mGltfScene = {"assets/scenes/bare_room/room.gltf", &mDevice,
+		mGltfScene = {"assets/scenes/Sponza/glTF/Sponza.gltf", &mDevice,
 					  this};
 	}
 
