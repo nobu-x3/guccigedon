@@ -4,29 +4,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 project(Guccigedon VERSION 0.1)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/includes.cmake)
 add_executable(Guccigedon
-    src/main.cpp
-    src/core/logger.cpp
-    src/render/vulkan/renderer.cpp
-    src/render/vulkan/builders.cpp
-    src/render/vulkan/mesh.cpp
-    src/render/vulkan/types.cpp
-    src/render/vulkan/image.cpp
-    src/render/vulkan/device.cpp
-    src/render/vulkan/instance.cpp
-    src/render/vulkan/surface.cpp
-    src/render/vulkan/swapchain.cpp
-    src/render/vulkan/scene.cpp
-    src/render/vulkan/pipeline.cpp
-    src/render/vulkan/descriptor_allocator.cpp
-    src/render/vulkan/shader.cpp
-    src/render/vulkan/descriptor_set_builder.cpp
-    src/gameplay/camera.cpp
-    src/gameplay/transform.cpp
-    src/core/input.cpp
-    src/gameplay/input_component.cpp
-    src/gameplay/movement_component.cpp
-    src/assets/textures/texture_importer.cpp)
+    ${GUCCIGEDON_TRANSLATION_UNITS}
+)
+
 
 add_subdirectory(experiments)
 find_package(Vulkan REQUIRED)
@@ -122,6 +104,7 @@ if(NOT KTX-Software_FOUND)
        execute_process(COMMAND git submodule update --init -- vendor/KTX-Software
        			       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
        add_subdirectory(vendor/KTX-Software)
+       set(KTX_FEATURE_TESTS OFF)
        set(KTX_LIBRARY ktx)
        set(KTX_INCLUDE vendor/KTX-Software/include)
 endif()
