@@ -21,10 +21,10 @@ set(GUCCIGEDON_TRANSLATION_UNITS src/main.cpp
     src/gameplay/movement_component.cpp
     src/assets/textures/texture_importer.cpp
     src/physics/sphere_collider.cpp
-    src/physics/aabb.cpp
+    src/physics/aabb_collider.cpp
 )
 
 set(GUCCIGEDON_TO_TEST
     src/physics/sphere_collider.cpp
-    src/physics/aabb.cpp
+    src/physics/aabb_collider.cpp
 )

@@ -1,20 +1,20 @@
-#include "physics/aabb.h"
+#include "physics/aabb_collider.h"
 #include <glm/gtx/component_wise.hpp>
 
 namespace physics {
-	AABBComponent::AABBComponent(gameplay::Transform* transform,
+	AABBCollider::AABBCollider(gameplay::Transform* transform,
 								 const glm::vec3& size) :
 		mTransform(transform),
 		mSize(size) {}
 
-	AABBComponent::AABBComponent(AABBComponent&& other) noexcept {
+	AABBCollider::AABBCollider(AABBCollider&& other) noexcept {
 		mTransform = other.mTransform;
 		mSize = other.mSize;
 		other.mSize = {0, 0, 0};
 		other.mTransform = nullptr;
 	}
 
-	AABBComponent& AABBComponent::operator=(AABBComponent&& other) noexcept {
+	AABBCollider& AABBCollider::operator=(AABBCollider&& other) noexcept {
 		mTransform = other.mTransform;
 		mSize = other.mSize;
 		other.mSize = {0, 0, 0};
@@ -23,7 +23,7 @@ namespace physics {
 	}
 
 	IntersectData
-	AABBComponent::check_collision(const AABBComponent& other) const {
+	AABBCollider::check_collision(const AABBCollider& other) const {
 		const glm::vec3 this_pos = mTransform->position();
 		const glm::vec3 other_pos = other.mTransform->position();
 		const glm::vec3 max_extent_a = {this_pos.x + (mSize.x * 0.5f),
