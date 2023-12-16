@@ -2,28 +2,31 @@
 #include <glm/geometric.hpp>
 
 namespace physics {
-	SphereCollider::SphereCollider(glm::vec3 center, float radius) noexcept :
-		mCenter(center), mRadius(radius) {}
+	SphereCollider::SphereCollider(gameplay::Transform* transform,
+								   float radius) noexcept :
+		mTransform(transform),
+		mRadius(radius) {}
 
 	SphereCollider::SphereCollider(SphereCollider&& other) noexcept {
-		mCenter = other.mCenter;
+		mTransform = other.mTransform;
 		mRadius = other.mRadius;
 		other.mRadius = 0;
-		other.mCenter = {0, 0, 0};
+		other.mTransform = nullptr;
 	}
 
 	SphereCollider& SphereCollider::operator=(SphereCollider&& other) noexcept {
-		mCenter = other.mCenter;
+		mTransform = other.mTransform;
 		mRadius = other.mRadius;
 		other.mRadius = 0;
-		other.mCenter = {0, 0, 0};
+		other.mTransform = nullptr;
 		return *this;
 	}
 
 	IntersectData
 	SphereCollider::check_collision(const SphereCollider& other) const {
 		float radius_distance = mRadius + other.mRadius;
-		float center_distance = glm::distance(mCenter, other.mCenter);
+		float center_distance =
+			glm::distance(mTransform->position(), other.mTransform->position());
 		float distance = center_distance - radius_distance;
 		return IntersectData(center_distance < radius_distance, distance);
 	}
