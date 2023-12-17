@@ -6,7 +6,8 @@
 namespace physics {
 	class SphereCollider {
 	public:
-	  SphereCollider(gameplay::Transform* transform, float radius) noexcept;
+		SphereCollider(ArrayList<gameplay::Transform>& transform_list,
+					   s32 transform_index, float radius);
 		SphereCollider(const SphereCollider&) = delete;
 		SphereCollider& operator=(const SphereCollider&) = delete;
 		SphereCollider(SphereCollider&& other) noexcept;
@@ -14,11 +15,12 @@ namespace physics {
 		IntersectData check_collision(const SphereCollider& other) const;
 		inline float radius() const { return mRadius; }
 		inline const glm::vec3& center() const {
-			return mTransform->position();
+			return mTransformList[mTransformIndex].position();
 		}
 
 	private:
 		float mRadius;
-		gameplay::Transform* mTransform;
+		s32 mTransformIndex;
+		ArrayList<gameplay::Transform>& mTransformList;
 	};
 } // namespace physics

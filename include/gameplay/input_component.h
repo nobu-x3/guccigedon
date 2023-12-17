@@ -1,5 +1,4 @@
 #pragma once
-#include <SDL_events.h>
 #include <glm/ext/vector_float3.hpp>
 #include "core/input.h"
 
@@ -13,6 +12,6 @@ namespace gameplay {
 		core::MouseState mouse_state{};
 		void process_input_event(SDL_Event* e);
 		void reset_mouse_state();
-        void reset_input_axis();
+		void reset_input_axis();
 	};
 } // namespace gameplay

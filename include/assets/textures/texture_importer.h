@@ -3,7 +3,8 @@
 #include <concepts>
 #include <filesystem>
 #include "core/types.h"
-#include "ktx.h"
+
+class ktxTexture;
 
 namespace asset {
 	class TextureImporter;

@@ -7,7 +7,8 @@
 namespace physics {
 	class AABBCollider {
 	public:
-		AABBCollider(gameplay::Transform* transform, const glm::vec3& size);
+		AABBCollider(ArrayList<gameplay::Transform>& transform_list,
+					 u32 transform_index, const glm::vec3& size);
 		AABBCollider(const AABBCollider&) = delete;
 		AABBCollider& operator=(const AABBCollider&) = delete;
 		AABBCollider(AABBCollider&&) noexcept;
@@ -16,8 +17,9 @@ namespace physics {
 		inline const glm::vec3& size() const { return mSize; }
 
 	private:
-		gameplay::Transform* mTransform;
 		glm::vec3 mSize;
+		s32 mTransformIndex;
+		ArrayList<gameplay::Transform>& mTransformList;
 	};
 
 } // namespace physics
