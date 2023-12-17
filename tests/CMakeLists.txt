@@ -7,6 +7,7 @@ project(Tests VERSION 0.1)
 set(GUCCIGEDON_TESTS
 	sphere_collider_test.cpp
 	aabb_collider_test.cpp
+	plane_collider_test.cpp
 )
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../includes.cmake)
