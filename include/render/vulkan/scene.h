@@ -45,7 +45,7 @@ namespace render::vulkan {
 		void draw(VkCommandBuffer buf, ObjectData* data, FrameData& frame_data,
 				  u32 uniform_offset);
 
-        void update(ObjectData* data);
+		void update(ObjectData* data);
 
 	public:
 		struct {
@@ -88,7 +88,7 @@ namespace render::vulkan {
 		struct gltfImage {
 			Image* image;
 			VkDescriptorSet set{nullptr};
-            VkDescriptorSetLayout layout{nullptr};
+			VkDescriptorSetLayout layout{nullptr};
 		};
 
 		struct Texture {
@@ -100,7 +100,7 @@ namespace render::vulkan {
 		ArrayList<gltfImage> images;
 		ArrayList<Node*> nodes;
 		class VulkanRenderer* renderer;
-        std::filesystem::path path;
+		std::filesystem::path path;
 
 	private:
 		void load_images(tinygltf::Model* input);
@@ -117,7 +117,7 @@ namespace render::vulkan {
 		void draw_node(VkCommandBuffer buf, ObjectData* ssbo, int& ssbo_index,
 					   Node* node, FrameData& frame_data, u32 uniform_offset);
 
-        void update_node(ObjectData* ssbo, int& ssbo_index, Node* node);
+		void update_node(ObjectData* ssbo, int& ssbo_index, Node* node);
 
 	private:
 		Device* mDevice;
