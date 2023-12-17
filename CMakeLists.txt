@@ -6,6 +6,7 @@ project(Guccigedon VERSION 0.1)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/includes.cmake)
 add_executable(Guccigedon
+    src/main.cpp
     ${GUCCIGEDON_TRANSLATION_UNITS}
 )
 
