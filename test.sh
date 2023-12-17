@@ -1,6 +1,9 @@
 #!/bin/sh
 
-cd tests
+set echo off
+mkdir -p build
 cmake -S . -B build
 cmake --build build
-cd build && ctest
+cd build
+make Tests -j32
+ctest -R Guccigedon_* -j 32

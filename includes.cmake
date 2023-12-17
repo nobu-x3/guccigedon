@@ -1,4 +1,4 @@
-set(GUCCIGEDON_TRANSLATION_UNITS src/main.cpp
+set(GUCCIGEDON_TRANSLATION_UNITS 
     src/core/logger.cpp
     src/render/vulkan/renderer.cpp
     src/render/vulkan/builders.cpp
@@ -24,10 +24,5 @@ set(GUCCIGEDON_TRANSLATION_UNITS src/main.cpp
     src/physics/sphere_collider.cpp
     src/physics/aabb_collider.cpp
     src/physics/plane_collider.cpp
-)
-
-set(GUCCIGEDON_TO_TEST
-    src/physics/sphere_collider.cpp
-    src/physics/aabb_collider.cpp
-    src/physics/plane_collider.cpp
+    src/physics/physics_engine.cpp
 )

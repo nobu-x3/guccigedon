@@ -103,8 +103,8 @@ if(NOT KTX-Software_FOUND)
        message("Cannot find KTX, using bundled version")
        execute_process(COMMAND git submodule update --init -- vendor/KTX-Software
        			       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-       add_subdirectory(vendor/KTX-Software)
        set(KTX_FEATURE_TESTS OFF)
+       add_subdirectory(vendor/KTX-Software)
        set(KTX_LIBRARY ktx)
        set(KTX_INCLUDE vendor/KTX-Software/include)
 endif()
@@ -190,3 +190,53 @@ add_custom_target(
 
 ### Make logs folder
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/logs")
+
+# Tests
+project(Tests VERSION 0.1)
+set(GUCCIGEDON_TESTS
+	tests/sphere_collider_test.cpp
+	tests/aabb_collider_test.cpp
+	tests/plane_collider_test.cpp
+	tests/physics_engine_test.cpp
+)
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  # Specify the commit you depend on and update it regularly.
+  URL https://github.com/google/googletest/archive/5376968f6948923e2411081fd9372e71a59d8e77.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+enable_testing()
+add_executable(Tests
+    ${GUCCIGEDON_TRANSLATION_UNITS}
+    ${GUCCIGEDON_TESTS}
+)
+
+target_include_directories(Tests PUBLIC include)
+include_directories(${Vulkan_INCLUDE_DIR}
+    ${SDL2_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIR}
+    ${TINYGLTF_INCLUDE_DIR}
+    ${TINYOBJLOADER_INCLUDE_DIR}
+    ${VULKAN_MEMORY_ALLOCATOR_INCLUDE_DIR}
+    ${VK_BOOTSTRAP_INCLUDE_DIR}
+    ${STB_INCLUDE_DIR}
+    ${SPIRV_REFLECT_INCLUDE_DIR}
+    ${KTX_INCLUDE}
+    )
+
+target_link_libraries(Tests gtest_main ${SDL2_LIBRARIES}
+    SDL2::SDL2
+    SDL2::SDL2main
+    ${Vulkan_LIBRARY} ${GLM_LIBRARY}
+    ${VULKAN_MEMORY_ALLOCATOR_LIBRARY}
+    ${TINYGLTF_LIBRARY}
+    ${TINYOBJLOADER_LIBRARY}
+    ${VK_BOOTSTRAP_LIBRARY}
+    ${SPIRV_REFLECT_LIBRARY}
+    ${KTX_LIBRARY}
+    )
+include(GoogleTest)
+gtest_discover_tests(Tests)
