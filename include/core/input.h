@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SDL_events.h>
 struct SDL_Window;
 namespace core {
 
@@ -407,13 +408,17 @@ namespace core {
 		bool RMB = false, LMB = false;
 	};
 
+	struct PollResult {
+		SDL_Event event;
+		int result;
+	};
+
 	class InputSystem {
 	public:
+		static PollResult poll_events();
 		static MousePosition mouse_position();
 		static MouseState mouse_state();
 		static void set_window_grab(SDL_Window* window, bool value);
 		static void show_cursor(bool value);
-
-	private:
 	};
 } // namespace core

@@ -17,6 +17,7 @@ set(GUCCIGEDON_TRANSLATION_UNITS src/main.cpp
     src/gameplay/camera.cpp
     src/gameplay/transform.cpp
     src/core/input.cpp
+    src/core/sapfire_engine.cpp
     src/gameplay/input_component.cpp
     src/gameplay/movement_component.cpp
     src/assets/textures/texture_importer.cpp

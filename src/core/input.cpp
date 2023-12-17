@@ -5,6 +5,12 @@
 
 namespace core {
 
+	PollResult InputSystem::poll_events() {
+		PollResult result;
+		result.result = SDL_PollEvent(&result.event);
+		return result;
+	}
+
 	MousePosition InputSystem::mouse_position() {
 		MousePosition pos{};
 		SDL_GetMouseState(&pos.x, &pos.y);

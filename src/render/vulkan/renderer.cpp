@@ -47,17 +47,117 @@ namespace render::vulkan {
 		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
 			mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
 		}
-		/* mGltfScene = {"assets/models/samplescene.gltf", &mDevice, this}; */
 		mCamera = {glm::radians(70.f),
 				   static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
 				   0.1f, 200.0f};
 		mCamera.transform.position({0, 0, 3});
 		mImageCache = {mDevice, this};
 		mShaderCache = {mDevice};
-		//mGltfScene = {"assets/models/CesiumMan/glTF/CesiumMan.gltf", &mDevice,
-		//			  this};
-		mGltfScene = {"assets/scenes/Sponza/glTF/Sponza.gltf", &mDevice,
-					  this};
+	}
+
+	VulkanRenderer ::VulkanRenderer(std::filesystem::path scene_path) {
+		SDL_Init(SDL_INIT_VIDEO);
+		mpWindow = SDL_CreateWindow(
+			"Guccigedon", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			mWindowExtent.width, mWindowExtent.height,
+			(SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE));
+		if (!mpWindow) {
+			core::Logger::Fatal("Failed to create a window. {}",
+								SDL_GetError());
+			exit(-1);
+		}
+		init_instance();
+		init_swapchain();
+		init_default_renderpass();
+		init_framebuffers();
+		init_commands();
+		init_sync_objects();
+		init_descriptors();
+		/* init_scene(); */
+		mCamera.transform.position({0.f, 0.f, 2.f});
+		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
+			mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
+		}
+		mCamera = {glm::radians(70.f),
+				   static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
+				   0.1f, 200.0f};
+		mCamera.transform.position({0, 0, 3});
+		mImageCache = {mDevice, this};
+		mShaderCache = {mDevice};
+		mGltfScene = {scene_path, &mDevice, this};
+	}
+
+	VulkanRenderer::VulkanRenderer(VulkanRenderer&& other) noexcept {
+		mpWindow = other.mpWindow;
+		mWindowExtent = other.mWindowExtent;
+		mInstance = std::move(other.mInstance);
+		mDevice = std::move(other.mDevice);
+		mSurface = std::move(other.mSurface);
+		mSwapchain = std::move(other.mSwapchain);
+		mRenderPass = std::move(other.mRenderPass);
+		mMaterialMap = std::move(other.mMaterialMap);
+		mMaterialBufferMap = std::move(other.mMaterialBufferMap);
+		for (auto i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+			mFrames[i] = std::move(other.mFrames[i]);
+		}
+		mDescriptorAllocatorPool = std::move(other.mDescriptorAllocatorPool);
+		mMainDescriptorAllocator = std::move(other.mMainDescriptorAllocator);
+		mDescriptorLayoutCache = std::move(other.mDescriptorLayoutCache);
+		mGlobalDescriptorSetLayout =
+			std::move(other.mGlobalDescriptorSetLayout);
+		mObjectsDescriptorSetLayout =
+			std::move(other.mObjectsDescriptorSetLayout);
+		mTextureSamplerDescriptorSetLayout =
+			std::move(other.mTextureSamplerDescriptorSetLayout);
+		mScene = std::move(other.mScene);
+		mGltfScene = std::move(other.mGltfScene);
+		mUploadContext = std::move(other.mUploadContext);
+		mCurrFrame = other.mCurrFrame;
+		mShouldResize = other.mShouldResize;
+		mShaderCache = std::move(other.mShaderCache);
+		mCamera = std::move(other.mCamera);
+		mImageCache = std::move(other.mImageCache);
+		other.mpWindow = nullptr;
+		other.mGlobalDescriptorSetLayout = nullptr;
+		other.mObjectsDescriptorSetLayout = nullptr;
+		other.mTextureSamplerDescriptorSetLayout = nullptr;
+	}
+
+	VulkanRenderer& VulkanRenderer::operator=(VulkanRenderer&& other) noexcept {
+		mpWindow = other.mpWindow;
+		mWindowExtent = other.mWindowExtent;
+		mInstance = std::move(other.mInstance);
+		mDevice = std::move(other.mDevice);
+		mSurface = std::move(other.mSurface);
+		mSwapchain = std::move(other.mSwapchain);
+		mRenderPass = std::move(other.mRenderPass);
+		mMaterialMap = std::move(other.mMaterialMap);
+		mMaterialBufferMap = std::move(other.mMaterialBufferMap);
+		for (auto i = 0; i < MAXIMUM_FRAMES_IN_FLIGHT; ++i) {
+			mFrames[i] = std::move(other.mFrames[i]);
+		}
+		mDescriptorAllocatorPool = std::move(other.mDescriptorAllocatorPool);
+		mMainDescriptorAllocator = std::move(other.mMainDescriptorAllocator);
+		mDescriptorLayoutCache = std::move(other.mDescriptorLayoutCache);
+		mGlobalDescriptorSetLayout =
+			std::move(other.mGlobalDescriptorSetLayout);
+		mObjectsDescriptorSetLayout =
+			std::move(other.mObjectsDescriptorSetLayout);
+		mTextureSamplerDescriptorSetLayout =
+			std::move(other.mTextureSamplerDescriptorSetLayout);
+		mScene = std::move(other.mScene);
+		mGltfScene = std::move(other.mGltfScene);
+		mUploadContext = std::move(other.mUploadContext);
+		mCurrFrame = other.mCurrFrame;
+		mShouldResize = other.mShouldResize;
+		mShaderCache = std::move(other.mShaderCache);
+		mCamera = std::move(other.mCamera);
+		mImageCache = std::move(other.mImageCache);
+		other.mpWindow = nullptr;
+		other.mGlobalDescriptorSetLayout = nullptr;
+		other.mObjectsDescriptorSetLayout = nullptr;
+		other.mTextureSamplerDescriptorSetLayout = nullptr;
+		return *this;
 	}
 
 	VulkanRenderer::~VulkanRenderer() {
@@ -284,28 +384,18 @@ namespace render::vulkan {
 		vkCmdBeginRenderPass(buf, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void VulkanRenderer::run() {
-		SDL_Event e;
-		bool quit = false;
-		while (!quit) {
-			while (SDL_PollEvent(&e) != 0) {
-				if (e.type == SDL_QUIT)
-					quit = true;
-				else if (e.type == SDL_WINDOWEVENT_RESIZED ||
-						 e.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
-					core::Logger::Trace("Resizing set");
-					mShouldResize = true;
-				};
-				if (core::InputSystem::mouse_state().RMB) {
-					mCamera.input.process_input_event(&e);
-				}
-			}
-			if (!core::InputSystem::mouse_state().RMB) {
-				mCamera.input.reset_input_axis();
-			}
-			mCamera.update(1);
-			draw();
+	void VulkanRenderer::handle_input_event(core::PollResult& poll_result) {
+		if (poll_result.event.type == SDL_WINDOWEVENT_RESIZED ||
+			poll_result.event.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
+			core::Logger::Trace("Resizing set");
+			mShouldResize = true;
+		};
+		if (core::InputSystem::mouse_state().RMB) {
+			mCamera.input.process_input_event(&poll_result.event);
+		} else {
+			mCamera.input.reset_input_axis();
 		}
+		mCamera.update(1);
 	}
 
 	void VulkanRenderer::init_instance() {

@@ -44,8 +44,13 @@ namespace render::vulkan {
 		void resize();
 
 	public:
-		VulkanRenderer();
+	  VulkanRenderer();
+	  VulkanRenderer(std::filesystem::path path);
 		~VulkanRenderer();
+	  VulkanRenderer(const VulkanRenderer&) = delete;
+	  VulkanRenderer& operator=(const VulkanRenderer&) = delete;
+	  VulkanRenderer(VulkanRenderer&&) noexcept;
+	  VulkanRenderer& operator=(VulkanRenderer&&) noexcept;
 
 		void add_material_to_mesh(const Material& material, const Mesh& mesh);
 
@@ -61,10 +66,9 @@ namespace render::vulkan {
 			return mFrames[mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT];
 		}
 
+	  void handle_input_event(core::PollResult& poll_result);
 		void draw();
 
-		// TEMP, @TODO: move this to engine
-		void run();
 
 		inline SDL_Window* window() const { return mpWindow; }
 

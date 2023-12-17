@@ -1,12 +1,13 @@
 #include <iostream>
 #include <vector>
-#include "render/vulkan/renderer.h"
 #include "core/input.h"
+#include "core/sapfire_engine.h"
 
 int main() {
-   render::vulkan::VulkanRenderer renderer {};
+	core::Engine engine{};
+	engine.load_scene("assets/scenes/Sponza/glTF/Sponza.gltf");
 	core::InputSystem::show_cursor(true);
-	//core::InputSystem::set_window_grab(renderer.window(), false);
-    renderer.run();
+	// core::InputSystem::set_window_grab(renderer.window(), false);
+	engine.run();
 	return 0;
 }
