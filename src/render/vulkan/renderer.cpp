@@ -276,8 +276,8 @@ namespace render::vulkan {
 		vkCmdSetScissor(buf, 0, 1, &scissor);
 		mGltfScene.draw(buf, object_ssbo, frame_data, uniform_offset);
 		// draw scene here
-		/* for (std::pair<const Material, VertexBuffer>& entry : */
-		/* 	 mMaterialBufferMap) { */
+		// for (std::pair<const Material, VertexBuffer>& entry :
+		// 	 mMaterialBufferMap) {
 		/* 	vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
 		/* 					  entry.first.pipeline); */
 		/* 	vkCmdBindDescriptorSets( */

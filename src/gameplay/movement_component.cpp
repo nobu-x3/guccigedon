@@ -7,7 +7,7 @@ namespace gameplay {
 		glm::vec3 up = {0, speed, 0};
 		forward = rotation * glm::vec4(forward, 0.f);
 		right = rotation * glm::vec4(right, 0.f);
-		velocity =
+		direction =
 			-direction.x * forward + direction.y * right + direction.z * up;
 	}
 } // namespace gameplay

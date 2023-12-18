@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/vec3.hpp>
+#include "core/types.h"
 #include "physics/intersect_data.h"
 #include "physics/sphere_collider.h"
 

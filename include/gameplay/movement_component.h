@@ -7,7 +7,7 @@
 namespace gameplay {
 	struct MovementComponent {
 		f32 speed = 0.001f;
-		glm::vec3 velocity{0};
+		glm::vec3 direction{0};
 
 		// Helper but don't actually need it
 		void update_velocity(glm::vec3 direction, const glm::mat4& rotation);

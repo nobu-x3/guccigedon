@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+#include "core/input.h"
 #include "core/types.h"
 #include "gameplay/movement_component.h"
 #include "physics/aabb_collider.h"
@@ -18,6 +20,7 @@ namespace physics {
 		s32 collider_component_index;
 		s32 movemevent_component_index;
 		ColliderType collider_type;
+		bool has_input{false};
 	};
 
 	union ColliderSettings {
@@ -31,9 +34,11 @@ namespace physics {
 	public:
 		Engine(core::Engine* core_engine);
 		// returns index of the newly added physics object
-		s32 add_physics_object(s32 transform_index, ColliderType type,
-							   ColliderSettings settings, bool add_movement = false);
+		s32 add_physics_object(
+			s32 transform_index, ColliderType type, ColliderSettings settings,
+			std::optional<gameplay::MovementComponent> movement_comp = {});
 
+		void handle_input_event(core::PollResult& poll_result);
 		void simulate(f32 delta_time);
 
 		inline const ArrayList<PhysicsObject>& physics_object() const {

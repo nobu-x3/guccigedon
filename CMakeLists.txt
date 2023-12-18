@@ -239,5 +239,6 @@ target_link_libraries(Tests gtest_main ${SDL2_LIBRARIES}
     ${SPIRV_REFLECT_LIBRARY}
     ${KTX_LIBRARY}
     )
+
 include(GoogleTest)
 gtest_discover_tests(Tests)

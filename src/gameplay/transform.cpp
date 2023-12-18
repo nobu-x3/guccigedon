@@ -11,7 +11,6 @@ namespace gameplay {
 			glm::mat4 rot = glm::toMat4(mRotation);
 			glm::mat4 transl = glm::translate(glm::mat4(1), mPosition);
 			mTransform = transl * rot * scale;
-			mDirty = false;
 		}
 		return mTransform;
 	}
@@ -19,7 +18,6 @@ namespace gameplay {
 	Transform& Transform::rotation(const glm::vec3& rotation) {
 		mEulerAngles = rotation;
 		mRotation = glm::quat(rotation);
-		mDirty = true;
 		glm::mat4 yaw_rot =
 			glm::rotate(glm::mat4{1}, mEulerAngles.y, {0, -1, 0});
 		glm::mat4 roll_rot =
@@ -31,6 +29,7 @@ namespace gameplay {
 		mForward = mRotationMatrix * glm::vec4(mForward, 0.f);
 		mRight = mRotationMatrix * glm::vec4(mRight, 0.f);
 		mUp = glm::normalize(glm::cross(mRight, mForward));
+		mDirty = true;
 		return *this;
 	}
 

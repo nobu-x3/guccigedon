@@ -112,7 +112,7 @@ namespace render::vulkan {
 		vkCreateImageView(device, &view_ci, nullptr, &view);
 		if (create_sampler) {
 			VkSamplerCreateInfo sampler_info = builder::sampler_create_info(
-				VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 				texture->mip_levels());
 			vkCreateSampler(device, &sampler_info, nullptr, &mSampler);
 		}

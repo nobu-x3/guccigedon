@@ -2,8 +2,6 @@
 
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include "core/types.h"
-#include "core/logger.h"
 
 namespace gameplay {
 	class Transform {
@@ -14,7 +12,7 @@ namespace gameplay {
 		inline const glm::vec3& scale() const { return mScale; }
 		inline const glm::vec3& right() const { return mRight; }
 		inline const glm::vec3& forward() const { return mForward; }
-		inline const glm::vec3 up() const { return mUp; }
+		inline const glm::vec3& up() const { return mUp; }
 
 		inline Transform& scale(const glm::vec3& scale) {
 			mScale = scale;
@@ -24,7 +22,6 @@ namespace gameplay {
 
 		inline Transform& position(const glm::vec3& pos) {
 			mPosition = pos;
-			mDirty = true;
 			return *this;
 		}
 
