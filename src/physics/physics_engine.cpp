@@ -62,7 +62,8 @@ namespace physics {
 			// @TODO: fix later, add gravity, bla
 			// movement.direction = transform.forward();
 			auto position = transform.position();
-			position += movement.direction * delta_time * movement.speed;;
+			position += movement.direction * delta_time * movement.speed;
+			;
 			transform.position(position);
 		}
 	}
