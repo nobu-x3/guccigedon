@@ -64,7 +64,6 @@ namespace physics {
 			auto position = transform.position();
 			position += movement.direction * delta_time * movement.speed;;
 			transform.position(position);
-			core::Logger::Trace("{} {} {}", position.x, position.y, position.z);
 		}
 	}
 } // namespace physics
