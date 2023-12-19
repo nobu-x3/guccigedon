@@ -7,7 +7,7 @@ namespace physics {
 
 	s32 Engine::add_physics_object(
 		s32 transform_index, ColliderType type, ColliderSettings settings,
-		std::optional<gameplay::MovementComponent> movement_comp) {
+		std::optional<gameplay::MovementComponent> movement_comp,std::optional<RigidBody> rb) {
 		PhysicsObject object{transform_index};
 		object.collider_type = type;
 		switch (type) {
@@ -33,6 +33,11 @@ namespace physics {
 			mMovementComponents.push_back(movement_comp.value());
 			object.movemevent_component_index = mMovementComponents.size() - 1;
 		}
+        object.rigidbody_component_index = -1;
+        if(rb.has_value()){
+            mRigidBodies.push_back(rb.value());
+            object.rigidbody_component_index = mRigidBodies.size() - 1;
+        }
 		mPhysicsObjects.push_back(object);
 		return mPhysicsObjects.size() - 1;
 	}

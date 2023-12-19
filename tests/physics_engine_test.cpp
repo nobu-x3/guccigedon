@@ -2,6 +2,7 @@
 #include <glm/vec3.hpp>
 #include <gtest/gtest.h>
 #include "core/sapfire_engine.h"
+#include "gameplay/movement_component.h"
 #include "gameplay/transform.h"
 
 TEST(Guccigedon_PhysicsEngine, add_physics_object) {
@@ -29,16 +30,32 @@ TEST(Guccigedon_PhysicsEngine, add_physics_object) {
 	EXPECT_EQ(index, 0);
 	EXPECT_EQ(po.movemevent_component_index, 0);
 	EXPECT_EQ(po.transform_index, 0);
+    EXPECT_EQ(po.rigidbody_component_index, -1);
 	EXPECT_FALSE(po.has_input);
 	index =
-		physics.add_physics_object(1, physics::ColliderType::Sphere, settings);
+		physics.add_physics_object(1, physics::ColliderType::Sphere, settings, gameplay::MovementComponent{{1,1,1}, {0,0,0}});
 	EXPECT_EQ(index, 1);
+	const physics::PhysicsObject& po1 = physics.physics_object()[index];
+	EXPECT_EQ(po1.transform_index, 1);
+    EXPECT_EQ(po1.movemevent_component_index, 1);
+    EXPECT_EQ(po1.rigidbody_component_index, -1);
+	EXPECT_FALSE(po1.has_input);
 	index =
-		physics.add_physics_object(2, physics::ColliderType::Sphere, settings);
+		physics.add_physics_object(2, physics::ColliderType::Sphere, settings,gameplay::MovementComponent{{1,1,1}, {0,0,0}}, physics::RigidBody{});
+	const physics::PhysicsObject& po2 = physics.physics_object()[index];
 	EXPECT_EQ(index, 2);
+	EXPECT_EQ(po2.transform_index, 2);
+    EXPECT_EQ(po2.movemevent_component_index, 2);
+    EXPECT_EQ(po2.rigidbody_component_index, 0);
+	EXPECT_FALSE(po2.has_input);
 	index =
-		physics.add_physics_object(3, physics::ColliderType::Sphere, settings);
+		physics.add_physics_object(3, physics::ColliderType::Sphere, settings, {}, physics::RigidBody{});
+	const physics::PhysicsObject& po3 = physics.physics_object()[index];
 	EXPECT_EQ(index, 3);
+	EXPECT_EQ(po3.transform_index, 3);
+    EXPECT_EQ(po3.movemevent_component_index, -1);
+    EXPECT_EQ(po3.rigidbody_component_index, 1);
+	EXPECT_FALSE(po3.has_input);
 }
 
 TEST(Guccigedon_PhysicsEngine, simulate_uniform_motion) {

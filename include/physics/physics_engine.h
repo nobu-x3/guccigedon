@@ -19,6 +19,7 @@ namespace physics {
 		s32 transform_index;
 		s32 collider_component_index;
 		s32 movemevent_component_index;
+        s32 rigidbody_component_index;
 		ColliderType collider_type;
 		bool has_input{false};
 	};
@@ -31,7 +32,8 @@ namespace physics {
 	};
 
     struct RigidBody {
-
+        float mass = 1;
+        float gravity_factor = 1;
     };
 
 	class Engine {
@@ -40,7 +42,7 @@ namespace physics {
 		// returns index of the newly added physics object
 		s32 add_physics_object(
 			s32 transform_index, ColliderType type, ColliderSettings settings,
-			std::optional<gameplay::MovementComponent> movement_comp = {});
+			std::optional<gameplay::MovementComponent> movement_comp = {}, std::optional<RigidBody> rb = {});
 
 		void handle_input_event(core::PollResult& poll_result);
 		void simulate(f32 delta_time);
@@ -67,6 +69,7 @@ namespace physics {
 		core::Engine* mCoreEngine{nullptr};
 		ArrayList<PhysicsObject> mPhysicsObjects{};
 		ArrayList<gameplay::MovementComponent> mMovementComponents{};
+        ArrayList<RigidBody> mRigidBodies{};
 		ArrayList<SphereCollider> mSpheres{};
 		ArrayList<AABBCollider> mAABBs{};
 		ArrayList<PlaneCollider> mPlanes{};
