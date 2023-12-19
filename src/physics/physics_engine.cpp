@@ -59,12 +59,12 @@ namespace physics {
 			}
 			auto& transform = mCoreEngine->transforms()[po.transform_index];
 			auto& movement = mMovementComponents[po.movemevent_component_index];
-			// @TODO: fix later, add gravity, bla
-			// movement.direction = transform.forward();
+			movement.velocity += movement.acceleration * delta_time;
 			auto position = transform.position();
-			position += movement.direction * delta_time * movement.speed;
-			;
+			position += movement.velocity * delta_time;
 			transform.position(position);
 		}
 	}
+
+	void Engine::handle_collisions() {}
 } // namespace physics

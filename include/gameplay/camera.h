@@ -15,7 +15,7 @@ namespace gameplay {
 
 		Transform transform{};
 		InputComponent input{};
-		MovementComponent movement{};
+		MovementComponent movement{{0,0,0}, {0,0,0}};
 		glm::mat4x4 projection{1.0};
 
 		f32 fov;

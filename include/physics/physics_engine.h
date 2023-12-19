@@ -30,6 +30,10 @@ namespace physics {
 		f32 distance;
 	};
 
+    struct RigidBody {
+
+    };
+
 	class Engine {
 	public:
 		Engine(core::Engine* core_engine);
@@ -40,6 +44,7 @@ namespace physics {
 
 		void handle_input_event(core::PollResult& poll_result);
 		void simulate(f32 delta_time);
+        void handle_collisions();
 
 		inline const ArrayList<PhysicsObject>& physics_object() const {
 			return mPhysicsObjects;

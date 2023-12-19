@@ -19,12 +19,12 @@ namespace gameplay {
 		euler.y += input.mouse_delta_x;
 		euler.x += input.mouse_delta_y;
 		transform.rotation(euler);
-		movement.direction = -input.input_axis.x * transform.forward() +
+		movement.velocity = -input.input_axis.x * transform.forward() +
 			input.input_axis.y * transform.right() +
 			input.input_axis.z * transform.up();
-		movement.direction *= dt * movement.speed;
+		movement.velocity *= dt * 0.01f;
 		auto position = transform.position();
-		position += movement.direction;
+		position += movement.velocity * dt;
 		transform.position(position);
 		input.reset_mouse_state();
 	}
