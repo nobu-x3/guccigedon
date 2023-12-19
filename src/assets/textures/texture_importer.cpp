@@ -2,6 +2,7 @@
 #include <exception>
 #include <filesystem>
 #include <system_error>
+#include "core/logger.h"
 #include "core/types.h"
 #include "ktx.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -80,18 +81,9 @@ namespace asset {
 				std::error_code());
 		}
 		pPixels = pixels;
-        if(mChannels == 3){
-            auto size = mWidth * mHeight * 4;
-            u8* data = new u8[size];
-            for(int i = 0; i < this->size(); i+=3){
-                data[i] = pixels[i];
-                data[i + 1] = pixels[i+1];
-                data[i + 2] = pixels[i+2];
-                data[i + 3] = 255;
-            }
-            mChannels = 4;
-            pPixels = data;
-        }
+		if (mChannels == 3) {
+			mChannels = 4;
+		}
 	}
 
 	STB_Texture::~STB_Texture() {
@@ -106,37 +98,38 @@ namespace asset {
 		ktxResult result;
 #ifdef _WIN32
 		result = ktxTexture_CreateFromNamedFile(
-			path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &mTexture);
+			path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+			&mTexture);
 #else
 		result = ktxTexture_CreateFromNamedFile(
 			path.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &mTexture);
 #endif
 		if (result != KTX_SUCCESS) {
-				throw std::filesystem::filesystem_error(
-					"Failed to find image at given path. See logs.", path,
-					std::error_code());
+			throw std::filesystem::filesystem_error(
+				"Failed to find image at given path. See logs.", path,
+				std::error_code());
 		}
 		mWidth = mTexture->baseWidth;
 		mHeight = mTexture->baseHeight;
 		/* mMipLevels = mTexture->numLevels; */
 		mMipLevels = 1;
 		/* mChannels = mTexture->dataSize / (mWidth * mHeight); */
-        mChannels = 4;
-        bIsCube = mTexture->isCubemap;
+		mChannels = 4;
+		bIsCube = mTexture->isCubemap;
 		mLayerCount = mTexture->isCubemap ? 6 : 1;
 		ktx_uint8_t* mTexture_data = ktxTexture_GetData(mTexture);
 		pPixels = mTexture_data;
-		}
+	}
 
-		KTX_Texture::~KTX_Texture() {
+	KTX_Texture::~KTX_Texture() {
 		if (mLifetime == ObjectLifetime::TEMP)
 			return;
 		if (pPixels) {
 			ktxTexture_Destroy(mTexture);
 		}
-		}
+	}
 
-		size_t KTX_Texture::offset(int level, int layer, int faceSlice) {
+	size_t KTX_Texture::offset(int level, int layer, int faceSlice) {
 		size_t offset{0};
 		KTX_error_code ret = ktxTexture_GetImageOffset(mTexture, level, layer,
 													   faceSlice, &offset);
@@ -144,14 +137,14 @@ namespace asset {
 			throw ret;
 		}
 		return offset;
-		}
+	}
 
-		Texture* TextureImporter::import(std::filesystem::path path) {
+	Texture* TextureImporter::import(std::filesystem::path path) {
 		if (path.extension() == ".ktx") {
 			return new KTX_Texture(path);
 		}
 
 		return new STB_Texture(path);
-		}
+	}
 
-	} // namespace asset
+} // namespace asset
