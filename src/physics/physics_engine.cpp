@@ -7,7 +7,8 @@ namespace physics {
 
 	s32 Engine::add_physics_object(
 		s32 transform_index, ColliderType type, ColliderSettings settings,
-		std::optional<gameplay::MovementComponent> movement_comp,std::optional<RigidBody> rb) {
+		std::optional<gameplay::MovementComponent> movement_comp,
+		std::optional<RigidBody> rb) {
 		PhysicsObject object{transform_index};
 		object.collider_type = type;
 		switch (type) {
@@ -33,13 +34,17 @@ namespace physics {
 			mMovementComponents.push_back(movement_comp.value());
 			object.movemevent_component_index = mMovementComponents.size() - 1;
 		}
-        object.rigidbody_component_index = -1;
-        if(rb.has_value()){
-            mRigidBodies.push_back(rb.value());
-            object.rigidbody_component_index = mRigidBodies.size() - 1;
-        }
+		object.rigidbody_component_index = -1;
+		if (rb.has_value()) {
+			mRigidBodies.push_back(rb.value());
+			object.rigidbody_component_index = mRigidBodies.size() - 1;
+		}
 		mPhysicsObjects.push_back(object);
 		return mPhysicsObjects.size() - 1;
+	}
+
+	glm::vec3 Engine::compute_force(const RigidBody& rb) {
+		return glm::vec3{0, rb.mass * -9.81 * rb.gravity_factor, 0};
 	}
 
 	void Engine::simulate(f32 delta_time) {
@@ -64,6 +69,12 @@ namespace physics {
 			}
 			auto& transform = mCoreEngine->transforms()[po.transform_index];
 			auto& movement = mMovementComponents[po.movemevent_component_index];
+			if (po.rigidbody_component_index >= 0) {
+				auto& rb = mRigidBodies[po.rigidbody_component_index];
+				auto force = compute_force(rb);
+				movement.acceleration = glm::vec3{
+					force.x / rb.mass, force.y / rb.mass, force.z / rb.mass};
+			}
 			movement.velocity += movement.acceleration * delta_time;
 			auto position = transform.position();
 			position += movement.velocity * delta_time;
