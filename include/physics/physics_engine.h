@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include "core/input.h"
 #include "core/types.h"
@@ -11,6 +12,11 @@
 namespace core {
 	class Engine;
 }
+
+namespace tinygltf {
+	class Node;
+	class Model;
+} // namespace tinygltf
 
 namespace physics {
 	enum class ColliderType : u8 { None, Sphere, AABB, Plane, MAX };
@@ -48,6 +54,7 @@ namespace physics {
 		void handle_input_event(core::PollResult& poll_result);
 		void simulate(f32 delta_time);
 		void handle_collisions();
+		void load_scene(std::filesystem::path scene_path);
 
 		inline const ArrayList<PhysicsObject>& physics_object() const {
 			return mPhysicsObjects;
@@ -67,10 +74,24 @@ namespace physics {
 		}
 
 	private:
+		struct Node {
+			Node* parent{nullptr};
+			ArrayList<Node*> children{};
+			std::optional<RigidBody> rb{};
+			ColliderType collider_type{ColliderType::None};
+			std::optional<ColliderSettings> settings;
+			~Node() {
+				for (Node* child : children) {
+					delete child;
+				}
+			}
+		};
+
 		glm::vec3 compute_force(const RigidBody& rb);
 
-	private:
-		core::Engine* mCoreEngine{nullptr};
+		void load_node(const tinygltf::Node* inputNode,
+					   const tinygltf::Model* input, Node* parent);
+        private: core::Engine* mCoreEngine{nullptr};
 		ArrayList<PhysicsObject> mPhysicsObjects{};
 		ArrayList<gameplay::MovementComponent> mMovementComponents{};
 		ArrayList<RigidBody> mRigidBodies{};

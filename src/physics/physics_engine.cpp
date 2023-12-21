@@ -1,9 +1,43 @@
 #include "physics/physics_engine.h"
 #include "core/sapfire_engine.h"
+#include <tiny_gltf.h>
 
 namespace physics {
 
 	Engine::Engine(core::Engine* core_engine) : mCoreEngine(core_engine) {}
+
+	void Engine::load_scene(std::filesystem::path scene_path) {
+		tinygltf::Model input;
+		tinygltf::TinyGLTF context;
+		std::string error, warning;
+		bool loaded =
+			context.LoadASCIIFromFile(&input, &error, &warning, scene_path.string());
+		if (loaded) {
+			const tinygltf::Scene& scene = input.scenes[0];
+			for (int i = 0; i < scene.nodes.size(); ++i) {
+				const tinygltf::Node node = input.nodes[scene.nodes[i]];
+				load_node(&node, &input, nullptr);
+			}
+		} else {
+			throw std::exception();
+		}
+    }
+
+    static s32 transform_index {0};
+	void Engine::load_node(const tinygltf::Node* inNode,
+						   const tinygltf::Model* in, Node* parent) {
+		const tinygltf::Node& inputNode = *inNode;
+		const tinygltf::Model& input = *in;
+		Node* node = new Node{};
+		node->parent = parent;
+        if(inputNode.extras.Has("PhysicsObject")){
+            PhysicsObject po {transform_index};
+            // TODO: import all this stuyff
+        }
+        ++transform_index;
+
+
+    }
 
 	s32 Engine::add_physics_object(
 		s32 transform_index, ColliderType type, ColliderSettings settings,
@@ -43,6 +77,7 @@ namespace physics {
 		return mPhysicsObjects.size() - 1;
 	}
 
+	// TODO: this is supposed to be pretty complicated alas
 	glm::vec3 Engine::compute_force(const RigidBody& rb) {
 		return glm::vec3{0, rb.mass * -9.81 * rb.gravity_factor, 0};
 	}

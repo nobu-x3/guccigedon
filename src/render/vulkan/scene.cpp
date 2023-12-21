@@ -478,6 +478,7 @@ namespace render::vulkan {
 								.data[accessor.byteOffset + view.byteOffset]));
 					}
 
+
 					// Append data to model's vertex buffer
 					for (size_t v = 0; v < vertexCount; v++) {
 						Vertex vert{};
