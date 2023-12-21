@@ -116,29 +116,17 @@ TEST(Guccigedon_PhysicsEngine, simulate_non_uniform_motion) {
 TEST(Guccigedon_PhysicsEngine, simulate_gravity) {
 	ArrayList<core::Entity> entities{{0, -1, 0}};
 	gameplay::Transform t1;
-	gameplay::Transform t2;
-	gameplay::Transform t3;
-	ArrayList<gameplay::Transform> transforms{t1, t2, t3};
+	ArrayList<gameplay::Transform> transforms{t1};
 	core::Engine engine{entities, transforms};
 	physics::Engine physics{&engine};
 	gameplay::MovementComponent m1{{0, 0, 0}, {0, 0, 0}};
-	// gameplay::MovementComponent m2{{0, 0, 0}, {3, 2, 1}};
-	// gameplay::MovementComponent m3{{0, 0, 0}, {-4, 0, 1}};
 	physics.add_physics_object(0, physics::ColliderType::None, {}, m1, physics::RigidBody{1.f, 1.f});
-	// physics.add_physics_object(1, physics::ColliderType::None, {}, m2);
-	// physics.add_physics_object(2, physics::ColliderType::None, {}, m3);
 	physics.simulate(1.0f);
 	EXPECT_EQ(engine.transforms()[0].position().x, 0);
 	EXPECT_EQ(engine.transforms()[0].position().y, -9.81f);
 	EXPECT_EQ(engine.transforms()[0].position().z, 0);
 	physics.simulate(1.0f);
 	EXPECT_EQ(engine.transforms()[0].position().x, 0);
-	EXPECT_EQ(engine.transforms()[0].position().y, -19.62);
+	EXPECT_EQ(engine.transforms()[0].position().y, -29.43f);
 	EXPECT_EQ(engine.transforms()[0].position().z, 0);
-	// EXPECT_EQ(engine.transforms()[1].position().x, 60);
-	// EXPECT_EQ(engine.transforms()[1].position().y, 40);
-	// EXPECT_EQ(engine.transforms()[1].position().z, 20);
-	// EXPECT_EQ(engine.transforms()[2].position().x, -80);
-	// EXPECT_EQ(engine.transforms()[2].position().y, 0);
-	// EXPECT_EQ(engine.transforms()[2].position().z, 20);
 }
