@@ -15,21 +15,33 @@
 	],
 	"nodes":[
 		{
+			"extras":{
+				"Physics Object":true,
+				"Collider":"AABB",
+				"Rigidbody":false
+			},
 			"mesh":0,
 			"name":"Cube",
 			"scale":[
-				6.831540584564209,
-				0.4673353433609009,
-				9.32441520690918
+				8.929765701293945,
+				0.11772078275680542,
+				10.245837211608887
 			]
 		},
 		{
+			"extras":{
+				"Physics Object":true,
+				"Collider":"Sphere",
+				"Rigidbody":true,
+				"Mass":1.0,
+				"Gravity Factor":1.0
+			},
 			"mesh":1,
 			"name":"Sphere",
 			"translation":[
-				-0.6136869192123413,
-				5.671669960021973,
-				0.034807492047548294
+				0,
+				4.550226211547852,
+				0
 			]
 		}
 	],
@@ -51,11 +63,6 @@
 	],
 	"meshes":[
 		{
-			"extras":{
-				"Collider":"AABB",
-				"Rigidbody":false,
-				"Physics Object":true
-			},
 			"name":"Cube",
 			"primitives":[
 				{
@@ -70,13 +77,6 @@
 			]
 		},
 		{
-			"extras":{
-				"Collider":"Sphere",
-				"Rigidbody":true,
-				"Mass":1.0,
-				"Gravity Factor":1.0,
-				"Physics Object":true
-			},
 			"name":"Sphere",
 			"primitives":[
 				{
