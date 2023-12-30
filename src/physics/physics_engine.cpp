@@ -66,8 +66,11 @@ namespace physics {
 						inputNode.extras.Get("Gravity Factor").Get<double>())};
 				rb = rb_val;
 			}
-			add_physics_object(transform_index, collider_type, settings, {},
-							   rb);
+			add_physics_object(
+				transform_index, collider_type, settings,
+				rb.has_value() ? gameplay::MovementComponent{}
+							   : std::optional<gameplay::MovementComponent>{},
+				rb);
 		}
 		++transform_index;
 	}

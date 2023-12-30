@@ -19,8 +19,10 @@ namespace core {
 				if (poll_result.event.type == SDL_QUIT) {
 					quit = true;
 				}
+				// mPhysics->handle_input_event(poll_result);
 				mRenderer->handle_input_event(poll_result);
 			} while (poll_result.result != 0);
+			mPhysics->simulate(0.016f);
 			mRenderer->draw();
 		}
 	}
