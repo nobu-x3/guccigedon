@@ -91,7 +91,9 @@ namespace physics {
 
 		void load_node(const tinygltf::Node* inputNode,
 					   const tinygltf::Model* input, Node* parent);
-        private: core::Engine* mCoreEngine{nullptr};
+
+	private:
+		core::Engine* mCoreEngine{nullptr};
 		ArrayList<PhysicsObject> mPhysicsObjects{};
 		ArrayList<gameplay::MovementComponent> mMovementComponents{};
 		ArrayList<RigidBody> mRigidBodies{};

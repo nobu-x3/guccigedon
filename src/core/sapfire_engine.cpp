@@ -7,6 +7,7 @@ namespace core {
 	void Engine::load_scene(std::filesystem::path scene_path) {
 		mRenderer =
 			std::make_unique<render::vulkan::VulkanRenderer>(scene_path);
+		mPhysics->load_scene(scene_path);
 	}
 
 	void Engine::run() {
