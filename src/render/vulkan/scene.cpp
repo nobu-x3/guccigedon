@@ -50,7 +50,7 @@ namespace render::vulkan {
 	GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
 						 VulkanRenderer* renderer) :
 		renderer(renderer),
-		path(file), mDevice(device) {
+		path(file), mDevice(device), mLifetime(ObjectLifetime::OWNED) {
 		tinygltf::Model input;
 		tinygltf::TinyGLTF context;
 		std::string error, warning;
@@ -106,7 +106,42 @@ namespace render::vulkan {
 		index_staging.destroy();
 	}
 
+	GLTFModel::GLTFModel(GLTFModel&& other) noexcept :
+		renderer(other.renderer), path(std::move(other.path)),
+		mDevice(other.mDevice), mLifetime(ObjectLifetime::OWNED) {
+		textures = std::move(other.textures);
+		materials = std::move(other.materials);
+		nodes = std::move(other.nodes);
+		images = std::move(other.images);
+		mVertexBuffer = std::move(other.mVertexBuffer);
+		mIndexBuffer = std::move(other.mIndexBuffer);
+		mDefaultMaterial = std::move(other.mDefaultMaterial);
+		other.mDevice = nullptr;
+		other.mLifetime = ObjectLifetime::TEMP;
+		other.renderer = nullptr;
+	}
+
+	GLTFModel& GLTFModel::operator=(GLTFModel&& other) noexcept {
+		renderer = other.renderer;
+		path = std::move(other.path);
+		mDevice = other.mDevice;
+		mLifetime = ObjectLifetime::OWNED;
+		textures = std::move(other.textures);
+		materials = std::move(other.materials);
+		nodes = std::move(other.nodes);
+		images = std::move(other.images);
+		mVertexBuffer = std::move(other.mVertexBuffer);
+		mIndexBuffer = std::move(other.mIndexBuffer);
+		mDefaultMaterial = std::move(other.mDefaultMaterial);
+		other.mDevice = nullptr;
+		other.mLifetime = ObjectLifetime::TEMP;
+		other.renderer = nullptr;
+		return *this;
+	}
+
 	GLTFModel::~GLTFModel() {
+		if (mLifetime == ObjectLifetime::TEMP)
+			return;
 		for (auto& material : materials) {
 			vkDestroyPipelineLayout(mDevice->logical_device(), material.layout,
 									nullptr);
@@ -477,7 +512,6 @@ namespace render::vulkan {
 							input.buffers[view.buffer]
 								.data[accessor.byteOffset + view.byteOffset]));
 					}
-
 
 					// Append data to model's vertex buffer
 					for (size_t v = 0; v < vertexCount; v++) {

@@ -37,10 +37,10 @@ namespace render::vulkan {
 		~GLTFModel();
 		// TODO: temp, actually have to implement them...
 		GLTFModel() = default;
-		GLTFModel(const GLTFModel& other) = default;
-		GLTFModel& operator=(const GLTFModel& other) = default;
-		GLTFModel(GLTFModel&& other) noexcept = default;
-		GLTFModel& operator=(GLTFModel&& other) noexcept = default;
+		GLTFModel(const GLTFModel& other) = delete;
+		GLTFModel& operator=(const GLTFModel& other) = delete;
+		GLTFModel(GLTFModel&& other) noexcept;
+		GLTFModel& operator=(GLTFModel&& other) noexcept;
 
 		void draw(VkCommandBuffer buf, ObjectData* data, FrameData& frame_data,
 				  u32 uniform_offset);
@@ -124,5 +124,6 @@ namespace render::vulkan {
 		Buffer mVertexBuffer{};
 		Buffer mIndexBuffer{};
 		Material mDefaultMaterial{};
+		ObjectLifetime mLifetime{ObjectLifetime::TEMP};
 	};
 } // namespace render::vulkan

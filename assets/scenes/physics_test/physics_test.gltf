@@ -15,11 +15,6 @@
 	],
 	"nodes":[
 		{
-			"extras":{
-				"Physics Object":true,
-				"Collider":"AABB",
-				"Rigidbody":false
-			},
 			"mesh":0,
 			"name":"Cube",
 			"scale":[
@@ -29,13 +24,6 @@
 			]
 		},
 		{
-			"extras":{
-				"Physics Object":true,
-				"Collider":"Sphere",
-				"Rigidbody":true,
-				"Mass":1.0,
-				"Gravity Factor":1.0
-			},
 			"mesh":1,
 			"name":"Sphere",
 			"translation":[

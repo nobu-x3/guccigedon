@@ -44,13 +44,13 @@ namespace render::vulkan {
 		void resize();
 
 	public:
-	  VulkanRenderer();
-	  VulkanRenderer(std::filesystem::path path);
+		VulkanRenderer();
+		VulkanRenderer(std::filesystem::path path);
 		~VulkanRenderer();
-	  VulkanRenderer(const VulkanRenderer&) = delete;
-	  VulkanRenderer& operator=(const VulkanRenderer&) = delete;
-	  VulkanRenderer(VulkanRenderer&&) noexcept;
-	  VulkanRenderer& operator=(VulkanRenderer&&) noexcept;
+		VulkanRenderer(const VulkanRenderer&) = delete;
+		VulkanRenderer& operator=(const VulkanRenderer&) = delete;
+		VulkanRenderer(VulkanRenderer&&) noexcept;
+		VulkanRenderer& operator=(VulkanRenderer&&) noexcept;
 
 		void add_material_to_mesh(const Material& material, const Mesh& mesh);
 
@@ -66,9 +66,8 @@ namespace render::vulkan {
 			return mFrames[mCurrFrame % MAXIMUM_FRAMES_IN_FLIGHT];
 		}
 
-	  void handle_input_event(core::PollResult& poll_result);
+		void handle_input_event(core::PollResult& poll_result);
 		void draw();
-
 
 		inline SDL_Window* window() const { return mpWindow; }
 
@@ -94,13 +93,9 @@ namespace render::vulkan {
 			return mObjectsDescriptorSetLayout;
 		}
 
-        inline VkExtent2D window_extent() const {
-            return mWindowExtent;
-        }
+		inline VkExtent2D window_extent() const { return mWindowExtent; }
 
-        inline VkRenderPass render_pass() const {
-            return mRenderPass;
-        }
+		inline VkRenderPass render_pass() const { return mRenderPass; }
 
 		// I'm obviously not gonna keep all this in this megaclass.
 		// This is temporary, I'll refactor once I get it running.
