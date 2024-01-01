@@ -1,4 +1,4 @@
-set(GUCCIGEDON_TRANSLATION_UNITS 
+set(GUCCIGEDON_TRANSLATION_UNITS
     src/core/logger.cpp
     src/render/vulkan/renderer.cpp
     src/render/vulkan/builders.cpp
@@ -21,6 +21,7 @@ set(GUCCIGEDON_TRANSLATION_UNITS
     src/gameplay/input_component.cpp
     src/gameplay/movement_component.cpp
     src/assets/textures/texture_importer.cpp
+    src/assets/scene/gltf_importer.cpp
     src/physics/sphere_collider.cpp
     src/physics/aabb_collider.cpp
     src/physics/plane_collider.cpp

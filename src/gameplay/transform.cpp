@@ -33,4 +33,17 @@ namespace gameplay {
 		return *this;
 	}
 
+	Transform& Transform::rotation(const glm::quat& rotation) {
+		mRotation = rotation;
+		mEulerAngles = glm::eulerAngles(mRotation);
+		mRotationMatrix = glm::mat4(mRotation);
+		mForward = {0, 0, 1};
+		mRight = {1, 0, 0};
+		mForward = mRotationMatrix * glm::vec4(mForward, 0.f);
+		mRight = mRotationMatrix * glm::vec4(mRight, 0.f);
+		mUp = glm::normalize(glm::cross(mRight, mForward));
+		mDirty = true;
+        return *this;
+	}
+
 } // namespace gameplay

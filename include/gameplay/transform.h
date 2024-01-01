@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/quaternion_float.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 namespace gameplay {
@@ -26,6 +27,8 @@ namespace gameplay {
 		}
 
 		Transform& rotation(const glm::vec3& rotation);
+
+        Transform& rotation(const glm::quat& rotation);
 
 		inline const glm::mat4& rotation_matrix() const {
 			return mRotationMatrix;
