@@ -47,6 +47,7 @@ namespace render::vulkan {
 		return {mSceneDataBuffer.handle, offset, sizeof(SceneData)};
 	}
 
+    static u32 transform_index{0};
 	GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
 						 VulkanRenderer* renderer) :
 		renderer(renderer),
@@ -63,6 +64,7 @@ namespace render::vulkan {
 			load_textures(&input);
 			load_materials(&input);
 			const tinygltf::Scene& scene = input.scenes[0];
+            transform_index = 0;
 			for (int i = 0; i < scene.nodes.size(); ++i) {
 				const tinygltf::Node node = input.nodes[scene.nodes[i]];
 				load_node(&node, &input, nullptr, index_buffer, vertex_buffer);
@@ -245,6 +247,10 @@ namespace render::vulkan {
 							mDefaultMaterial.layout, 1, 1,
 							&frame_data.object_descriptor, 0, nullptr);
 					}
+                    MeshPushConstant constant;
+                    constant.id = ssbo_index;
+                    ssbo_index++;
+                    vkCmdPushConstants(buf, current_material->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstant), &constant);
 					vkCmdDrawIndexed(buf, primitive.index_count, 1,
 									 primitive.first_index, 0, 0);
 				}

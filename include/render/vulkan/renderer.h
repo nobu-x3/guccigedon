@@ -3,6 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include "gameplay/camera.h"
+#include "gameplay/transform.h"
 #include "render/vulkan/descriptor_allocator.h"
 #include "render/vulkan/descriptor_set_builder.h"
 #include "render/vulkan/device.h"
@@ -67,7 +68,7 @@ namespace render::vulkan {
 		}
 
 		void handle_input_event(core::PollResult& poll_result);
-		void draw();
+		void draw(const ArrayList<gameplay::Transform>& transforms);
 
 		inline SDL_Window* window() const { return mpWindow; }
 

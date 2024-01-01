@@ -216,7 +216,7 @@ namespace render::vulkan {
 		}
 	}
 
-	void VulkanRenderer::draw() {
+	void VulkanRenderer::draw(const ArrayList<gameplay::Transform>& transforms) {
 		// Not rendering when minimized
 		if (SDL_GetWindowFlags(mpWindow) & SDL_WINDOW_MINIMIZED) {
 			return;
@@ -229,11 +229,8 @@ namespace render::vulkan {
 		// insert actual commands
 		VkDeviceSize offset{0};
 		// model rotation
-		glm::mat4 model =
-			glm::rotate(glm::mat4{1.0f}, glm::radians(0.f), glm::vec3(0, 1, 0));
 		// calculate final mesh matrix
 		MeshPushConstant constants;
-		constants.render_matrix = model;
 		// make a model view matrix for rendering the object
 		CameraData cam_data = {};
 		cam_data.proj = mCamera.projection;
@@ -248,16 +245,11 @@ namespace render::vulkan {
 		vmaMapMemory(mDevice.allocator(), frame_data.object_buffer.memory,
 					 &object_data);
 		ObjectData* object_ssbo = static_cast<ObjectData*>(object_data);
-		mGltfScene.update(object_ssbo);
-		/* int ssbo_index{0}; */
-		/* for (std::pair<const Material, ArrayList<Mesh>>& entry :
-		 * mMaterialMap) { */
-		/* 	for (Mesh& mesh : entry.second) { */
-		/* 		mesh.transform = model; */
-		/* 		object_ssbo[ssbo_index].model_matrix = mesh.transform; */
-		/* 		ssbo_index++; */
-		/* 	} */
-		/* } */
+        u32 ssbo_index{0};
+        for(auto& transform : transforms){
+            object_ssbo[ssbo_index].model_matrix = transform.transform();
+            ssbo_index++;
+        }
 		vmaUnmapMemory(mDevice.allocator(), frame_data.object_buffer.memory);
 		u32 uniform_offset =
 			pad_uniform_buffer(sizeof(SceneData) * frame_index);
@@ -275,36 +267,6 @@ namespace render::vulkan {
 		scissor.extent = mWindowExtent;
 		vkCmdSetScissor(buf, 0, 1, &scissor);
 		mGltfScene.draw(buf, object_ssbo, frame_data, uniform_offset);
-		// draw scene here
-		// for (std::pair<const Material, VertexBuffer>& entry :
-		// 	 mMaterialBufferMap) {
-		/* 	vkCmdBindPipeline(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
-		/* 					  entry.first.pipeline); */
-		/* 	vkCmdBindDescriptorSets( */
-		/* 		buf, VK_PIPELINE_BIND_POINT_GRAPHICS, entry.first.layout, 0, 1,
-		 */
-		/* 		&frame_data.global_descriptor, 1, &uniform_offset); */
-		/* 	vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
-		/* 							entry.first.layout, 1, 1, */
-		/* 							&frame_data.object_descriptor, 0, nullptr);
-		 */
-		/* 	if (entry.first.texture_set != VK_NULL_HANDLE) { */
-		/* 		vkCmdBindDescriptorSets(buf, VK_PIPELINE_BIND_POINT_GRAPHICS, */
-		/* 								entry.first.layout, 2, 1, */
-		/* 								&entry.first.texture_set, 0, nullptr);
-		 */
-		/* 	} */
-		/* 	vkCmdBindVertexBuffers(buf, 0, 1, &entry.second.buffer.handle, */
-		/* 						   &offset); */
-		/* 	// upload the matrix to the GPU via push constants */
-		/* 	vkCmdPushConstants(buf, entry.first.layout, */
-		/* 					   VK_SHADER_STAGE_VERTEX_BIT, 0, */
-		/* 					   sizeof(MeshPushConstant), &constants); */
-		/* 	vkCmdDraw(buf, entry.second.size, 1, 0, 0); */
-		/* } */
-		/* std::chrono::duration<f64> delta
-		 * {std::chrono::high_resolution_clock::now() - start_time}; */
-		/* core::Logger::Trace("For_each time: %f", delta.count()); */
 		end_renderpass(buf);
 		mDevice.submit_queue(buf, frame_data.present_semaphore,
 							 frame_data.render_semaphore,

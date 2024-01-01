@@ -59,8 +59,7 @@ namespace render::vulkan {
 	};
 
 	struct MeshPushConstant {
-		glm::vec4 data{};
-		glm::mat4 render_matrix{};
+        u32 id;
 	};
 
 	struct FrameData {

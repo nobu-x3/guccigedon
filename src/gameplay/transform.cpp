@@ -5,7 +5,7 @@
 #include <glm/gtx/transform.hpp>
 
 namespace gameplay {
-	const glm::mat4& Transform::transform() {
+	const glm::mat4& Transform::calculate_transform() {
 		if (mDirty) {
 			glm::mat4 scale = glm::scale(mScale);
 			glm::mat4 rot = glm::toMat4(mRotation);
