@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/gtc/type_ptr.hpp>
+#include "assets/scene/gltf_importer.h"
 #include "gameplay/transform.h"
 #include "render/vulkan/image.h"
 #include "render/vulkan/types.h"
@@ -33,6 +34,8 @@ namespace render::vulkan {
 	class GLTFModel {
 	public:
 		GLTFModel(std::filesystem::path file, Device* device,
+				  VulkanRenderer* renderer);
+		GLTFModel(const asset::GLTFImporter& scene, Device* device,
 				  VulkanRenderer* renderer);
 		~GLTFModel();
 		// TODO: temp, actually have to implement them...

@@ -14,7 +14,7 @@ namespace core {
 			load_node(&scene_asset.input->nodes[node_index], scene_asset.input);
 		}
 		mRenderer =
-			std::make_unique<render::vulkan::VulkanRenderer>(scene_path);
+			std::make_unique<render::vulkan::VulkanRenderer>(scene_asset);
 		mPhysics->load_scene(scene_path);
 	}
 

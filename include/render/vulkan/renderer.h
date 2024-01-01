@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include "assets/scene/gltf_importer.h"
 #include "gameplay/camera.h"
 #include "gameplay/transform.h"
 #include "render/vulkan/descriptor_allocator.h"
@@ -47,6 +48,7 @@ namespace render::vulkan {
 	public:
 		VulkanRenderer();
 		VulkanRenderer(std::filesystem::path path);
+		VulkanRenderer(const asset::GLTFImporter& scene_asset);
 		~VulkanRenderer();
 		VulkanRenderer(const VulkanRenderer&) = delete;
 		VulkanRenderer& operator=(const VulkanRenderer&) = delete;

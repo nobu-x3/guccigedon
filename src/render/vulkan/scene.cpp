@@ -47,7 +47,7 @@ namespace render::vulkan {
 		return {mSceneDataBuffer.handle, offset, sizeof(SceneData)};
 	}
 
-    static u32 transform_index{0};
+	static u32 transform_index{0};
 	GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
 						 VulkanRenderer* renderer) :
 		renderer(renderer),
@@ -64,7 +64,7 @@ namespace render::vulkan {
 			load_textures(&input);
 			load_materials(&input);
 			const tinygltf::Scene& scene = input.scenes[0];
-            transform_index = 0;
+			transform_index = 0;
 			for (int i = 0; i < scene.nodes.size(); ++i) {
 				const tinygltf::Node node = input.nodes[scene.nodes[i]];
 				load_node(&node, &input, nullptr, index_buffer, vertex_buffer);
@@ -96,7 +96,57 @@ namespace render::vulkan {
 						VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
 							VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 						VMA_MEMORY_USAGE_GPU_ONLY};
-		renderer->immediate_submit([=](VkCommandBuffer cmd) {
+		renderer->immediate_submit([=, this](VkCommandBuffer cmd) {
+			VkBufferCopy vertex_copy{0, 0, vertex_buf_size};
+			vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
+							&vertex_copy);
+			VkBufferCopy index_copy{0, 0, index_buf_size};
+			vkCmdCopyBuffer(cmd, index_staging.handle, mIndexBuffer.handle, 1,
+							&index_copy);
+		});
+		vertex_staging.destroy();
+		index_staging.destroy();
+	}
+
+	GLTFModel::GLTFModel(const asset::GLTFImporter& scene, Device* device,
+						 VulkanRenderer* renderer) :
+		renderer(renderer),
+		mDevice(device), mLifetime(ObjectLifetime::OWNED) {
+		ArrayList<u32> index_buffer;
+		ArrayList<Vertex> vertex_buffer;
+		load_images(scene.input);
+		load_textures(scene.input);
+		load_materials(scene.input);
+		transform_index = 0;
+		for (auto& node_id : scene.scene->nodes) {
+			const tinygltf::Node node = scene.input->nodes[node_id];
+			load_node(&node, scene.input, nullptr, index_buffer, vertex_buffer);
+		}
+		const size_t vertex_buf_size = vertex_buffer.size() * sizeof(Vertex);
+		const size_t index_buf_size = index_buffer.size() * sizeof(u32);
+		Buffer vertex_staging{mDevice->allocator(), vertex_buf_size,
+							  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							  VMA_MEMORY_USAGE_CPU_ONLY};
+		void* vertex_data;
+		vmaMapMemory(mDevice->allocator(), vertex_staging.memory, &vertex_data);
+		memcpy(vertex_data, vertex_buffer.data(), vertex_buf_size);
+		vmaUnmapMemory(mDevice->allocator(), vertex_staging.memory);
+		mVertexBuffer = {mDevice->allocator(), vertex_buf_size,
+						 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						 VMA_MEMORY_USAGE_GPU_ONLY};
+		Buffer index_staging{mDevice->allocator(), index_buf_size,
+							 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							 VMA_MEMORY_USAGE_CPU_ONLY};
+		void* index_data;
+		vmaMapMemory(mDevice->allocator(), index_staging.memory, &index_data);
+		memcpy(index_data, index_buffer.data(), index_buf_size);
+		vmaUnmapMemory(mDevice->allocator(), index_staging.memory);
+		mIndexBuffer = {mDevice->allocator(), index_buf_size,
+						VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+							VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						VMA_MEMORY_USAGE_GPU_ONLY};
+		renderer->immediate_submit([=, this](VkCommandBuffer cmd) {
 			VkBufferCopy vertex_copy{0, 0, vertex_buf_size};
 			vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
 							&vertex_copy);
@@ -247,10 +297,12 @@ namespace render::vulkan {
 							mDefaultMaterial.layout, 1, 1,
 							&frame_data.object_descriptor, 0, nullptr);
 					}
-                    MeshPushConstant constant;
-                    constant.id = ssbo_index;
-                    ssbo_index++;
-                    vkCmdPushConstants(buf, current_material->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstant), &constant);
+					MeshPushConstant constant;
+					constant.id = ssbo_index;
+					ssbo_index++;
+					vkCmdPushConstants(buf, current_material->layout,
+									   VK_SHADER_STAGE_VERTEX_BIT, 0,
+									   sizeof(MeshPushConstant), &constant);
 					vkCmdDrawIndexed(buf, primitive.index_count, 1,
 									 primitive.first_index, 0, 0);
 				}
