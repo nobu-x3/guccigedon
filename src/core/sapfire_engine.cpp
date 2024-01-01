@@ -15,7 +15,7 @@ namespace core {
 		}
 		mRenderer =
 			std::make_unique<render::vulkan::VulkanRenderer>(scene_asset);
-		mPhysics->load_scene(scene_path);
+		mPhysics->load_scene(scene_asset);
 	}
 
 	void Engine::load_node(const tinygltf::Node* inNode,

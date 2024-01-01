@@ -25,6 +25,14 @@ namespace physics {
 		}
 	}
 
+	void Engine::load_scene(const asset::GLTFImporter& scene_asset) {
+			transform_index = 0;
+            for(auto& node_id : scene_asset.scene->nodes){
+				const tinygltf::Node node = scene_asset.input->nodes[node_id];
+				load_node(&node, scene_asset.input, nullptr);
+            }
+    }
+
 	void Engine::load_node(const tinygltf::Node* inNode,
 						   const tinygltf::Model* in, Node* parent) {
 		const tinygltf::Node& inputNode = *inNode;

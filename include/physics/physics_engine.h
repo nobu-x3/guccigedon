@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include "assets/scene/gltf_importer.h"
 #include "core/input.h"
 #include "core/types.h"
 #include "gameplay/movement_component.h"
@@ -55,6 +56,7 @@ namespace physics {
 		void simulate(f32 delta_time);
 		void handle_collisions();
 		void load_scene(std::filesystem::path scene_path);
+        void load_scene(const asset::GLTFImporter& scene_asset);
 
 		inline const ArrayList<PhysicsObject>& physics_object() const {
 			return mPhysicsObjects;
