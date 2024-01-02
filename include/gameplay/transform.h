@@ -3,11 +3,13 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/quaternion_float.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include "core/types.h"
 
 namespace gameplay {
 	class Transform {
 	public:
-		const glm::mat4& calculate_transform();
+		const glm::mat4&
+		calculate_transform(const ArrayList<Transform>& transforms);
 		const glm::mat4& transform() const { return mTransform; }
 		inline const glm::vec3& euler() const { return mEulerAngles; }
 		inline const glm::vec3& position() const { return mPosition; }
@@ -35,8 +37,14 @@ namespace gameplay {
 			return mRotationMatrix;
 		}
 
+		inline void parent_index(s32 ind) {
+			mParentIndex = ind;
+			mDirty = true;
+		}
+
+		inline s32 parent_index() const { return mParentIndex; }
+
 	private:
-		bool mDirty{true};
 		glm::mat4x4 mTransform{1.0};
 		glm::vec3 mPosition{0.0};
 		glm::quat mRotation{};
@@ -46,5 +54,7 @@ namespace gameplay {
 		glm::vec3 mForward{0.0, 0.0, -1.0};
 		glm::vec3 mUp{0.0, 1.0, 0.0};
 		glm::mat4x4 mRotationMatrix{1};
+		s32 mParentIndex{-1};
+		bool mDirty{true};
 	};
 } // namespace gameplay

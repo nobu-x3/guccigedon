@@ -199,6 +199,7 @@ set(GUCCIGEDON_TESTS
 	tests/aabb_collider_test.cpp
 	tests/plane_collider_test.cpp
 	tests/physics_engine_test.cpp
+    tests/transform_test.cpp
 )
 include(FetchContent)
 FetchContent_Declare(

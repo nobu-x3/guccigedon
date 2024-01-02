@@ -19,7 +19,7 @@ namespace core {
 	}
 
 	void Engine::load_node(const tinygltf::Node* inNode,
-						   const tinygltf::Model* in) {
+						   const tinygltf::Model* in, s32 parent_index) {
 		const tinygltf::Node& inputNode = *inNode;
 		const tinygltf::Model& input = *in;
 		gameplay::Transform transform{};
@@ -32,10 +32,12 @@ namespace core {
 		if (inputNode.scale.size() == 3) {
 			transform.scale(glm::make_vec3(inputNode.scale.data()));
 		}
+        transform.parent_index(parent_index);
 		mTransforms.push_back(transform);
+		s32 _parent_index = mTransforms.size() - 1;
 		if (inputNode.children.size() > 0) {
 			for (const auto& child_index : inputNode.children) {
-				load_node(&input.nodes[child_index], in);
+				load_node(&input.nodes[child_index], in, _parent_index);
 			}
 		}
 	}
@@ -53,9 +55,9 @@ namespace core {
 				mRenderer->handle_input_event(poll_result);
 			} while (poll_result.result != 0);
 			mPhysics->simulate(0.000016f);
-            for(auto& transform : mTransforms){
-                transform.calculate_transform();
-            }
+			for (auto& transform : mTransforms) {
+				transform.calculate_transform(mTransforms);
+			}
 			mRenderer->draw(mTransforms);
 		}
 	}

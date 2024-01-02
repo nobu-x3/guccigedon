@@ -5,12 +5,16 @@
 #include <glm/gtx/transform.hpp>
 
 namespace gameplay {
-	const glm::mat4& Transform::calculate_transform() {
+	const glm::mat4&
+	Transform::calculate_transform(const ArrayList<Transform>& transforms) {
 		if (mDirty) {
-			glm::mat4 scale = glm::scale(mScale);
-			glm::mat4 rot = glm::toMat4(mRotation);
-			glm::mat4 transl = glm::translate(glm::mat4(1), mPosition);
+			glm::mat4 scale= glm::scale(mScale);
+			glm::mat4 rot= glm::toMat4(mRotation);
+			glm::mat4 transl= glm::translate(glm::mat4(1), mPosition);
 			mTransform = transl * rot * scale;
+            if(mParentIndex >= 0){
+                mTransform = transforms[mParentIndex].mTransform * mTransform;
+            }
 		}
 		return mTransform;
 	}
@@ -43,7 +47,7 @@ namespace gameplay {
 		mRight = mRotationMatrix * glm::vec4(mRight, 0.f);
 		mUp = glm::normalize(glm::cross(mRight, mForward));
 		mDirty = true;
-        return *this;
+		return *this;
 	}
 
 } // namespace gameplay

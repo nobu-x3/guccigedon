@@ -32,7 +32,7 @@ namespace core {
 		inline u32 entity_count() const { return mEntities.size(); }
     private:
         void load_node(const tinygltf::Node* inNode,
-							  const tinygltf::Model* in);
+							  const tinygltf::Model* in, s32 parent_index = -1);
 
 	private:
 		ArrayList<Entity> mEntities{};

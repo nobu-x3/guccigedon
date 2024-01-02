@@ -1,0 +1,130 @@
+#include <gtest/gtest.h>
+#include "gameplay/transform.h"
+
+TEST(Guccigedon_Transform_Tests, Relative_Position) {
+	gameplay::Transform t1;
+	t1.position({0, 0, 0});
+	gameplay::Transform t2;
+	t2.position({0, 3, 0});
+    t2.parent_index(0);
+	gameplay::Transform t3;
+	t3.position({2, 0, 0});
+    t3.parent_index(1);
+	ArrayList<gameplay::Transform> transforms  {t1, t2, t3};
+    for(auto& t : transforms){
+        t.calculate_transform(transforms);
+    }
+    auto& trans = transforms[2].transform();
+    EXPECT_EQ(transforms[0].transform()[0].x, 1.f);
+    EXPECT_EQ(transforms[0].transform()[0].y, 0.f);
+    EXPECT_EQ(transforms[0].transform()[0].z, 0.f);
+    EXPECT_EQ(transforms[0].transform()[0].w, 0.f);
+    EXPECT_EQ(transforms[0].transform()[1].x, 0.f);
+    EXPECT_EQ(transforms[0].transform()[1].y, 1.f);
+    EXPECT_EQ(transforms[0].transform()[1].z, 0.f);
+    EXPECT_EQ(transforms[0].transform()[1].w, 0.f);
+    EXPECT_EQ(transforms[0].transform()[2].x, 0.f);
+    EXPECT_EQ(transforms[0].transform()[2].y, 0.f);
+    EXPECT_EQ(transforms[0].transform()[2].z, 1.f);
+    EXPECT_EQ(transforms[0].transform()[2].w, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].x, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].y, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].z, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].w, 1.f);
+    EXPECT_EQ(transforms[1].transform()[0].x, 1.f);
+    EXPECT_EQ(transforms[1].transform()[0].y, 0.f);
+    EXPECT_EQ(transforms[1].transform()[0].z, 0.f);
+    EXPECT_EQ(transforms[1].transform()[0].w, 0.f);
+    EXPECT_EQ(transforms[1].transform()[1].x, 0.f);
+    EXPECT_EQ(transforms[1].transform()[1].y, 1.f);
+    EXPECT_EQ(transforms[1].transform()[1].z, 0.f);
+    EXPECT_EQ(transforms[1].transform()[1].w, 0.f);
+    EXPECT_EQ(transforms[1].transform()[2].x, 0.f);
+    EXPECT_EQ(transforms[1].transform()[2].y, 0.f);
+    EXPECT_EQ(transforms[1].transform()[2].z, 1.f);
+    EXPECT_EQ(transforms[1].transform()[2].w, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].x, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].y, 3.f);
+    EXPECT_EQ(transforms[1].transform()[3].z, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].w, 1.f);
+    EXPECT_EQ(transforms[2].transform()[0].x, 1.f);
+    EXPECT_EQ(transforms[2].transform()[0].y, 0.f);
+    EXPECT_EQ(transforms[2].transform()[0].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[0].w, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].x, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].y, 1.f);
+    EXPECT_EQ(transforms[2].transform()[1].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].w, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].x, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].y, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].z, 1.f);
+    EXPECT_EQ(transforms[2].transform()[2].w, 0.f);
+    EXPECT_EQ(transforms[2].transform()[3].x, 2.f);
+    EXPECT_EQ(transforms[2].transform()[3].y, 3.f);
+    EXPECT_EQ(transforms[2].transform()[3].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[3].w, 1.f);
+}
+
+TEST(Guccigedon_Transform_Tests, Relative_Scale) {
+	gameplay::Transform t1;
+	t1.scale({1, 1, 1});
+	gameplay::Transform t2;
+	t2.scale({1, 3, 1});
+    t2.parent_index(0);
+	gameplay::Transform t3;
+	t3.scale({2, 0, 0});
+    t3.parent_index(1);
+	ArrayList<gameplay::Transform> transforms  {t1, t2, t3};
+    for(auto& t : transforms){
+        t.calculate_transform(transforms);
+    }
+    auto& trans = transforms[2].transform();
+    EXPECT_EQ(transforms[0].transform()[0].x, 1.f);
+    EXPECT_EQ(transforms[0].transform()[0].y, 0.f);
+    EXPECT_EQ(transforms[0].transform()[0].z, 0.f);
+    EXPECT_EQ(transforms[0].transform()[0].w, 0.f);
+    EXPECT_EQ(transforms[0].transform()[1].x, 0.f);
+    EXPECT_EQ(transforms[0].transform()[1].y, 1.f);
+    EXPECT_EQ(transforms[0].transform()[1].z, 0.f);
+    EXPECT_EQ(transforms[0].transform()[1].w, 0.f);
+    EXPECT_EQ(transforms[0].transform()[2].x, 0.f);
+    EXPECT_EQ(transforms[0].transform()[2].y, 0.f);
+    EXPECT_EQ(transforms[0].transform()[2].z, 1.f);
+    EXPECT_EQ(transforms[0].transform()[2].w, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].x, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].y, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].z, 0.f);
+    EXPECT_EQ(transforms[0].transform()[3].w, 1.f);
+    EXPECT_EQ(transforms[1].transform()[0].x, 1.f);
+    EXPECT_EQ(transforms[1].transform()[0].y, 0.f);
+    EXPECT_EQ(transforms[1].transform()[0].z, 0.f);
+    EXPECT_EQ(transforms[1].transform()[0].w, 0.f);
+    EXPECT_EQ(transforms[1].transform()[1].x, 0.f);
+    EXPECT_EQ(transforms[1].transform()[1].y, 3.f);
+    EXPECT_EQ(transforms[1].transform()[1].z, 0.f);
+    EXPECT_EQ(transforms[1].transform()[1].w, 0.f);
+    EXPECT_EQ(transforms[1].transform()[2].x, 0.f);
+    EXPECT_EQ(transforms[1].transform()[2].y, 0.f);
+    EXPECT_EQ(transforms[1].transform()[2].z, 1.f);
+    EXPECT_EQ(transforms[1].transform()[2].w, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].x, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].y, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].z, 0.f);
+    EXPECT_EQ(transforms[1].transform()[3].w, 1.f);
+    EXPECT_EQ(transforms[2].transform()[0].x, 2.f);
+    EXPECT_EQ(transforms[2].transform()[0].y, 0.f);
+    EXPECT_EQ(transforms[2].transform()[0].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[0].w, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].x, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].y, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[1].w, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].x, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].y, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[2].w, 0.f);
+    EXPECT_EQ(transforms[2].transform()[3].x, 0.f);
+    EXPECT_EQ(transforms[2].transform()[3].y, 0.f);
+    EXPECT_EQ(transforms[2].transform()[3].z, 0.f);
+    EXPECT_EQ(transforms[2].transform()[3].w, 1.f);
+}

@@ -5,7 +5,7 @@
       "filetypes": [ "cpp" ],
       "configuration": {
         "request": "launch",
-        "program": "${workspaceRoot}/build/Guccigedon",
+        "program": "${workspaceRoot}/build/Tests",
         "cwd": "${workspaceRoot}/build"
       }
     }
