@@ -39,8 +39,9 @@ namespace physics {
 	};
 
 	struct RigidBody {
-		float mass = 1;
-		float gravity_factor = 1;
+        f32 inverse_mass = 1;
+		f32 gravity_factor = 1;
+        f32 damping = 1;
 	};
 
 	class Engine {

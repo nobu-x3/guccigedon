@@ -1,4 +1,5 @@
 #include "physics/physics_engine.h"
+#include <cmath>
 #include <tiny_gltf.h>
 #include "core/sapfire_engine.h"
 
@@ -26,12 +27,12 @@ namespace physics {
 	}
 
 	void Engine::load_scene(const asset::GLTFImporter& scene_asset) {
-			transform_index = 0;
-            for(auto& node_id : scene_asset.scene->nodes){
-				const tinygltf::Node node = scene_asset.input->nodes[node_id];
-				load_node(&node, scene_asset.input, nullptr);
-            }
-    }
+		transform_index = 0;
+		for (auto& node_id : scene_asset.scene->nodes) {
+			const tinygltf::Node node = scene_asset.input->nodes[node_id];
+			load_node(&node, scene_asset.input, nullptr);
+		}
+	}
 
 	void Engine::load_node(const tinygltf::Node* inNode,
 						   const tinygltf::Model* in, Node* parent) {
@@ -123,7 +124,7 @@ namespace physics {
 
 	// TODO: this is supposed to be pretty complicated alas
 	glm::vec3 Engine::compute_force(const RigidBody& rb) {
-		return glm::vec3{0, rb.mass * -9.81 * rb.gravity_factor, 0};
+		return glm::vec3{0, rb.inverse_mass * -9.81 * rb.gravity_factor, 0};
 	}
 
 	void Engine::simulate(f32 delta_time) {
@@ -148,13 +149,17 @@ namespace physics {
 			}
 			auto& transform = mCoreEngine->transforms()[po.transform_index];
 			auto& movement = mMovementComponents[po.movemevent_component_index];
+            f32 damping = 1;
 			if (po.rigidbody_component_index >= 0) {
 				auto& rb = mRigidBodies[po.rigidbody_component_index];
-				auto force = compute_force(rb);
-				movement.acceleration = glm::vec3{
-					force.x / rb.mass, force.y / rb.mass, force.z / rb.mass};
+				if (rb.inverse_mass > 0.f) {
+					auto force = compute_force(rb);
+					movement.acceleration = force * rb.inverse_mass;
+                    damping = std::pow(rb.damping, delta_time);
+				}
 			}
 			movement.velocity += movement.acceleration * delta_time;
+            movement.velocity *= damping;
 			auto position = transform.position();
 			position += movement.velocity * delta_time;
 			transform.position(position);
