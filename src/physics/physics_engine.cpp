@@ -8,24 +8,6 @@ namespace physics {
 	Engine::Engine(core::Engine* core_engine) : mCoreEngine(core_engine) {}
 
 	static s32 transform_index{0};
-	void Engine::load_scene(std::filesystem::path scene_path) {
-		tinygltf::Model input;
-		tinygltf::TinyGLTF context;
-		std::string error, warning;
-		bool loaded = context.LoadASCIIFromFile(&input, &error, &warning,
-												scene_path.string());
-		if (loaded) {
-			const tinygltf::Scene& scene = input.scenes[0];
-			transform_index = 0;
-			for (int i = 0; i < scene.nodes.size(); ++i) {
-				const tinygltf::Node node = input.nodes[scene.nodes[i]];
-				load_node(&node, &input, nullptr);
-			}
-		} else {
-			throw std::exception();
-		}
-	}
-
 	void Engine::load_scene(const asset::GLTFImporter& scene_asset) {
 		transform_index = 0;
 		for (auto& node_id : scene_asset.scene->nodes) {

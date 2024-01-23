@@ -55,38 +55,6 @@ namespace render::vulkan {
 		mShaderCache = {mDevice};
 	}
 
-	VulkanRenderer ::VulkanRenderer(std::filesystem::path scene_path) {
-		SDL_Init(SDL_INIT_VIDEO);
-		mpWindow = SDL_CreateWindow(
-			"Guccigedon", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			mWindowExtent.width, mWindowExtent.height,
-			(SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE));
-		if (!mpWindow) {
-			core::Logger::Fatal("Failed to create a window. {}",
-								SDL_GetError());
-			exit(-1);
-		}
-		init_instance();
-		init_swapchain();
-		init_default_renderpass();
-		init_framebuffers();
-		init_commands();
-		init_sync_objects();
-		init_descriptors();
-		/* init_scene(); */
-		mCamera.transform.position({0.f, 0.f, 2.f});
-		for (std::pair<const Material, ArrayList<Mesh>>& entry : mMaterialMap) {
-			mMaterialBufferMap[entry.first] = merge_vertices(entry.second);
-		}
-		mCamera = {glm::radians(70.f),
-				   static_cast<f32>(mWindowExtent.width) / mWindowExtent.height,
-				   0.1f, 200.0f};
-		mCamera.transform.position({0, 0, 3});
-		mImageCache = {mDevice, this};
-		mShaderCache = {mDevice};
-		mGltfScene = {scene_path, &mDevice, this};
-	}
-
     VulkanRenderer::VulkanRenderer(const asset::GLTFImporter& scene_asset){
 		SDL_Init(SDL_INIT_VIDEO);
 		mpWindow = SDL_CreateWindow(

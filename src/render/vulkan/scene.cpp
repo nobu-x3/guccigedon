@@ -4,13 +4,6 @@
 #include "render/vulkan/renderer.h"
 #include "render/vulkan/types.h"
 #include "vulkan/vulkan_core.h"
-#define TINYGLTF_IMPLEMENTATION
-// #define STB_IMAGE_IMPLEMENTATION
-#define TINYGLTF_NO_INCLUDE_STB_IMAGE
-#define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#define TINYGLTF_NO_STB_IMAGE
-#define TINYGLTF_NO_EXTERNAL_IMAGE
 #include <tiny_gltf.h>
 
 namespace render::vulkan {
@@ -48,65 +41,65 @@ namespace render::vulkan {
 	}
 
 	static u32 transform_index{0};
-	GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
-						 VulkanRenderer* renderer) :
-		renderer(renderer),
-		path(file), mDevice(device), mLifetime(ObjectLifetime::OWNED) {
-		tinygltf::Model input;
-		tinygltf::TinyGLTF context;
-		std::string error, warning;
-		bool loaded =
-			context.LoadASCIIFromFile(&input, &error, &warning, path.string());
-		ArrayList<u32> index_buffer;
-		ArrayList<Vertex> vertex_buffer;
-		if (loaded) {
-			load_images(&input);
-			load_textures(&input);
-			load_materials(&input);
-			const tinygltf::Scene& scene = input.scenes[0];
-			transform_index = 0;
-			for (int i = 0; i < scene.nodes.size(); ++i) {
-				const tinygltf::Node node = input.nodes[scene.nodes[i]];
-				load_node(&node, &input, nullptr, index_buffer, vertex_buffer);
-			}
-		} else {
-			throw std::exception();
-		}
-		const size_t vertex_buf_size = vertex_buffer.size() * sizeof(Vertex);
-		const size_t index_buf_size = index_buffer.size() * sizeof(u32);
-		Buffer vertex_staging{mDevice->allocator(), vertex_buf_size,
-							  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-							  VMA_MEMORY_USAGE_CPU_ONLY};
-		void* vertex_data;
-		vmaMapMemory(mDevice->allocator(), vertex_staging.memory, &vertex_data);
-		memcpy(vertex_data, vertex_buffer.data(), vertex_buf_size);
-		vmaUnmapMemory(mDevice->allocator(), vertex_staging.memory);
-		mVertexBuffer = {mDevice->allocator(), vertex_buf_size,
-						 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-							 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-						 VMA_MEMORY_USAGE_GPU_ONLY};
-		Buffer index_staging{mDevice->allocator(), index_buf_size,
-							 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-							 VMA_MEMORY_USAGE_CPU_ONLY};
-		void* index_data;
-		vmaMapMemory(mDevice->allocator(), index_staging.memory, &index_data);
-		memcpy(index_data, index_buffer.data(), index_buf_size);
-		vmaUnmapMemory(mDevice->allocator(), index_staging.memory);
-		mIndexBuffer = {mDevice->allocator(), index_buf_size,
-						VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-							VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-						VMA_MEMORY_USAGE_GPU_ONLY};
-		renderer->immediate_submit([=, this](VkCommandBuffer cmd) {
-			VkBufferCopy vertex_copy{0, 0, vertex_buf_size};
-			vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
-							&vertex_copy);
-			VkBufferCopy index_copy{0, 0, index_buf_size};
-			vkCmdCopyBuffer(cmd, index_staging.handle, mIndexBuffer.handle, 1,
-							&index_copy);
-		});
-		vertex_staging.destroy();
-		index_staging.destroy();
-	}
+	//GLTFModel::GLTFModel(std::filesystem::path file, Device* device,
+	//					 VulkanRenderer* renderer) :
+	//	renderer(renderer),
+	//	path(file), mDevice(device), mLifetime(ObjectLifetime::OWNED) {
+	//	tinygltf::Model input;
+	//	tinygltf::TinyGLTF context;
+	//	std::string error, warning;
+	//	bool loaded =
+	//		context.LoadASCIIFromFile(&input, &error, &warning, path.string());
+	//	ArrayList<u32> index_buffer;
+	//	ArrayList<Vertex> vertex_buffer;
+	//	if (loaded) {
+	//		load_images(&input);
+	//		load_textures(&input);
+	//		load_materials(&input);
+	//		const tinygltf::Scene& scene = input.scenes[0];
+	//		transform_index = 0;
+	//		for (int i = 0; i < scene.nodes.size(); ++i) {
+	//			const tinygltf::Node node = input.nodes[scene.nodes[i]];
+	//			load_node(&node, &input, nullptr, index_buffer, vertex_buffer);
+	//		}
+	//	} else {
+	//		throw std::exception();
+	//	}
+	//	const size_t vertex_buf_size = vertex_buffer.size() * sizeof(Vertex);
+	//	const size_t index_buf_size = index_buffer.size() * sizeof(u32);
+	//	Buffer vertex_staging{mDevice->allocator(), vertex_buf_size,
+	//						  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	//						  VMA_MEMORY_USAGE_CPU_ONLY};
+	//	void* vertex_data;
+	//	vmaMapMemory(mDevice->allocator(), vertex_staging.memory, &vertex_data);
+	//	memcpy(vertex_data, vertex_buffer.data(), vertex_buf_size);
+	//	vmaUnmapMemory(mDevice->allocator(), vertex_staging.memory);
+	//	mVertexBuffer = {mDevice->allocator(), vertex_buf_size,
+	//					 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+	//						 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	//					 VMA_MEMORY_USAGE_GPU_ONLY};
+	//	Buffer index_staging{mDevice->allocator(), index_buf_size,
+	//						 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	//						 VMA_MEMORY_USAGE_CPU_ONLY};
+	//	void* index_data;
+	//	vmaMapMemory(mDevice->allocator(), index_staging.memory, &index_data);
+	//	memcpy(index_data, index_buffer.data(), index_buf_size);
+	//	vmaUnmapMemory(mDevice->allocator(), index_staging.memory);
+	//	mIndexBuffer = {mDevice->allocator(), index_buf_size,
+	//					VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+	//						VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	//					VMA_MEMORY_USAGE_GPU_ONLY};
+	//	renderer->immediate_submit([=, this](VkCommandBuffer cmd) {
+	//		VkBufferCopy vertex_copy{0, 0, vertex_buf_size};
+	//		vkCmdCopyBuffer(cmd, vertex_staging.handle, mVertexBuffer.handle, 1,
+	//						&vertex_copy);
+	//		VkBufferCopy index_copy{0, 0, index_buf_size};
+	//		vkCmdCopyBuffer(cmd, index_staging.handle, mIndexBuffer.handle, 1,
+	//						&index_copy);
+	//	});
+	//	vertex_staging.destroy();
+	//	index_staging.destroy();
+	//}
 
 	GLTFModel::GLTFModel(const asset::GLTFImporter& scene, Device* device,
 						 VulkanRenderer* renderer) :

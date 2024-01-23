@@ -47,7 +47,6 @@ namespace render::vulkan {
 
 	public:
 		VulkanRenderer();
-		VulkanRenderer(std::filesystem::path path);
 		VulkanRenderer(const asset::GLTFImporter& scene_asset);
 		~VulkanRenderer();
 		VulkanRenderer(const VulkanRenderer&) = delete;

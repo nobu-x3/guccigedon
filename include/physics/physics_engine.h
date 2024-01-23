@@ -56,7 +56,6 @@ namespace physics {
 		void handle_input_event(core::PollResult& poll_result);
 		void simulate(f32 delta_time);
 		void handle_collisions();
-		void load_scene(std::filesystem::path scene_path);
         void load_scene(const asset::GLTFImporter& scene_asset);
 
 		inline const ArrayList<PhysicsObject>& physics_object() const {
