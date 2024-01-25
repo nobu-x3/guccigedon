@@ -31,6 +31,7 @@ namespace physics {
 		const PhysicsObject* objects[2];
 		f32 restitution;
 		glm::vec3 contact_normal;
+		f32 distance;
 	};
 
 	struct IntersectData {

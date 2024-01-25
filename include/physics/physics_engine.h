@@ -72,6 +72,7 @@ namespace physics {
 					   const tinygltf::Model* input, Node* parent);
         f32 calculate_separating_velocity(const CollisionContact& contact);
         void resolve_velocity(f32 duration);
+        void resolve_interpenetration(f32 duration);
 
 	private:
 		core::Engine* mCoreEngine{nullptr};

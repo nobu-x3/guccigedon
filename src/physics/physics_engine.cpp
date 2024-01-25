@@ -219,4 +219,49 @@ namespace physics {
 			}
 		}
 	}
+	void Engine::resolve_interpenetration(f32 duration) {
+		for (const auto& contact : mCollisions) {
+			if (contact.distance <= 0)
+				return;
+			f32 total_inverse_mass = 0;
+			if (contact.objects[0] &&
+				contact.objects[0]->rigidbody_component_index >= 0) {
+				total_inverse_mass +=
+					mRigidBodies[contact.objects[0]->rigidbody_component_index]
+						.inverse_mass;
+			}
+			if (contact.objects[1] &&
+				contact.objects[1]->rigidbody_component_index >= 0) {
+				total_inverse_mass +=
+					mRigidBodies[contact.objects[1]->rigidbody_component_index]
+						.inverse_mass;
+			}
+			if (total_inverse_mass <= 0)
+				return;
+			glm::vec3 move_per_inverse_mass = contact.contact_normal *
+				(contact.distance / total_inverse_mass);
+			if (contact.objects[0] &&
+				contact.objects[0]->transform_index >= 0 &&
+				contact.objects[0]->rigidbody_component_index >= 0) {
+				glm::vec3 particle_movement = move_per_inverse_mass *
+					mRigidBodies[contact.objects[0]->rigidbody_component_index]
+						.inverse_mass;
+				auto& transform =
+					mCoreEngine
+						->transforms()[contact.objects[0]->transform_index];
+				transform.position(transform.position() + particle_movement[0]);
+			}
+			if (contact.objects[1] &&
+				contact.objects[1]->transform_index >= 0 &&
+				contact.objects[1]->rigidbody_component_index >= 0) {
+				glm::vec3 particle_movement = move_per_inverse_mass *
+					mRigidBodies[contact.objects[1]->rigidbody_component_index]
+						.inverse_mass;
+				auto& transform =
+					mCoreEngine
+						->transforms()[contact.objects[1]->transform_index];
+				transform.position(transform.position() + particle_movement[1]);
+			}
+		}
+	}
 } // namespace physics
