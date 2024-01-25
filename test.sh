@@ -2,8 +2,7 @@
 
 set echo off
 mkdir -p build
-cmake -S . -B build
-cmake --build build
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 cd build
 make -j32
 ./Tests
