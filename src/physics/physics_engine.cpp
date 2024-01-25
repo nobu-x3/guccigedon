@@ -131,17 +131,17 @@ namespace physics {
 			}
 			auto& transform = mCoreEngine->transforms()[po.transform_index];
 			auto& movement = mMovementComponents[po.movemevent_component_index];
-            f32 damping = 1;
+			f32 damping = 1;
 			if (po.rigidbody_component_index >= 0) {
 				auto& rb = mRigidBodies[po.rigidbody_component_index];
 				if (rb.inverse_mass > 0.f) {
 					auto force = compute_force(rb);
 					movement.acceleration = force * rb.inverse_mass;
-                    damping = std::pow(rb.damping, delta_time);
+					damping = std::pow(rb.damping, delta_time);
 				}
 			}
 			movement.velocity += movement.acceleration * delta_time;
-            movement.velocity *= damping;
+			movement.velocity *= damping;
 			auto position = transform.position();
 			position += movement.velocity * delta_time;
 			transform.position(position);
@@ -149,4 +149,74 @@ namespace physics {
 	}
 
 	void Engine::handle_collisions() {}
+
+	f32 Engine::calculate_separating_velocity(const CollisionContact& contact) {
+		glm::vec3 relative_velocity{0};
+		if (contact.objects[0] &&
+			contact.objects[0]->movemevent_component_index >= 0) {
+			relative_velocity =
+				mMovementComponents[contact.objects[0]
+										->movemevent_component_index]
+					.velocity;
+		}
+		if (contact.objects[1] &&
+			contact.objects[1]->movemevent_component_index >= 0) {
+			relative_velocity -=
+				mMovementComponents[contact.objects[1]
+										->movemevent_component_index]
+					.velocity;
+		}
+		return glm::dot(relative_velocity, contact.contact_normal);
+	}
+
+	void Engine::resolve_velocity(f32 duration) {
+		for (const auto& contact : mCollisions) {
+			f32 separating_velocity = calculate_separating_velocity(contact);
+			// contact either separating or stationary, so no impulse required
+			if (separating_velocity > 0) {
+				return;
+			}
+			f32 new_sep_velocity = -separating_velocity * contact.restitution;
+			f32 delta_vel = new_sep_velocity - separating_velocity;
+			f32 total_inverse_mass = 0;
+			if (contact.objects[0] &&
+				contact.objects[0]->rigidbody_component_index >= 0) {
+				total_inverse_mass +=
+					mRigidBodies[contact.objects[0]->rigidbody_component_index]
+						.inverse_mass;
+			}
+			if (contact.objects[1] &&
+				contact.objects[1]->rigidbody_component_index >= 0) {
+				total_inverse_mass +=
+					mRigidBodies[contact.objects[1]->rigidbody_component_index]
+						.inverse_mass;
+			}
+			if (total_inverse_mass <= 0) {
+				return;
+			}
+			f32 impulse = delta_vel / total_inverse_mass;
+			glm::vec3 impulse_per_mass = contact.contact_normal * impulse;
+			// apply impulses
+			if (contact.objects[0] &&
+				contact.objects[0]->movemevent_component_index >= 0 &&
+				contact.objects[0]->rigidbody_component_index >= 0) {
+				const auto& inv_mass =
+					mRigidBodies[contact.objects[0]->rigidbody_component_index]
+						.inverse_mass;
+				mMovementComponents[contact.objects[0]
+										->movemevent_component_index]
+					.velocity += impulse_per_mass * inv_mass;
+			}
+			if (contact.objects[1] &&
+				contact.objects[1]->movemevent_component_index >= 0 &&
+				contact.objects[1]->rigidbody_component_index >= 0) {
+				const auto& inv_mass =
+					mRigidBodies[contact.objects[1]->rigidbody_component_index]
+						.inverse_mass;
+				mMovementComponents[contact.objects[1]
+										->movemevent_component_index]
+					.velocity += impulse_per_mass * -inv_mass;
+			}
+		}
+	}
 } // namespace physics

@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include "gameplay/transform.h"
 
+using namespace physics;
+
 TEST(Guccigedon_SphereColliderTest, Sphere_Sphere_intersect) {
 	gameplay::Transform t1;
 	t1.position({0, 0, 0});

@@ -5,6 +5,8 @@
 #include "gameplay/movement_component.h"
 #include "gameplay/transform.h"
 
+using namespace physics;
+
 TEST(Guccigedon_PhysicsEngine, add_physics_object) {
 	ArrayList<core::Entity> entities{
 		{0, -1, 0}, {1, -1, 1}, {2, -1, 2}, {3, -1, 3}};

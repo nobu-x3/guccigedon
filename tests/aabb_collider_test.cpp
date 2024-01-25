@@ -2,6 +2,8 @@
 #include "gameplay/transform.h"
 #include "physics/aabb_collider.h"
 
+using namespace physics;
+
 TEST(Guccigedon_AABBCollider, AABB_AABB_intersect) {
 	gameplay::Transform t_aabb1{};
 	t_aabb1.position({0, 0, 0});

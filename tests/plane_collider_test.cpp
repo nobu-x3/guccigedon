@@ -3,6 +3,8 @@
 #include "gameplay/transform.h"
 #include "physics/sphere_collider.h"
 
+using namespace physics;
+
 TEST(Guccigedon_PlaneCollider, Plane_Sphere_intersect) {
 	physics::PlaneCollider plane{{0, 1, 0}, 0};
 	gameplay::Transform t1;

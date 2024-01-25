@@ -20,29 +20,6 @@ namespace tinygltf {
 } // namespace tinygltf
 
 namespace physics {
-	enum class ColliderType : u8 { None, Sphere, AABB, Plane, MAX };
-
-	struct PhysicsObject {
-		s32 transform_index;
-		s32 collider_component_index;
-		s32 movemevent_component_index;
-		s32 rigidbody_component_index;
-		ColliderType collider_type;
-		bool has_input{false};
-	};
-
-	union ColliderSettings {
-		glm::vec3 size;
-		glm::vec3 normal;
-		f32 radius;
-		f32 distance;
-	};
-
-	struct RigidBody {
-        f32 inverse_mass = 1;
-		f32 gravity_factor = 1;
-        f32 damping = 1;
-	};
 
 	class Engine {
 	public:
@@ -93,6 +70,8 @@ namespace physics {
 
 		void load_node(const tinygltf::Node* inputNode,
 					   const tinygltf::Model* input, Node* parent);
+        f32 calculate_separating_velocity(const CollisionContact& contact);
+        void resolve_velocity(f32 duration);
 
 	private:
 		core::Engine* mCoreEngine{nullptr};
@@ -102,5 +81,6 @@ namespace physics {
 		ArrayList<SphereCollider> mSpheres{};
 		ArrayList<AABBCollider> mAABBs{};
 		ArrayList<PlaneCollider> mPlanes{};
+        ArrayList<CollisionContact> mCollisions{};
 	};
 } // namespace physics

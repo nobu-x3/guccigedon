@@ -2,7 +2,7 @@
 #include <glm/vec3.hpp>
 #include "gameplay/transform.h"
 #include "core/types.h"
-#include "intersect_data.h"
+#include "physics/physics_types.h"
 
 namespace physics {
 	class SphereCollider {
