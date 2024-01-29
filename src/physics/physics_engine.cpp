@@ -177,6 +177,36 @@ namespace physics {
 				return;
 			}
 			f32 new_sep_velocity = -separating_velocity * contact.restitution;
+			// get velocity buildup due to acceleration only and remove it from
+			// separating velocity
+			{
+				glm::vec3 acceleration_caused_velocity{0};
+				if (contact.objects[0] &&
+					contact.objects[0]->movemevent_component_index >= 0) {
+					acceleration_caused_velocity +=
+						mMovementComponents[contact.objects[0]
+												->movemevent_component_index]
+							.acceleration;
+				}
+				if (contact.objects[1] &&
+					contact.objects[1]->movemevent_component_index >= 0) {
+					acceleration_caused_velocity -=
+						mMovementComponents[contact.objects[1]
+												->movemevent_component_index]
+							.acceleration;
+				}
+				f32 acceleration_caused_separation_velocity =
+					glm::dot(acceleration_caused_velocity,
+							 contact.contact_normal) *
+					duration;
+				if (acceleration_caused_separation_velocity < 0) {
+					new_sep_velocity += contact.restitution *
+						acceleration_caused_separation_velocity;
+					if (new_sep_velocity < 0) {
+						new_sep_velocity = 0;
+					}
+				}
+			}
 			f32 delta_vel = new_sep_velocity - separating_velocity;
 			f32 total_inverse_mass = 0;
 			if (contact.objects[0] &&
