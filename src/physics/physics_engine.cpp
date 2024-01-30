@@ -146,6 +146,10 @@ namespace physics {
 			position += movement.velocity * delta_time;
 			transform.position(position);
 		}
+		// TODO: collision detection
+		{}
+		mMaxIterations = mCollisions.size() * 2;
+		resolve_contacts(delta_time);
 	}
 
 	void Engine::handle_collisions() {}
