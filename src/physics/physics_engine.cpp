@@ -294,4 +294,31 @@ namespace physics {
 			}
 		}
 	}
+
+	// All this iterations business is to resolve the case where resolution of
+	// one contact may produce or automatically reduce existing contacts
+	void Engine::resolve_contacts(f32 duration) {
+		u32 iterations_used{0};
+		while (iterations_used < mMaxIterations) {
+			f32 max_velocity = MAX_F32;
+			u32 max_index = mCollisions.size();
+			for (int i = 0; i < mCollisions.size(); ++i) {
+				const CollisionContact& contact = mCollisions[i];
+				f32 separation_velocity =
+					calculate_separating_velocity(contact);
+				if (separation_velocity < max_velocity &&
+					(separation_velocity < 0 || contact.distance > 0)) {
+					max_velocity = separation_velocity;
+					max_index = i;
+				}
+			}
+			// Nothing to resolve
+			if (max_index == mCollisions.size()) {
+				break;
+			}
+			resolve_velocity(duration);
+			resolve_interpenetration(duration);
+			iterations_used++;
+		}
+	}
 } // namespace physics

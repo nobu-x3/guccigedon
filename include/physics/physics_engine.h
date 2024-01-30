@@ -51,6 +51,8 @@ namespace physics {
 		inline const ArrayList<PlaneCollider>& plane_colliders() const {
 			return mPlanes;
 		}
+		inline void iterations(u32 iterations) { mMaxIterations = iterations; }
+		inline u32 iterations() const { return mMaxIterations; }
 
 	private:
 		struct Node {
@@ -73,6 +75,7 @@ namespace physics {
         f32 calculate_separating_velocity(const CollisionContact& contact);
         void resolve_velocity(f32 duration);
         void resolve_interpenetration(f32 duration);
+		void resolve_contacts(f32 duration);
 
 	private:
 		core::Engine* mCoreEngine{nullptr};
@@ -83,5 +86,6 @@ namespace physics {
 		ArrayList<AABBCollider> mAABBs{};
 		ArrayList<PlaneCollider> mPlanes{};
         ArrayList<CollisionContact> mCollisions{};
+		u32 mMaxIterations;
 	};
 } // namespace physics

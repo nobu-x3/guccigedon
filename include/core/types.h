@@ -25,6 +25,8 @@ using f32 = float;
 
 using f64 = double;
 
+constexpr f32 MAX_F32 = std::numeric_limits<f32>::max();
+
 template <typename T>
 using ArrayList = std::vector<T>;
 
